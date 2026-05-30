@@ -8,10 +8,11 @@
 
 | ID | 功能点 | 说明 | 验收标准 |
 |----|--------|------|----------|
-| P0-01 | Monorepo 项目结构初始化 | Turborepo + packages/apps 目录骨架 | `bun install` 成功，各包能互相引用 |
-| P0-02 | 核心类型包 `@eous/types` | Workflow、Node、Edge、Asset、Provider 等全部 TS 类型定义 | 类型文件完整，其他包可导入 |
-| P0-03 | 分层目录约定 | 按 View / Modules / Runtime / DataSource / Infrastructure 建立目录和模块边界 | 每层有 index.ts 导出，层间依赖单向 |
-| P0-04 | 数据流文档 | 用 draw.io 画出系统分层和数据流向 | 图 + 文字说明，新人能看懂架构 |
+| P0-01 | Monorepo 项目结构初始化 | Turborepo + packages/apps 目录骨架 | `pnpm install` 成功，各包能互相引用 | ✅ |
+| P0-02 | 核心类型包 `@eous/types` | Workflow、Node、Edge、Asset、Provider、ApiClient 等全部 TS 类型定义 | 类型文件完整，其他包可导入 | ✅ |
+| P0-03 | API Client 通信包 | `api-client`（接口）、`api-client-http`（CS 模式）、`api-client-electron`（桌面模式） | 三个包 install 成功，类型检查通过 | ✅ |
+| P0-04 | 分层目录约定 | 按 View / Modules / Runtime / DataSource / Infrastructure 建立目录和模块边界 | 每层有 index.ts 导出，层间依赖单向 | ✅ |
+| P0-05 | 数据流文档 | 用 draw.io 画出系统分层和数据流向 | 图 + 文字说明，新人能看懂架构 |
 
 ---
 
@@ -128,7 +129,7 @@
 
 | 阶段 | 功能点数 |
 |------|---------|
-| P0 架构骨架 | 4 |
+| P0 架构骨架 | 5 |
 | P1 基础设施 | 5 |
 | P2 数据源层 | 6 |
 | P3 共享视图 | 6 |
@@ -137,4 +138,4 @@
 | P6 工作台 | 5 |
 | P7 Agent 对话 | 8 |
 | P8 标的管理 | 3 |
-| **合计** | **57** |
+| **合计** | **58** |
