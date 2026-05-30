@@ -1,0 +1,25 @@
+{
+  "name": "@eous/db",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.0.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.0.0",
+    "typescript": "^5.7.0"
+  }
+}

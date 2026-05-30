@@ -16,7 +16,7 @@
 | Markdown | react-markdown + 流式渲染 | LLM 报告展示 + 流式逐字 |
 | 后端框架 | Hono | 超轻量，路由/中间件/WebSocket 内置，性能高 |
 | 运行时 | Node.js 22+ | LTS，生态稳定 |
-| ORM | Drizzle ORM | 类型安全，SQL-like API |
+| ORM | Prisma | 类型安全，Schema 声明式，迁移工具成熟 |
 | 数据库 | PostgreSQL 16+ | 主数据存储 |
 | 缓存/队列 | Redis | 执行状态缓存 + 任务队列 |
 | Schema 校验 | Zod | 前后端共享类型校验 |
@@ -58,11 +58,11 @@ eous-platform/
 │   │   │   └── index.ts            # createElectronClient()
 │   │   └── package.json
 │   │
-│   └── shared/                     # @eous/shared — 工具函数、常量
+│   └── db/                         # @eous/db — Prisma schema + 客户端
+│       ├── prisma/
+│       │   └── schema.prisma
 │       ├── src/
-│       │   ├── variable-parser.ts  # {{}} 变量插值引擎
-│       │   ├── crypto.ts           # API Key 加解密
-│       │   └── token-estimator.ts  # Token 估算
+│       │   └── index.ts
 │       └── package.json
 │
 ├── apps/
@@ -127,9 +127,6 @@ eous-platform/
 │   │   │   │   └── llm/
 │   │   │   │       └── factory.ts
 │   │   │   ├── ws/                 # WebSocket 管理
-│   │   │   ├── db/
-│   │   │   │   ├── schema/
-│   │   │   │   └── migrations/
 │   │   │   └── lib/
 │   │   └── package.json
 │   │

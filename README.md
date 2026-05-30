@@ -26,6 +26,7 @@ Eous 不是交易终端，也不是量化回测框架。它是一张画布——
 AI:      Vercel AI SDK（OpenAI / Anthropic / DeepSeek / Ollama）
 桌面:    Electron（可选，不替代 CS 架构）
 工程:    Turborepo + pnpm workspaces
+ORM:     Prisma
 ```
 
 ## 架构分层
