@@ -271,6 +271,13 @@ export default defineConfig({
 ```json
 // turbo.json
 {
+  "globalEnv": [
+    "DATABASE_URL",
+    "PORT",
+    "INITIAL_USER_EMAIL",
+    "INITIAL_USER_PASSWORD",
+    "ALLOW_SELF_REGISTRATION"
+  ],
   "tasks": {
     "dev": {
       "cache": false,
@@ -287,10 +294,51 @@ export default defineConfig({
 }
 ```
 
+`globalEnv` 声明全局环境变量，变量值变化时 Turbo 缓存自动失效。
+
 ```bash
 # 开发：前后端一起启动
 pnpm dev
 # → turbo run dev
 # → apps/server  :3001 (Hono)
 # → apps/web     :5173 (Vite, proxy → :3001)
+```
+
+## 7. 环境变量管理
+
+所有环境变量集中在根目录 `.env` 文件管理，不在子包中重复定义。
+
+```
+根目录 .env.example   ← 唯一的变量清单（提交到 Git）
+根目录 .env           ← 开发者本地配置（gitignored）
+```
+
+| 变量 | 用途 | 默认值 |
+|------|------|--------|
+| `DATABASE_URL` | Prisma PostgreSQL 连接串 | `postgresql://postgres:password@localhost:5432/eous` |
+| `PORT` | Hono 服务端口 | `3001` |
+| `INITIAL_USER_EMAIL` | 首次启动自动创建的管理员邮箱 | `admin@eous.dev` |
+| `INITIAL_USER_PASSWORD` | 管理员密码 | `changeme` |
+| `ALLOW_SELF_REGISTRATION` | 是否允许自助注册 | `true` |
+
+### 加载机制
+
+Node.js 22+ 原生支持 `--env-file` 标志，在模块初始化之前加载环境变量。`apps/server` 的 dev 脚本通过 `--env-file ../../.env` 从根目录加载，确保 `@eous/db` 等顶层模块初始化时 `process.env` 已就绪。
+
+```bash
+# apps/server/package.json
+"dev": "node --env-file ../../.env --import tsx/esm src/index.ts"
+```
+
+### Prisma CLI 注意事项
+
+`packages/db` 的 Prisma CLI（`db:migrate`、`db:push` 等）默认从 `packages/db/` 目录查找 `.env`。集中管理后，需要从根目录运行或手动设置 `DATABASE_URL`：
+
+```bash
+# 方式一：从根目录运行（Prisma 会找到根 .env）
+cd monorepo-root
+npx prisma migrate dev --schema=packages/db/prisma/schema.prisma
+
+# 方式二：手动传入
+DATABASE_URL=... pnpm --filter @eous/db db:migrate
 ```

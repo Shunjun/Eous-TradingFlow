@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "node --import tsx/esm src/index.ts",
+    "dev": "node --env-file ../../.env --import tsx/esm src/index.ts",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/"

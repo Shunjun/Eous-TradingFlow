@@ -1,5 +1,12 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "DATABASE_URL",
+    "PORT",
+    "INITIAL_USER_EMAIL",
+    "INITIAL_USER_PASSWORD",
+    "ALLOW_SELF_REGISTRATION"
+  ],
   "tasks": {
     "dev": {
       "cache": false,
