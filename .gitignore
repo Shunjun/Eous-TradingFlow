@@ -7,3 +7,6 @@ dist/
 
 # Generated Prisma client
 packages/db/src/generated/
+
+# SQLite database files
+packages/db/data/
