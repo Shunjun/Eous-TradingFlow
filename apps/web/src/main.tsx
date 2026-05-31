@@ -2,10 +2,14 @@ import '@eous/tailwind/globals.css'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { App } from './app.js'
+import { RouterProvider } from 'react-router-dom'
+import { ThemeProvider } from '@eous/ui'
+import { router } from './router.js'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ThemeProvider defaultTheme="dark">
+      <RouterProvider router={router} />
+    </ThemeProvider>
   </StrictMode>,
 )

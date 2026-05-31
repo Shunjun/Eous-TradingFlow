@@ -1,15 +1,5 @@
 import { prisma } from '@eous/db'
-import { scrypt, randomBytes } from 'node:crypto'
-
-function hashPassword(password: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const salt = randomBytes(16).toString('hex')
-    scrypt(password, salt, 64, (err, derivedKey) => {
-      if (err) reject(err)
-      resolve(`${salt}:${derivedKey.toString('hex')}`)
-    })
-  })
-}
+import { hashPassword } from './auth-utils.js'
 
 export async function seedInitialUser(): Promise<void> {
   const userCount = await prisma.user.count()

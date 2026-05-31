@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
   GitBranch,
@@ -8,7 +9,6 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Search,
   Bot,
   Wallet,
 } from 'lucide-react'
@@ -47,9 +47,19 @@ const navSections: { title: string; items: NavItem[] }[] = [
   },
 ]
 
+const navToPath: Record<string, string> = {
+  dashboard: '/',
+  watchlist: '/watchlist',
+  news: '/news',
+  workflows: '/workflows',
+  agents: '/agents',
+  datasets: '/datasets',
+  provider: '/providers',
+  settings: '/settings',
+}
+
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
-  const [active, setActive] = useState('dashboard')
 
   return (
     <aside
@@ -80,45 +90,51 @@ export function Sidebar() {
             <div className="space-y-0.5">
               {section.items.map((item) => {
                 const Icon = item.icon
-                const isActive = active === item.id
                 return (
-                  <button
+                  <NavLink
                     key={item.id}
-                    onClick={() => setActive(item.id)}
-                    className={cn(
-                      'w-full flex items-center gap-2.5 rounded-md transition-all duration-200 group',
-                      collapsed ? 'justify-center px-2 py-2' : 'px-2.5 py-2',
-                      isActive
-                        ? 'bg-[hsl(25,95%,53%/0.1)] text-[hsl(25,95%,53%)]'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                    )}
+                    to={navToPath[item.id]}
+                    end={navToPath[item.id] === '/'}
+                    className={({ isActive }) =>
+                      cn(
+                        'w-full flex items-center gap-2.5 rounded-md transition-all duration-200 group relative',
+                        collapsed ? 'justify-center px-2 py-2' : 'px-2.5 py-2',
+                        isActive
+                          ? 'bg-[hsl(25,95%,53%/0.1)] text-[hsl(25,95%,53%)]'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      )
+                    }
                     title={collapsed ? item.label : undefined}
                   >
-                    <Icon
-                      size={16}
-                      className={cn(
-                        'shrink-0 transition-colors',
-                        isActive
-                          ? 'text-[hsl(25,95%,53%)]'
-                          : 'text-muted-foreground group-hover:text-foreground'
-                      )}
-                    />
-                    {!collapsed && (
+                    {({ isActive }) => (
                       <>
-                        <span className="text-sm truncate flex-1 text-left">{item.label}</span>
-                        {item.badge && (
-                          <span className="font-mono text-[10px] bg-[hsl(25,95%,53%/0.15)]
-                                           text-[hsl(25,95%,53%)] rounded px-1.5 py-0.5 leading-none">
-                            {item.badge}
-                          </span>
+                        <Icon
+                          size={16}
+                          className={cn(
+                            'shrink-0 transition-colors',
+                            isActive
+                              ? 'text-[hsl(25,95%,53%)]'
+                              : 'text-muted-foreground group-hover:text-foreground'
+                          )}
+                        />
+                        {!collapsed && (
+                          <>
+                            <span className="text-sm truncate flex-1 text-left">{item.label}</span>
+                            {item.badge && (
+                              <span className="font-mono text-[10px] bg-[hsl(25,95%,53%/0.15)]
+                                               text-[hsl(25,95%,53%)] rounded px-1.5 py-0.5 leading-none">
+                                {item.badge}
+                              </span>
+                            )}
+                          </>
+                        )}
+                        {/* Active indicator */}
+                        {isActive && (
+                          <Dot size="xs" variant="breath" className="absolute left-1.5" />
                         )}
                       </>
                     )}
-                    {/* Active indicator */}
-                    {isActive && (
-                      <Dot size="xs" variant="breath" className="absolute left-1.5" />
-                    )}
-                  </button>
+                  </NavLink>
                 )
               })}
             </div>

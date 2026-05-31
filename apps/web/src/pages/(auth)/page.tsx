@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   Clock,
   ArrowUpRight,
-  MoreHorizontal,
   Plus,
   Search,
   Workflow,
@@ -134,7 +133,7 @@ function ExecutionLog({
 }
 
 /* ─── Dashboard page ─── */
-export function DashboardPage() {
+export default function DashboardPage() {
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
       {/* Page header */}
