@@ -1,17 +1,7 @@
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
 import { defineConfig } from "prisma/config";
+import { resolveDbUrl } from "./src/resolve-db-url.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// Resolve data directory relative to project root
-// packages/db → project root
-const projectRoot = path.resolve(__dirname, "..");
-const dbUrl = `file:${path.resolve(projectRoot, "data", "dev.db")}`;
-
-// Ensure data directory exists
-fs.mkdirSync(path.dirname(path.resolve(projectRoot, "data", "dev.db")), { recursive: true });
+const dbUrl = resolveDbUrl(process.env.DATABASE_URL || "file:./data/dev.db");
 
 export default defineConfig({
   schema: "prisma/schema.prisma",

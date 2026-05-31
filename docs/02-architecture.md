@@ -329,15 +329,13 @@ Node.js 22+ 原生支持 `--env-file` 标志，在模块初始化之前加载环
 "dev": "node --env-file ../../.env --import tsx/esm src/index.ts"
 ```
 
-### Prisma CLI 注意事项
+### Prisma CLI
 
-`packages/db` 的 Prisma CLI（`db:migrate`、`db:push` 等）默认从 `packages/db/` 目录查找 `.env`。集中管理后，需要从根目录运行或手动设置 `DATABASE_URL`：
+`prisma.config.ts` 根据自身文件位置自动计算数据库路径，无需关心 CWD。从 `packages/db/` 直接运行即可：
 
 ```bash
-# 方式一：从根目录运行（Prisma 会找到根 .env）
-cd monorepo-root
-npx prisma migrate dev --schema=packages/db/prisma/schema.prisma
-
-# 方式二：手动传入
-DATABASE_URL=... pnpm --filter @eous/db db:migrate
+cd packages/db
+pnpm db:push      # 同步 schema 到 SQLite
+pnpm db:migrate   # 创建迁移文件
+pnpm db:generate  # 重新生成 Prisma Client
 ```

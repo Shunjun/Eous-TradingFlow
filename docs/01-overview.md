@@ -150,3 +150,6 @@ packages/api-client-electron -- Electron 模式：本地 HTTP + 自动签发 JWT
 | 桌面方案 | Electron 独立包 | 不替代 CS 架构，核心代码零改动 |
 | Monorepo | Turborepo + pnpm | 并行构建，依赖感知 |
 | 通信层 | 抽象为独立 package | CS/Electron 双模式，前端无感 |
+| 数据库 | SQLite（Prisma） | 零安装，CS 与 Electron 统一，单文件部署 |
+| ORM | Prisma | 类型安全，Schema 声明式，迁移工具成熟 |
+| UI 组件 | Tailwind CSS v4 + shadcn/ui | 原子组件统一管理，主题可切换 |

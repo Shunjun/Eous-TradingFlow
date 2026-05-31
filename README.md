@@ -21,12 +21,12 @@ Eous 不是交易终端，也不是量化回测框架。它是一张画布——
 
 ```
 前端:    Vite + React 19 + TypeScript + React Flow + react-mosaic
-后端:    Hono + Node.js + TypeScript + Drizzle ORM
-数据库:  SQLite（零安装，单文件）
+后端:    Hono + Node.js + TypeScript
+数据库:  SQLite（Prisma ORM，零安装，CS 与 Electron 统一）
+UI:      Tailwind CSS v4 + shadcn/ui（packages/tailwind + packages/ui）
 AI:      Vercel AI SDK（OpenAI / Anthropic / DeepSeek / Ollama）
 桌面:    Electron（可选，不替代 CS 架构）
 工程:    Turborepo + pnpm workspaces
-ORM:     Prisma
 ```
 
 ## 架构分层
@@ -48,4 +48,5 @@ Application Shell（导航、路由）
 
 ## 当前状态
 
-产品设计阶段，代码尚未开始。
+P0 架构骨架已完成，包含类型定义、数据库、通信层、UI 组件库。
+下一阶段：P1 基础设施（认证、Provider 配置）。
