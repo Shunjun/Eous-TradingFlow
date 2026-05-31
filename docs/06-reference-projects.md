@@ -8,13 +8,13 @@
 
 > 最直接的参考对象
 
-| 项目 | 详情 |
-|------|------|
-| 仓库 | [TradingGoose/TradingGoose-Studio](https://github.com/TradingGoose/TradingGoose-Studio) |
-| 定位 | AI 工作流平台，技术分析 + LLM 交易决策 |
-| License | AGPL-3.0 |
-| Stars | ~1.5k |
-| 活跃度 | 高（2026年5月仍在频繁更新） |
+| 项目    | 详情                                                                                    |
+| ------- | --------------------------------------------------------------------------------------- |
+| 仓库    | [TradingGoose/TradingGoose-Studio](https://github.com/TradingGoose/TradingGoose-Studio) |
+| 定位    | AI 工作流平台，技术分析 + LLM 交易决策                                                  |
+| License | AGPL-3.0                                                                                |
+| Stars   | ~1.5k                                                                                   |
+| 活跃度  | 高（2026年5月仍在频繁更新）                                                             |
 
 ### 架构分析
 
@@ -67,12 +67,12 @@ TradingGoose Studio 基于 **Sim Studio**（Sim Studio v0.4.25 fork），在通�
 
 > 节点式交易策略编辑器
 
-| 项目 | 详情 |
-|------|------|
-| 仓库 | [tomtomtong/comfyTrade](https://github.com/tomtomtong/comfyTrade) |
-| 定位 | MT5 可视化策略构建 + AI 交易 Agent |
-| License | MIT |
-| Stars | ~300 |
+| 项目    | 详情                                                              |
+| ------- | ----------------------------------------------------------------- |
+| 仓库    | [tomtomtong/comfyTrade](https://github.com/tomtomtong/comfyTrade) |
+| 定位    | MT5 可视化策略构建 + AI 交易 Agent                                |
+| License | MIT                                                               |
+| Stars   | ~300                                                              |
 
 ### 架构分析
 
@@ -113,12 +113,12 @@ TradingGoose Studio 基于 **Sim Studio**（Sim Studio v0.4.25 fork），在通�
 
 > Agent-Native 交易平台
 
-| 项目 | 详情 |
-|------|------|
-| 仓库 | [HKUDS/AI-Trader](https://github.com/HKUDS/AI-Trader) |
-| 定位 | AI Agent 社交化交易平台 |
-| License | MIT |
-| Stars | ~2k |
+| 项目    | 详情                                                  |
+| ------- | ----------------------------------------------------- |
+| 仓库    | [HKUDS/AI-Trader](https://github.com/HKUDS/AI-Trader) |
+| 定位    | AI Agent 社交化交易平台                               |
+| License | MIT                                                   |
+| Stars   | ~2k                                                   |
 
 ### 架构分析
 
@@ -156,12 +156,12 @@ TradingGoose Studio 基于 **Sim Studio**（Sim Studio v0.4.25 fork），在通�
 
 > 通用 AI 工作流平台（TradingGoose 的上游）
 
-| 项目 | 详情 |
-|------|------|
-| 仓库 | [simstudioai/sim](https://github.com/simstudioai/sim) |
-| 定位 | 可视化 AI Agent 工作流构建 |
-| License | Apache 2.0 |
-| Stars | ~20k |
+| 项目    | 详情                                                  |
+| ------- | ----------------------------------------------------- |
+| 仓库    | [simstudioai/sim](https://github.com/simstudioai/sim) |
+| 定位    | 可视化 AI Agent 工作流构建                            |
+| License | Apache 2.0                                            |
+| Stars   | ~20k                                                  |
 
 ### 架构分析
 
@@ -211,12 +211,12 @@ TradingGoose Studio 基于 **Sim Studio**（Sim Studio v0.4.25 fork），在通�
 
 > AI 量化平台
 
-| 项目 | 详情 |
-|------|------|
-| 仓库 | [microsoft/qlib](https://github.com/microsoft/qlib) |
-| 定位 | AI 导向的量化投资平台 |
-| License | MIT |
-| Stars | ~17k |
+| 项目    | 详情                                                |
+| ------- | --------------------------------------------------- |
+| 仓库    | [microsoft/qlib](https://github.com/microsoft/qlib) |
+| 定位    | AI 导向的量化投资平台                               |
+| License | MIT                                                 |
+| Stars   | ~17k                                                |
 
 ### 与 Eous 的关系
 
@@ -231,12 +231,12 @@ V2 理想状态下，Eous 的"因子计算"节点可以直接调用 Qlib 的因�
 
 ## 6. 其他相关项目速览
 
-| 项目 | 一句话 | Eous 相关性 |
-|------|--------|-------------|
-| [TradingAgents](https://github.com/tauricresearch/tradingagents) | 多 Agent LLM 交易框架（学术） | 低。偏向研究，无可视化 |
-| [ai-hedge-fund-crypto](https://github.com/51bitquant/ai-hedge-fund-crypto) | 多 Agent 加密对冲基金 | 中。多 Agent 协作思路可参考 |
-| [FinRL](https://github.com/AI4Finance-Foundation/FinRL) | 深度强化学习交易框架 | 低。纯 RL，无 LLM 集成 |
-| [OpenBB](https://github.com/OpenBB-finance/OpenBB) | 开源投资研究终端 | 中。可作为数据源接入 |
+| 项目                                                                       | 一句话                        | Eous 相关性                 |
+| -------------------------------------------------------------------------- | ----------------------------- | --------------------------- |
+| [TradingAgents](https://github.com/tauricresearch/tradingagents)           | 多 Agent LLM 交易框架（学术） | 低。偏向研究，无可视化      |
+| [ai-hedge-fund-crypto](https://github.com/51bitquant/ai-hedge-fund-crypto) | 多 Agent 加密对冲基金         | 中。多 Agent 协作思路可参考 |
+| [FinRL](https://github.com/AI4Finance-Foundation/FinRL)                    | 深度强化学习交易框架          | 低。纯 RL，无 LLM 集成      |
+| [OpenBB](https://github.com/OpenBB-finance/OpenBB)                         | 开源投资研究终端              | 中。可作为数据源接入        |
 
 ---
 
@@ -248,7 +248,7 @@ V2 理想状态下，Eous 的"因子计算"节点可以直接调用 Qlib 的因�
         计算密集                         决策密集
          ←───────────→                  ←───────────→
 
-Qlib ────────●                              ○ 
+Qlib ────────●                              ○
                │                              │
 FinRL ────────●                              ○
                │                              │
@@ -265,6 +265,7 @@ Eous           ○────────────●───────�
 ```
 
 Eous 的核心差异：
+
 1. **Agent 逻辑可视化编排**：不是写代码定义策略，是画图定义 Agent 的执行流程
 2. **LLM 在 DAG 中自由流动**：LLM 的输入输出和其他节点平权，可以出现在任何位置
 3. **不绑定交易**：交易信号只是输出的一种，分析报告、策略参数优化同样是一等公民

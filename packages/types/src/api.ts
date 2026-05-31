@@ -12,11 +12,7 @@ export interface ApiClient {
     to?: number
     limit?: number
   }): Promise<OHLCVBar[]>
-  searchNews(params: {
-    query: string
-    language?: string
-    limit?: number
-  }): Promise<NewsArticle[]>
+  searchNews(params: { query: string; language?: string; limit?: number }): Promise<NewsArticle[]>
 
   listWorkflows(): Promise<WorkflowDefinition[]>
   getWorkflow(id: string): Promise<WorkflowDefinition>

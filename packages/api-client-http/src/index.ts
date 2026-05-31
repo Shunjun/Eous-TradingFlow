@@ -2,13 +2,13 @@ import type { ApiClient } from '@eous/api-client'
 
 export function createHttpClient(
   baseURL = '/api',
-  getToken: () => string | null = () => null
+  getToken: () => string | null = () => null,
 ): ApiClient {
   const request = async <T>(
     method: string,
     path: string,
     body?: unknown,
-    options?: { skipJSON?: boolean }
+    options?: { skipJSON?: boolean },
   ): Promise<T> => {
     const token = getToken()
     const headers: Record<string, string> = {
@@ -34,13 +34,14 @@ export function createHttpClient(
   }
 
   const get = <T>(path: string) => request<T>('GET', path)
-  const post = <T>(path: string, body?: unknown, skipJSON?: boolean) => request<T>('POST', path, body, { skipJSON })
-  const del = <T>(path: string, skipJSON?: boolean) => request<T>('DELETE', path, undefined, { skipJSON })
+  const post = <T>(path: string, body?: unknown, skipJSON?: boolean) =>
+    request<T>('POST', path, body, { skipJSON })
+  const del = <T>(path: string, skipJSON?: boolean) =>
+    request<T>('DELETE', path, undefined, { skipJSON })
 
   return {
     // Data APIs
-    getQuote: (symbol: string) => 
-      get(`/data/quote?symbol=${encodeURIComponent(symbol)}`),
+    getQuote: (symbol: string) => get(`/data/quote?symbol=${encodeURIComponent(symbol)}`),
 
     getKlines: ({ symbol, interval, from, to, limit }) => {
       const params = new URLSearchParams({ symbol, interval })
@@ -71,7 +72,8 @@ export function createHttpClient(
     // Execution APIs
     getExecution: (id: string) => get(`/executions/${encodeURIComponent(id)}`),
 
-    cancelExecution: (id: string) => post(`/executions/${encodeURIComponent(id)}/cancel`, undefined, true),
+    cancelExecution: (id: string) =>
+      post(`/executions/${encodeURIComponent(id)}/cancel`, undefined, true),
 
     // Asset APIs
     getWatchedAssets: () => get('/assets'),

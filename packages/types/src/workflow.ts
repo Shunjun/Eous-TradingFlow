@@ -14,13 +14,7 @@ export type NodeType =
   | 'output.chart'
   | 'agent.call'
 
-export type NodeCategory =
-  | 'source'
-  | 'compute'
-  | 'llm'
-  | 'control'
-  | 'output'
-  | 'agent'
+export type NodeCategory = 'source' | 'compute' | 'llm' | 'control' | 'output' | 'agent'
 
 export interface WorkflowNode {
   id: string

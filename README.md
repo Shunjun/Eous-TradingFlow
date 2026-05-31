@@ -6,16 +6,16 @@ Eous 不是交易终端，也不是量化回测框架。它是一张画布——
 
 ## 文档
 
-| 文档 | 内容 |
-|------|------|
-| [01 - 产品定位与架构总览](./docs/01-overview.md) | 定位、分层架构、模块划分、设计决策 |
-| [02 - 技术架构](./docs/02-architecture.md) | 技术选型、目录结构、数据模型、通信机制 |
-| [03 - 核心接口定义](./docs/03-core-interfaces.md) | TypeScript 接口：工作流、节点、执行引擎、Provider |
-| [04 - 节点系统设计](./docs/04-node-system.md) | 节点类型、生命周期、调度策略、数据传递 |
-| [05 - LLM 集成方案](./docs/05-llm-integration.md) | LLM 节点的 Prompt 工程、多模型、流式输出 |
-| [06 - 参考项目分析](./docs/06-reference-projects.md) | GitHub 同类项目调研与差异化分析 |
-| [07 - 实现路线图](./docs/07-roadmap.md) | 按依赖关系分阶段的功能点（57 项） |
-| [08 - 功能待办](./docs/08-backlog.md) | V1 之后的跟进功能清单 |
+| 文档                                                 | 内容                                              |
+| ---------------------------------------------------- | ------------------------------------------------- |
+| [01 - 产品定位与架构总览](./docs/01-overview.md)     | 定位、分层架构、模块划分、设计决策                |
+| [02 - 技术架构](./docs/02-architecture.md)           | 技术选型、目录结构、数据模型、通信机制            |
+| [03 - 核心接口定义](./docs/03-core-interfaces.md)    | TypeScript 接口：工作流、节点、执行引擎、Provider |
+| [04 - 节点系统设计](./docs/04-node-system.md)        | 节点类型、生命周期、调度策略、数据传递            |
+| [05 - LLM 集成方案](./docs/05-llm-integration.md)    | LLM 节点的 Prompt 工程、多模型、流式输出          |
+| [06 - 参考项目分析](./docs/06-reference-projects.md) | GitHub 同类项目调研与差异化分析                   |
+| [07 - 实现路线图](./docs/07-roadmap.md)              | 按依赖关系分阶段的功能点（57 项）                 |
+| [08 - 功能待办](./docs/08-backlog.md)                | V1 之后的跟进功能清单                             |
 
 ## 技术栈
 

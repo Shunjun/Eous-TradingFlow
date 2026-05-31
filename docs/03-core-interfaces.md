@@ -11,7 +11,7 @@
 ```typescript
 /** OHLCV 数据条 */
 interface OHLCVBar {
-  timestamp: number       // Unix ms
+  timestamp: number // Unix ms
   open: number
   high: number
   low: number
@@ -39,7 +39,7 @@ interface MarketDataProvider {
   getQuote(symbol: string): Promise<Quote>
   getKlines(params: {
     symbol: string
-    interval: KlineInterval    // '1m' | '5m' | '15m' | '1h' | '4h' | '1d' | '1w'
+    interval: KlineInterval // '1m' | '5m' | '15m' | '1h' | '4h' | '1d' | '1w'
     limit: number
     endTime?: number
   }): Promise<OHLCVBar[]>
@@ -57,8 +57,8 @@ interface MarketDataProvider {
 interface NewsArticle {
   id: string
   title: string
-  summary: string          // 摘要（用于 LLM 上下文，节省 Token）
-  content?: string         // 全文（可选，按需拉取）
+  summary: string // 摘要（用于 LLM 上下文，节省 Token）
+  content?: string // 全文（可选，按需拉取）
   url: string
   source: string
   publishedAt: string
@@ -84,10 +84,10 @@ interface NewsProvider {
 type AssetType = 'stock' | 'crypto' | 'forex' | 'etf' | 'index'
 
 interface AssetRef {
-  symbol: string           // 'AAPL' | 'BTCUSDT' | '600519.SH'
+  symbol: string // 'AAPL' | 'BTCUSDT' | '600519.SH'
   type: AssetType
-  exchange?: string        // 'NASDAQ' | 'Binance' | 'SSE'
-  name?: string            // 'Apple Inc.'
+  exchange?: string // 'NASDAQ' | 'Binance' | 'SSE'
+  name?: string // 'Apple Inc.'
 }
 ```
 
@@ -119,9 +119,9 @@ interface WorkflowNode {
 interface WorkflowEdge {
   id: string
   source: string
-  sourceHandle: string    // 'output-0'
+  sourceHandle: string // 'output-0'
   target: string
-  targetHandle: string    // 'input-0'
+  targetHandle: string // 'input-0'
 }
 ```
 
@@ -149,7 +149,7 @@ type NodeType =
   | 'output.chart'
   | 'output.report'
   // Agent
-  | 'agent.call'              // 调用 Agent，注入 Memory
+  | 'agent.call' // 调用 Agent，注入 Memory
 ```
 
 ### 2.3 节点基类
@@ -163,14 +163,14 @@ interface NodeDataBase {
 }
 
 interface InputHandleDef {
-  id: string                 // 'input-0'
-  label: string              // '价格数据'
-  expectedShape?: DataShape  // 编辑器提示用，非强制校验
+  id: string // 'input-0'
+  label: string // '价格数据'
+  expectedShape?: DataShape // 编辑器提示用，非强制校验
 }
 
 interface OutputHandleDef {
-  id: string                 // 'output-0'
-  label: string              // '信号结果'
+  id: string // 'output-0'
+  label: string // '信号结果'
   shape?: DataShape
 }
 
@@ -190,49 +190,50 @@ type DataShape =
 ```typescript
 // 数据源节点
 interface SourceKlineNodeData extends NodeDataBase {
-  symbol: string            // 支持 {{asset.symbol}} 变量
+  symbol: string // 支持 {{asset.symbol}} 变量
   interval: KlineInterval
-  limit: number             // 如 200
-  provider: string          // 'yahoo' | 'binance'
+  limit: number // 如 200
+  provider: string // 'yahoo' | 'binance'
 }
 
 // 计算节点
 interface ComputeIndicatorNodeData extends NodeDataBase {
   indicator: 'ma' | 'ema' | 'rsi' | 'macd' | 'bollinger' | 'atr'
-  params: Record<string, number>   // { period: 14 }
+  params: Record<string, number> // { period: 14 }
 }
 
 interface ComputePythonNodeData extends NodeDataBase {
-  code: string              // Python 代码片段
-  inputs: Record<string, string>  // 变量名 → handle 映射
+  code: string // Python 代码片段
+  inputs: Record<string, string> // 变量名 → handle 映射
 }
 
 // LLM 节点
 interface LLMSignalNodeData extends NodeDataBase {
-  model: string             // 'gpt-4o' | 'claude-sonnet-4' | 'deepseek-v3'
+  model: string // 'gpt-4o' | 'claude-sonnet-4' | 'deepseek-v3'
   systemPrompt: string
-  userPromptTemplate: string  // 支持 {{nodeId.handleId.field}} 变量
-  outputSchema: {            // 期望的 JSON 输出格式
-    signal: 'string'         // 'long' | 'short' | 'neutral'
-    confidence: 'number'     // 0.0 ~ 1.0
+  userPromptTemplate: string // 支持 {{nodeId.handleId.field}} 变量
+  outputSchema: {
+    // 期望的 JSON 输出格式
+    signal: 'string' // 'long' | 'short' | 'neutral'
+    confidence: 'number' // 0.0 ~ 1.0
     reasoning: 'string'
   }
-  temperature?: number        // 默认 0.3
+  temperature?: number // 默认 0.3
 }
 
 interface LLMReportNodeData extends NodeDataBase {
   model: string
   systemPrompt: string
-  reportTemplate: string      // Markdown 模板
+  reportTemplate: string // Markdown 模板
 }
 
 // 控制节点
 interface ControlBranchNodeData extends NodeDataBase {
-  condition: string           // '{{upstream.output-0.signal}} === "long"'
+  condition: string // '{{upstream.output-0.signal}} === "long"'
 }
 
 interface ControlCronNodeData extends NodeDataBase {
-  cronExpression: string      // '0 9 * * 1-5'
+  cronExpression: string // '0 9 * * 1-5'
   timezone?: string
 }
 
@@ -240,9 +241,9 @@ interface ControlCronNodeData extends NodeDataBase {
 interface OutputChartNodeData extends NodeDataBase {
   chartType: 'kline' | 'line' | 'bar'
   config: {
-    xField: string            // OHLCV 数据用什么字段做 x 轴
+    xField: string // OHLCV 数据用什么字段做 x 轴
     yFields: string[]
-    overlays?: string[]       // 叠加指标
+    overlays?: string[] // 叠加指标
   }
 }
 
@@ -252,7 +253,7 @@ interface AgentCallNodeData extends NodeDataBase {
   /** 从 Agent Memory 注入哪些信息 */
   memoryKeys: string[]
   /** 给 Agent 的指令 */
-  instruction: string         // 支持 {{}} 变量引用上游输出
+  instruction: string // 支持 {{}} 变量引用上游输出
 }
 ```
 
@@ -287,8 +288,8 @@ abstract class NodeExecutor<TData extends NodeDataBase = NodeDataBase> {
 
   abstract execute(
     data: TData,
-    inputs: Record<string, unknown>,     // handleId → 上游输出
-    ctx: ExecutionContext
+    inputs: Record<string, unknown>, // handleId → 上游输出
+    ctx: ExecutionContext,
   ): Promise<unknown>
 
   async validate?(data: TData): Promise<{ valid: boolean; errors?: string[] }>
@@ -297,7 +298,11 @@ abstract class NodeExecutor<TData extends NodeDataBase = NodeDataBase> {
 /** DAG 执行器 */
 interface DAGExecutor {
   execute(workflow: WorkflowDefinition, ctx: ExecutionContext): Promise<ExecutionRecord>
-  rerunFrom(workflow: WorkflowDefinition, nodeId: string, ctx: ExecutionContext): Promise<ExecutionRecord>
+  rerunFrom(
+    workflow: WorkflowDefinition,
+    nodeId: string,
+    ctx: ExecutionContext,
+  ): Promise<ExecutionRecord>
   cancel(executionId: string): Promise<void>
 }
 ```
@@ -321,7 +326,7 @@ interface DAGExecutor {
 function resolveTemplate(
   template: string,
   inputs: Record<string, unknown>,
-  ctx: ExecutionContext
+  ctx: ExecutionContext,
 ): string
 ```
 
@@ -347,7 +352,10 @@ interface LLMProvider {
   readonly name: string
   readonly supportedModels: string[]
   complete(params: LLMCompletionParams): Promise<LLMCompletionResult>
-  completeStream(params: LLMCompletionParams, onChunk: (c: { content: string; done: boolean }) => void): Promise<LLMCompletionResult>
+  completeStream(
+    params: LLMCompletionParams,
+    onChunk: (c: { content: string; done: boolean }) => void,
+  ): Promise<LLMCompletionResult>
 }
 ```
 
@@ -459,14 +467,14 @@ Client → Server:
 interface ProviderConfig {
   id: string
   type: 'llm' | 'market' | 'news'
-  name: string              // 'openai' | 'yahoo' | 'newsapi' ...
+  name: string // 'openai' | 'yahoo' | 'newsapi' ...
   baseURL?: string
   createdAt: string
 }
 
 interface LLMProviderConfig extends ProviderConfig {
   type: 'llm'
-  models: string[]          // ['gpt-4o', 'gpt-4o-mini']
+  models: string[] // ['gpt-4o', 'gpt-4o-mini']
 }
 
 interface MarketProviderConfig extends ProviderConfig {
@@ -477,7 +485,7 @@ interface MarketProviderConfig extends ProviderConfig {
 // API Key 管理
 interface ProviderKeyService {
   addKey(userId: string, provider: ProviderConfig, apiKey: string): Promise<void>
-  getKey(userId: string, providerType: string): Promise<string>  // 解密后返回
+  getKey(userId: string, providerType: string): Promise<string> // 解密后返回
   removeKey(userId: string, providerType: string): Promise<void>
   listProviders(userId: string): Promise<ProviderConfig[]>
 }

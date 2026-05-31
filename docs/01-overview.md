@@ -49,6 +49,7 @@ LLM 不是独立的一层，也不是神圣的决策者。它就是 Workflow DAG
 ### 3. Agent 是独立实体
 
 Agent 不是 Node 的特例。它有独立的对话空间、独立的记忆系统。Agent 可以：
+
 - 调用视图（"给我看 AAPL 的 K 线" → 对话右侧展开 K 线图）
 - 调用数据源（直接读取行情、搜索新闻）
 - 调用工作流（"用日报模板分析 AAPL"）
@@ -124,32 +125,32 @@ packages/api-client-electron -- Electron 模式：本地 HTTP + 自动签发 JWT
 
 按依赖关系分 8 个阶段，每个阶段产出独立可验收的功能：
 
-| 阶段 | 内容 | 交付物 |
-|------|------|--------|
-| P0 | 架构骨架 | Monorepo 结构、核心类型、分层目录、数据流文档 |
-| P1 | 基础设施 | 认证、API Key 加密存储、Provider 配置系统、设置页面 |
-| P2 | 数据源层 | MarketDataProvider / NewsProvider 抽象与实现、缓存、实时推送 |
-| P3 | 共享视图 | K线图、折线图、新闻列表、报告渲染、数据表格 |
-| P4 | Workflow 引擎 | 节点注册、执行器、DAG 调度、变量插值、WebSocket 推送 |
-| P5 | Workflow 编辑器 | React Flow 画布、节点面板、配置面板、连线、保存加载 |
-| P6 | 工作台 | Mosaic 布局、面板注册、布局持久化、面板间通信 |
-| P7 | Agent 对话 | 对话界面、Memory、工具调用、分屏、Agent 调用节点 |
-| P8 | 标的管理 | 关注列表、标的详情、标的搜索 |
+| 阶段 | 内容            | 交付物                                                       |
+| ---- | --------------- | ------------------------------------------------------------ |
+| P0   | 架构骨架        | Monorepo 结构、核心类型、分层目录、数据流文档                |
+| P1   | 基础设施        | 认证、API Key 加密存储、Provider 配置系统、设置页面          |
+| P2   | 数据源层        | MarketDataProvider / NewsProvider 抽象与实现、缓存、实时推送 |
+| P3   | 共享视图        | K线图、折线图、新闻列表、报告渲染、数据表格                  |
+| P4   | Workflow 引擎   | 节点注册、执行器、DAG 调度、变量插值、WebSocket 推送         |
+| P5   | Workflow 编辑器 | React Flow 画布、节点面板、配置面板、连线、保存加载          |
+| P6   | 工作台          | Mosaic 布局、面板注册、布局持久化、面板间通信                |
+| P7   | Agent 对话      | 对话界面、Memory、工具调用、分屏、Agent 调用节点             |
+| P8   | 标的管理        | 关注列表、标的详情、标的搜索                                 |
 
 [详细功能点列表 →](./07-roadmap.md)
 
 ## 关键设计决策
 
-| 决策 | 选择 | 理由 |
-|------|------|------|
-| 前端框架 | Vite + React（非 Next.js） | SPA 无 SEO 需求，Vite 构建快一个数量级 |
-| 后端框架 | Hono（非 Express/Fastify） | 轻量高性能，内置 WebSocket |
-| 节点编辑器 | React Flow | 行业标准，Sim Studio/TradingGoose 验证 |
-| 分窗布局 | react-mosaic | 递归拆分 + Tab 页签，i3 风格平铺 |
-| 图表 | Lightweight Charts | TradingView 开源版，K 线专业渲染 |
-| 桌面方案 | Electron 独立包 | 不替代 CS 架构，核心代码零改动 |
-| Monorepo | Turborepo + pnpm | 并行构建，依赖感知 |
-| 通信层 | 抽象为独立 package | CS/Electron 双模式，前端无感 |
-| 数据库 | SQLite（Prisma） | 零安装，CS 与 Electron 统一，单文件部署 |
-| ORM | Prisma | 类型安全，Schema 声明式，迁移工具成熟 |
-| UI 组件 | Tailwind CSS v4 + shadcn/ui | 原子组件统一管理，主题可切换 |
+| 决策       | 选择                        | 理由                                    |
+| ---------- | --------------------------- | --------------------------------------- |
+| 前端框架   | Vite + React（非 Next.js）  | SPA 无 SEO 需求，Vite 构建快一个数量级  |
+| 后端框架   | Hono（非 Express/Fastify）  | 轻量高性能，内置 WebSocket              |
+| 节点编辑器 | React Flow                  | 行业标准，Sim Studio/TradingGoose 验证  |
+| 分窗布局   | react-mosaic                | 递归拆分 + Tab 页签，i3 风格平铺        |
+| 图表       | Lightweight Charts          | TradingView 开源版，K 线专业渲染        |
+| 桌面方案   | Electron 独立包             | 不替代 CS 架构，核心代码零改动          |
+| Monorepo   | Turborepo + pnpm            | 并行构建，依赖感知                      |
+| 通信层     | 抽象为独立 package          | CS/Electron 双模式，前端无感            |
+| 数据库     | SQLite（Prisma）            | 零安装，CS 与 Electron 统一，单文件部署 |
+| ORM        | Prisma                      | 类型安全，Schema 声明式，迁移工具成熟   |
+| UI 组件    | Tailwind CSS v4 + shadcn/ui | 原子组件统一管理，主题可切换            |

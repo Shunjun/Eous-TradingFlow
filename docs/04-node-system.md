@@ -2,14 +2,14 @@
 
 ## 1. 节点分类
 
-| 类别 | 节点 | 说明 |
-|------|------|------|
-| **Source** | 实时价格、历史K线、新闻源 | 从 Data Source Layer 获取数据，无输入只有输出 |
-| **Compute** | 技术指标、因子计算、Python 代码 | 纯计算，输入数据输出结果 |
-| **LLM** | 信号分析、报告生成、自由对话 | 调用 LLM，上游数据 + Prompt 模板 → 结构化输出 |
-| **Control** | 条件分支、并行分发、定时触发 | 控制流程走向 |
-| **Output** | 图表渲染 | 终端节点，消费数据渲染可视化 |
-| **Agent** | Agent 调用 | 调用 Agent 并注入 Memory 到分析上下文 |
+| 类别        | 节点                            | 说明                                          |
+| ----------- | ------------------------------- | --------------------------------------------- |
+| **Source**  | 实时价格、历史K线、新闻源       | 从 Data Source Layer 获取数据，无输入只有输出 |
+| **Compute** | 技术指标、因子计算、Python 代码 | 纯计算，输入数据输出结果                      |
+| **LLM**     | 信号分析、报告生成、自由对话    | 调用 LLM，上游数据 + Prompt 模板 → 结构化输出 |
+| **Control** | 条件分支、并行分发、定时触发    | 控制流程走向                                  |
+| **Output**  | 图表渲染                        | 终端节点，消费数据渲染可视化                  |
+| **Agent**   | Agent 调用                      | 调用 Agent 并注入 Memory 到分析上下文         |
 
 ## 2. 节点生命周期
 
@@ -52,6 +52,7 @@ idle ──▶ pending ──▶ running ──▶ completed
 ```
 
 规则：
+
 - 同层无依赖 → 并行执行
 - 层间串行：上层全部完成后下层开始
 - LLM 节点受 `maxParallelLLM` 单独限流
@@ -61,9 +62,9 @@ idle ──▶ pending ──▶ running ──▶ completed
 
 ```typescript
 interface SlotConfig {
-  maxParallelNodes: number    // 默认 5
-  maxParallelLLM: number      // 默认 2
-  nodeTimeout: number         // 默认 300_000 ms
+  maxParallelNodes: number // 默认 5
+  maxParallelLLM: number // 默认 2
+  nodeTimeout: number // 默认 300_000 ms
 }
 ```
 
@@ -101,14 +102,15 @@ RSI(14): {{rsi.output-0[-1]}}
 
 ## 5. 错误处理
 
-| 场景 | 策略 |
-|------|------|
-| 数据源不可达 | 重试 3 次（指数退避），仍失败 → failed |
+| 场景                        | 策略                                           |
+| --------------------------- | ---------------------------------------------- |
+| 数据源不可达                | 重试 3 次（指数退避），仍失败 → failed         |
 | LLM 返回非 JSON（信号节点） | 重试 1 次并追加 "Respond with valid JSON only" |
-| Python 代码异常 | 捕获 stderr，写入 error |
-| 节点超时 | 自动标记 failed |
+| Python 代码异常             | 捕获 stderr，写入 error                        |
+| 节点超时                    | 自动标记 failed                                |
 
 节点失败后，下游行为可配置：
+
 - `stop`（默认）：终止整个工作流
 - `continue`：仅标记当前节点失败，不阻塞不依赖它的下游
 

@@ -1,9 +1,4 @@
-export type ExecutionStatus =
-  | 'pending'
-  | 'running'
-  | 'completed'
-  | 'failed'
-  | 'cancelled'
+export type ExecutionStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cancelled'
 
 export type ExecutionTrigger = 'manual' | 'cron' | 'event'
 
