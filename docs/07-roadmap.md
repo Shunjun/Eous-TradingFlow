@@ -36,7 +36,7 @@
 | P2-02 | Yahoo Finance Provider | 实现美股实时报价 + 历史K线 | 输入 symbol + interval + limit，返回 OHLCV |
 | P2-03 | Binance Provider | 实现加密货币实时报价 + 历史K线 | 同上，支持 USDT 交易对 |
 | P2-04 | NewsProvider 抽象 + 实现 | 新闻搜索接口 + 至少一个实现（NewsAPI 或 Bing News） | 按关键词搜索，返回标题/内容/时间/来源 |
-| P2-05 | 数据缓存层 | Redis 缓存行情数据，避免重复请求 | 同一标的同一周期 1 分钟内不重复请求外部 API |
+| P2-05 | 数据缓存层 | SQLite 缓存行情数据，避免重复请求 | 同一标的同一周期 1 分钟内不重复请求外部 API |
 | P2-06 | 实时数据 WebSocket 推送 | Binance WebSocket 实时价格推送 | 前端订阅标的后收到实时 Tick |
 
 ---

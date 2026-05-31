@@ -17,8 +17,7 @@
 | 后端框架 | Hono | 超轻量，路由/中间件/WebSocket 内置，性能高 |
 | 运行时 | Node.js 22+ | LTS，生态稳定 |
 | ORM | Prisma | 类型安全，Schema 声明式，迁移工具成熟 |
-| 数据库 | PostgreSQL 16+ | 主数据存储 |
-| 缓存/队列 | Redis | 执行状态缓存 + 任务队列 |
+| 数据库 | SQLite（Prisma） | 零安装，单文件嵌入式数据库，CS 与 Electron 统一 |
 | Schema 校验 | Zod | 前后端共享类型校验 |
 | AI SDK | Vercel AI SDK | 统一多模型接入，流式支持 |
 | 代码沙箱 | isolated-vm | Python 自定义节点安全隔离执行 |
@@ -315,7 +314,7 @@ pnpm dev
 
 | 变量 | 用途 | 默认值 |
 |------|------|--------|
-| `DATABASE_URL` | Prisma PostgreSQL 连接串 | `postgresql://postgres:password@localhost:5432/eous` |
+| `DATABASE_URL` | Prisma SQLite 数据库文件路径 | `file:./data/dev.db` |
 | `PORT` | Hono 服务端口 | `3001` |
 | `INITIAL_USER_EMAIL` | 首次启动自动创建的管理员邮箱 | `admin@eous.dev` |
 | `INITIAL_USER_PASSWORD` | 管理员密码 | `changeme` |

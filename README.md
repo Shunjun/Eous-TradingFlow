@@ -22,7 +22,7 @@ Eous 不是交易终端，也不是量化回测框架。它是一张画布——
 ```
 前端:    Vite + React 19 + TypeScript + React Flow + react-mosaic
 后端:    Hono + Node.js + TypeScript + Drizzle ORM
-数据库:  PostgreSQL + Redis
+数据库:  SQLite（零安装，单文件）
 AI:      Vercel AI SDK（OpenAI / Anthropic / DeepSeek / Ollama）
 桌面:    Electron（可选，不替代 CS 架构）
 工程:    Turborepo + pnpm workspaces
