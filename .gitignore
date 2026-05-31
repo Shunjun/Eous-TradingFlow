@@ -1,15 +1,23 @@
 node_modules/
 dist/
 .turbo/
-.env
-.env.local
 *.log
+*.tsbuildinfo
+
+# Environment
+.env
+.env.*
+!.env.example
 
 # Generated Prisma client
 packages/db/src/generated/
 
 # SQLite database files
 data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 
 # macOS
 .DS_Store
