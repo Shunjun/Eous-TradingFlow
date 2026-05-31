@@ -10,3 +10,6 @@ packages/db/src/generated/
 
 # SQLite database files
 packages/db/data/
+
+# macOS
+.DS_Store
