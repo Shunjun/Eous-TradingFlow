@@ -1,6 +1,6 @@
 import { Suspense, createElement } from 'react'
 import { createBrowserRouter, redirect, type RouteObject } from 'react-router-dom'
-import { FileSystemRouter } from './lib/router/index.js'
+import { FileSystemRouter } from './lib/file-system-router.js'
 import { PageLoading } from './components/PageLoading.js'
 
 // ── Scan page files ────────────────────────────────────
@@ -14,11 +14,7 @@ const rawRoutes = fsRouter.buildRoutes()
 function wrapSuspense(routes: RouteObject[]): RouteObject[] {
   return routes.map((route) => {
     const element = route.element
-      ? createElement(
-          Suspense,
-          { fallback: createElement(PageLoading) },
-          route.element,
-        )
+      ? createElement(Suspense, { fallback: createElement(PageLoading) }, route.element)
       : undefined
 
     if (route.index) {
@@ -62,4 +58,4 @@ const wrappedRoutes = wrapSuspense(rawRoutes)
 injectLoaders(wrappedRoutes)
 
 // ── Create and export ──────────────────────────────────
-export const router = createBrowserRouter(wrappedRoutes)
+export const router: ReturnType<typeof createBrowserRouter> = createBrowserRouter(wrappedRoutes)
