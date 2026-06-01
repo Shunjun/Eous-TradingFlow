@@ -60,7 +60,7 @@ export function Header() {
               S
             </div>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuContent align="end" className="w-40 border-[hsl(20,8%,25%)]">
             <DropdownMenuItem
               onClick={async () => {
                 try {
