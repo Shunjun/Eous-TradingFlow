@@ -21,3 +21,5 @@ data/
 
 # macOS
 .DS_Store
+.home/
+.prisma-cache/
