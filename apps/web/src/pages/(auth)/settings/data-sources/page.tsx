@@ -53,6 +53,8 @@ interface DataSourceInstance {
   id: string
   name: string
   providerKind: string
+  identityKey?: string
+  identityLabel?: string
   createdAt: string
 }
 
@@ -449,28 +451,9 @@ function DataSourceCard({
   instance: DataSourceInstance
   onRefresh: () => void
 }) {
-  const [detail, setDetail] = useState<DataSourceDetail | null>(null)
-  const [loaded, setLoaded] = useState(false)
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
   const [deleting, setDeleting] = useState(false)
-  const [removingSymbol, setRemovingSymbol] = useState<string | null>(null)
-
-  const loadDetail = useCallback(async () => {
-    try {
-      const data = await apiFetch<DataSourceDetail>(
-        `/api/data-source-instances/${instance.id}`,
-      )
-      setDetail(data)
-      setLoaded(true)
-    } catch {
-      setLoaded(true)
-    }
-  }, [instance.id])
-
-  useEffect(() => {
-    loadDetail()
-  }, [loadDetail])
 
   async function handleTest() {
     setTesting(true)
@@ -501,38 +484,15 @@ function DataSourceCard({
     }
   }
 
-  async function handleRemoveSymbol(symbolId: string) {
-    setRemovingSymbol(symbolId)
-    try {
-      await apiFetch(
-        `/api/data-source-instances/${instance.id}/symbols/${symbolId}`,
-        { method: 'DELETE' },
-      )
-      await loadDetail()
-    } catch {
-      // silent
-    } finally {
-      setRemovingSymbol(null)
-    }
-  }
-
-  const symbols = detail?.trackedSymbols ?? []
-
   return (
     <CardPanel className="mb-4">
-      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-3 min-w-0">
           <Database size={14} className="text-muted-foreground shrink-0" />
           <span className="text-sm font-medium truncate">{instance.name}</span>
           <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase tracking-wider">
-            {instance.providerKind}
+            {instance.identityLabel || instance.providerKind}
           </span>
-          {loaded && (
-            <span className="font-mono text-[10px] text-muted-foreground">
-              {symbols.length} {symbols.length === 1 ? 'symbol' : 'symbols'}
-            </span>
-          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {testResult && (
@@ -566,64 +526,6 @@ function DataSourceCard({
           </Button>
         </div>
       </div>
-
-      {/* Body */}
-      <CardPanelBody>
-        {!loaded ? (
-          <div className="px-4 py-8 text-center">
-            <Loader2 size={16} className="animate-spin mx-auto text-muted-foreground" />
-          </div>
-        ) : symbols.length === 0 ? (
-          <div className="px-4 py-6 text-center">
-            <p className="text-sm text-muted-foreground font-mono">
-              No tracked symbols. Search and add symbols below.
-            </p>
-          </div>
-        ) : (
-          symbols.map((sym) => (
-            <DataRow
-              key={sym.id}
-              trailing={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 text-muted-foreground hover:text-red-400"
-                  disabled={removingSymbol === sym.id}
-                  onClick={() => handleRemoveSymbol(sym.id)}
-                >
-                  {removingSymbol === sym.id ? (
-                    <Loader2 size={10} className="animate-spin" />
-                  ) : (
-                    <Trash2 size={10} />
-                  )}
-                </Button>
-              }
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="font-mono text-xs font-medium">{sym.symbol}</span>
-                {sym.name && (
-                  <span className="font-mono text-[10px] text-muted-foreground truncate">
-                    {sym.name}
-                  </span>
-                )}
-                {sym.exchange && (
-                  <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
-                    {sym.exchange}
-                  </span>
-                )}
-                {sym.type && (
-                  <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-primary/10 text-primary shrink-0">
-                    {sym.type}
-                  </span>
-                )}
-              </div>
-            </DataRow>
-          ))
-        )}
-
-        {/* Search to add symbols */}
-        <SymbolSearchForm instanceId={instance.id} onAdded={loadDetail} />
-      </CardPanelBody>
     </CardPanel>
   )
 }
