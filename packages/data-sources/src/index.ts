@@ -12,3 +12,5 @@ export {
   getDataSourceProvider,
   listDataSourceProviders,
 } from './registry.js'
+
+export { CCXTProvider } from './providers/ccxt/index.js'

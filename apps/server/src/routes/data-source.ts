@@ -55,6 +55,9 @@ dataSourceInstanceRouter.post('/data-source-instances', async (c) => {
     )
   }
 
+  const { displayName: identityLabel, key: identityKey } =
+    provider.resolveIdentity(config)
+
   const keyHex = getEncryptionKey()
   const { ciphertext, iv } = encrypt(JSON.stringify(config), keyHex)
 
@@ -62,6 +65,8 @@ dataSourceInstanceRouter.post('/data-source-instances', async (c) => {
     data: {
       name,
       providerKind,
+      identityKey: identityKey || null,
+      identityLabel: identityLabel || null,
       configEncrypted: ciphertext,
       configIv: iv,
       userId,
@@ -70,6 +75,8 @@ dataSourceInstanceRouter.post('/data-source-instances', async (c) => {
       id: true,
       name: true,
       providerKind: true,
+      identityKey: true,
+      identityLabel: true,
       createdAt: true,
     },
   })
@@ -87,6 +94,8 @@ dataSourceInstanceRouter.get('/data-source-instances', async (c) => {
       id: true,
       name: true,
       providerKind: true,
+      identityKey: true,
+      identityLabel: true,
       createdAt: true,
     },
     orderBy: { createdAt: 'desc' },
@@ -158,13 +167,21 @@ dataSourceInstanceRouter.patch('/data-source-instances/:id', async (c) => {
     }
   }
 
-  const updateData: Record<string, string> = {}
+  const updateData: Record<string, unknown> = {}
   if (name) updateData.name = name
   if (config) {
     const keyHex = getEncryptionKey()
     const { ciphertext, iv } = encrypt(JSON.stringify(config), keyHex)
     updateData.configEncrypted = ciphertext
     updateData.configIv = iv
+
+    const provider = getDataSourceProvider(existing.providerKind)
+    if (provider) {
+      const { displayName: identityLabel, key: identityKey } =
+        provider.resolveIdentity(config)
+      updateData.identityKey = identityKey || null
+      updateData.identityLabel = identityLabel || null
+    }
   }
 
   const instance = await prisma.dataSourceInstance.update({
@@ -174,6 +191,8 @@ dataSourceInstanceRouter.patch('/data-source-instances/:id', async (c) => {
       id: true,
       name: true,
       providerKind: true,
+      identityKey: true,
+      identityLabel: true,
       createdAt: true,
     },
   })
@@ -271,6 +290,62 @@ dataSourceInstanceRouter.post(
         err instanceof Error ? err.message : 'Unknown error'
       return c.json({ error: message })
     }
+  },
+)
+
+// ── POST /api/data-source-instances/:id/klines ───────────────────────────
+dataSourceInstanceRouter.post(
+  '/data-source-instances/:id/klines',
+  async (c) => {
+    const userId = c.get('userId')
+    const id = c.req.param('id')
+    const body = await c.req.json<{
+      symbol: string
+      interval: string
+      from?: number
+      to?: number
+    }>()
+    const { symbol, interval, from, to } = body
+
+    if (!symbol || !interval) {
+      return c.json(
+        { error: 'Missing required fields: symbol, interval' },
+        400,
+      )
+    }
+
+    const instance = await prisma.dataSourceInstance.findFirst({
+      where: { id, userId },
+    })
+    if (!instance) {
+      return c.json({ error: 'Instance not found' }, 404)
+    }
+
+    const provider = getDataSourceProvider(instance.providerKind)
+    if (!provider) {
+      return c.json(
+        { error: `Provider not found: ${instance.providerKind}` },
+        500,
+      )
+    }
+
+    const keyHex = getEncryptionKey()
+    const config = JSON.parse(
+      decrypt(instance.configEncrypted, instance.configIv, keyHex),
+    ) as Record<string, string>
+
+    const now = Date.now()
+    const klines = await provider.getKlines(
+      {
+        symbol,
+        interval: interval as '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w',
+        from: from ?? now - 365 * 24 * 60 * 60 * 1000,
+        to: to ?? now,
+      },
+      config,
+    )
+
+    return c.json({ klines })
   },
 )
 

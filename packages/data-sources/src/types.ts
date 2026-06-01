@@ -53,6 +53,15 @@ export interface DataSourceProvider {
   name: string // 显示名 "Yahoo Finance"
   configSchema: ConfigField[] // 配置表单定义
 
+  /**
+   * 根据用户配置生成 provider 的唯一标识。
+   * 例：CCXT exchange=binance → { displayName: "CCXT - Binance", key: "binance" }
+   * 无需区分的 provider 返回 key="" 即可。
+   */
+  resolveIdentity(
+    config: Record<string, string>,
+  ): { displayName: string; key: string }
+
   searchSymbols(
     query: string,
     config: Record<string, string>,
