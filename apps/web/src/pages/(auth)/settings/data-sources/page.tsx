@@ -31,7 +31,7 @@ interface ConfigFieldSchema {
   type: 'text' | 'password' | 'select' | 'number' | 'boolean'
   required?: boolean
   placeholder?: string
-  options?: string[]
+  options?: { label: string; value: string }[]
   default?: unknown
 }
 
@@ -116,8 +116,8 @@ function ConfigField({
             Select {field.label}…
           </option>
           {field.options?.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
             </option>
           ))}
         </select>
