@@ -147,23 +147,20 @@ function AddProviderForm({
             <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
               Provider Type
             </Label>
-            <div className="grid grid-cols-5 gap-2">
+            <select
+              value={kind}
+              onChange={(e) => handleKindChange(e.target.value)}
+              className="w-full h-9 rounded-md border border-border bg-background px-3 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[hsl(25,95%,53%)]"
+            >
+              <option value="" disabled>
+                Select provider type…
+              </option>
               {templates.map((t) => (
-                <button
-                  key={t.kind}
-                  type="button"
-                  onClick={() => handleKindChange(t.kind)}
-                  className={cn(
-                    'px-3 py-2 rounded-md border text-xs font-mono transition-all text-center',
-                    kind === t.kind
-                      ? 'border-[hsl(25,95%,53%)] bg-[hsl(25,95%,53%/0.08)] text-foreground'
-                      : 'border-border text-muted-foreground hover:border-muted-foreground/50',
-                  )}
-                >
+                <option key={t.kind} value={t.kind}>
                   {t.label}
-                </button>
+                </option>
               ))}
-            </div>
+            </select>
             {selected?.hint && (
               <p className="text-[10px] font-mono text-muted-foreground">
                 Get API key: {selected.hint}
