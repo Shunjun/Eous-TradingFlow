@@ -283,7 +283,8 @@ dataSourceInstanceRouter.post(
     ) as Record<string, string>
 
     try {
-      await provider.getQuote('AAPL', config)
+      const testSymbol = instance.providerKind === 'ccxt' ? 'BTC/USDT' : 'AAPL'
+      await provider.getQuote(testSymbol, config)
       return c.json({ ok: true })
     } catch (err) {
       const message =

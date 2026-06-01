@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "ccxt": "^4.4.0"
+    "ccxt": "^4.4.0",
+    "https-proxy-agent": "^7.0.0"
   },
   "devDependencies": {
     "typescript": "^5.7.0"

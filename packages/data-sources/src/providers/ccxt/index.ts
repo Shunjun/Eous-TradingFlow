@@ -1,5 +1,6 @@
 import ccxt from 'ccxt'
 import type { Exchange, OHLCV } from 'ccxt'
+import { HttpsProxyAgent } from 'https-proxy-agent'
 import type {
   DataSourceProvider,
   SymbolInfo,
@@ -22,19 +23,20 @@ const INTERVAL_MAP: Record<KlinesRequest['interval'], string> = {
 
 const TIMEOUT_MS = 15_000
 
-function getExchange(exchangeId: string): Exchange {
+function getExchange(exchangeId: string, proxyUrl?: string): Exchange {
   const ExClass = (ccxt as unknown as Record<string, unknown>)[
     exchangeId
   ] as new (opts?: Record<string, unknown>) => Exchange
   if (!ExClass) {
     throw new Error(`Unsupported exchange: ${exchangeId}`)
   }
-  const envProxy = process.env.HTTPS_PROXY || process.env.https_proxy
-  || process.env.HTTP_PROXY || process.env.http_proxy
-  || process.env.ALL_PROXY || process.env.all_proxy
-  || undefined
-  const proxy = envProxy
-  return new ExClass({ timeout: TIMEOUT_MS, proxy })
+  const opts: Record<string, unknown> = { timeout: TIMEOUT_MS }
+
+  if (proxyUrl) {
+    opts.agent = new HttpsProxyAgent(proxyUrl)
+  }
+
+  return new ExClass(opts)
 }
 
 function estimateLimit(request: KlinesRequest, timeframe: string): number {
@@ -53,6 +55,16 @@ function estimateLimit(request: KlinesRequest, timeframe: string): number {
   return Math.min(Math.max(count, 1), 1000)
 }
 
+function resolveProxy(config: Record<string, string>): string | undefined {
+  return (
+    config['proxy'] ||
+    process.env.HTTPS_PROXY || process.env.https_proxy ||
+    process.env.HTTP_PROXY || process.env.http_proxy ||
+    process.env.ALL_PROXY || process.env.all_proxy ||
+    undefined
+  )
+}
+
 export const CCXTProvider: DataSourceProvider = {
   id: 'ccxt',
   name: 'CCXT',
@@ -65,6 +77,13 @@ export const CCXTProvider: DataSourceProvider = {
       options: ccxt.exchanges.map((id) => ({ label: id, value: id })),
       hint: '100+ supported exchanges',
     },
+    {
+      key: 'proxy',
+      label: 'Proxy URL',
+      type: 'text',
+      required: false,
+      hint: 'SOCKS5/HTTP proxy, e.g. socks5://127.0.0.1:1080',
+    },
   ],
 
   resolveIdentity(config) {
@@ -74,7 +93,7 @@ export const CCXTProvider: DataSourceProvider = {
 
   async searchSymbols(query, config) {
     try {
-      const ex = getExchange(config['exchange']!)
+      const ex = getExchange(config['exchange']!, resolveProxy(config))
       const markets = await ex.fetchMarkets()
       const q = query.toUpperCase()
       const results: SymbolInfo[] = []
@@ -98,7 +117,7 @@ export const CCXTProvider: DataSourceProvider = {
   },
 
   async getQuote(symbol, config) {
-    const ex = getExchange(config['exchange']!)
+    const ex = getExchange(config['exchange']!, resolveProxy(config))
     const ticker = await ex.fetchTicker(symbol)
 
     return {
@@ -116,7 +135,7 @@ export const CCXTProvider: DataSourceProvider = {
 
   async getKlines(request: KlinesRequest, config) {
     try {
-      const ex = getExchange(config['exchange']!)
+      const ex = getExchange(config['exchange']!, resolveProxy(config))
       const timeframe = INTERVAL_MAP[request.interval]
       const since = request.from
       const limit = estimateLimit(request, timeframe)
