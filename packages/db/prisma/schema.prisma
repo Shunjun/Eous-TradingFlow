@@ -18,6 +18,7 @@ model User {
 
   sessions       Session[]
   providers      Provider[]
+  dataSourceInstances DataSourceInstance[]
 
   @@map("users")
 }
@@ -67,4 +68,34 @@ model ProviderModel {
 
   @@unique([providerId, modelId])
   @@map("provider_models")
+}
+
+model DataSourceInstance {
+  id               String   @id @default(cuid())
+  name             String
+  providerKind     String
+  configEncrypted  String
+  configIv         String
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trackedSymbols   TrackedSymbol[]
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, name])
+  @@map("data_source_instances")
+}
+
+model TrackedSymbol {
+  id          String   @id @default(cuid())
+  instanceId  String
+  symbol      String
+  name        String
+  exchange    String?
+  type        String?
+  instance    DataSourceInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@unique([instanceId, symbol])
+  @@map("tracked_symbols")
 }

@@ -22,10 +22,10 @@
 
 | ID    | 功能点                    | 说明                                                                  | 验收标准                                   |
 | ----- | ------------------------- | --------------------------------------------------------------------- | ------------------------------------------ |
-| P1-01 | 用户注册/登录             | 邮箱注册 + 登录，JWT 或 Session                                       | 注册、登录、登出正常                       |
-| P1-02 | API Key 加密存储          | 用户录入 Provider API Key，AES-256-GCM 加密存库                       | 存库为密文，运行时解密，前端不可见原始 Key |
-| P1-03 | LLM Provider 配置         | OpenAI / Anthropic / DeepSeek / Ollama 四个 Provider 的抽象与配置界面 | 用户可添加、删除 Provider，测试连接        |
-| P1-04 | Data Source Provider 配置 | Yahoo Finance / Binance / Alpha Vantage 等行情源的配置入口            | 用户可配置数据源并测试连通性               |
+| P1-01 | 用户注册/登录             | 邮箱注册 + 登录，JWT 或 Session                                       | 注册、登录、登出正常                       | ✅ |
+| P1-02 | API Key 加密存储          | 用户录入 Provider API Key，AES-256-GCM 加密存库                       | 存库为密文，运行时解密，前端不可见原始 Key | ✅ |
+| P1-03 | LLM Provider 配置         | OpenAI / Anthropic / DeepSeek / Ollama 四个 Provider 的抽象与配置界面 | 用户可添加、删除 Provider，测试连接        | ✅（已随 P1-02 一并实现，含 model 管理、连接测试） |
+| P1-04 | Data Source Provider 配置 | 插件式 DataSourceProvider 系统。Provider 自带 configSchema，前端动态渲染配置表单。用户可添加多个数据源实例，每个实例下管理关注标的列表。            | 用户可配置数据源并测试连通性               |
 | P1-05 | 系统设置页面              | LLM 默认模型、语言偏好、时区等全局设置                                | 设置可保存并生效                           |
 
 ---

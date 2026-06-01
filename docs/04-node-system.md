@@ -7,7 +7,7 @@
 | **Source**  | 实时价格、历史K线、新闻源       | 从 Data Source Layer 获取数据，无输入只有输出 |
 | **Compute** | 技术指标、因子计算、Python 代码 | 纯计算，输入数据输出结果                      |
 | **LLM**     | 信号分析、报告生成、自由对话    | 调用 LLM，上游数据 + Prompt 模板 → 结构化输出 |
-| **Control** | 条件分支、并行分发、定时触发    | 控制流程走向                                  |
+| **Control** | 条件分支、并行分发、定时触发、Loop | 控制流程走向                                  |
 | **Output**  | 图表渲染                        | 终端节点，消费数据渲染可视化                  |
 | **Agent**   | Agent 调用                      | 调用 Agent 并注入 Memory 到分析上下文         |
 
@@ -99,6 +99,27 @@ RSI(14): {{rsi.output-0[-1]}}
 引擎执行时自动解析变量、取值、替换，生成最终 Prompt。
 
 大数据截断策略：新闻源输出可能是 50 条新闻，变量引用 `{{news.output-0[0:5]}}` 只取前 5 条，避免 Token 浪费。
+
+### 3.3 Loop 节点（循环）
+
+Loop 节点是一个控制节点，内部包含一个子 DAG。执行逻辑：
+
+1. 运行子 DAG
+2. 检查 `exitCondition`（变量表达式，如 `{{manager.output}} contains 'CONCLUDED'`）
+3. 不满足且未到 `maxRounds` → 重新运行子 DAG
+4. 子 DAG 内可通过 `{{prevRound.nodeId.field}}` 引用上一轮的输出
+
+外层 DAG 仍然是无环图，循环只发生在 Loop 节点内部。
+
+**配置**：
+- `maxRounds`：硬上限
+- `exitCondition`：退出条件表达式
+- `subDag`：内部子图（标准 DAG，无循环）
+
+**典型场景**：
+- Bull/Bear 辩论：两方 LLM 互驳，Manager 判断是否达成共识
+- 参数搜索：回测→评估→调参，直到收益率达标
+- 数据重试：拉取→校验，直到数据完整
 
 ## 5. 错误处理
 

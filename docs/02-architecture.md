@@ -22,6 +22,7 @@
 | AI SDK        | Vercel AI SDK                          | 统一多模型接入，流式支持                             |
 | 代码沙箱      | isolated-vm                            | Python 自定义节点安全隔离执行                        |
 | 桌面方案      | Electron（可选）                       | apps/desktop 独立包，不替代 CS 架构                  |
+| 数据源插件    | @eous/data-sources                     | Provider 自带 configSchema，前端动态渲染配置表单     |
 
 ## 2. 项目结构
 
@@ -57,12 +58,19 @@ eous-platform/
 │   │   │   └── index.ts            # createElectronClient()
 │   │   └── package.json
 │   │
-│   └── db/                         # @eous/db — Prisma schema + 客户端
-│       ├── prisma/
-│       │   └── schema.prisma
+│   ├── db/                         # @eous/db — Prisma schema + 客户端
+│   │   ├── prisma/
+│   │   │   └── schema.prisma
+│   │   ├── src/
+│   │   │   └── index.ts
+│   │   └── package.json
+│   │
+│   └── data-sources/              # @eous/data-sources — 数据源插件接口
 │       ├── src/
-│       │   └── index.ts
-│       └── package.json
+│       │   ├── types.ts           # DataSourceProvider、ConfigField、SymbolInfo、Quote、Kline
+│       │   ├── registry.ts        # 注册表：register / get / list
+│       │   ├── index.ts
+│       │   └── providers/         # 具体实现（Yahoo Finance、Binance 等）
 │
 ├── apps/
 │   ├── web/                        # Vite React 前端

@@ -60,6 +60,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@eous/data-sources':
+        specifier: workspace:*
+        version: link:../../packages/data-sources
       '@eous/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -166,6 +169,12 @@ importers:
       '@eous/types':
         specifier: workspace:*
         version: link:../types
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/data-sources:
     devDependencies:
       typescript:
         specifier: ^5.7.0

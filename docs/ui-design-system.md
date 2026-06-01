@@ -12,6 +12,32 @@ Eous TradingFlow 的视觉设计规范与组件库指南。
 
 ---
 
+## 编码规范
+
+### 颜色
+
+禁止在任何组件中硬编码颜色值（如 `hsl(25,95%,53%)`、`#ff6600`）。所有颜色必须使用 Tailwind 的 CSS 变量 utility：
+
+| 用途 | 正确写法 |
+|------|----------|
+| 主色填充 | `bg-primary` |
+| 主色文字 | `text-primary` |
+| 主色边框 | `border-primary` |
+| 主色透明度 | `bg-primary/10`、`border-primary/40` |
+
+语义状态色（`emerald-500`、`red-400`、`purple-400`）保留不变。
+
+### 尺寸
+
+优先使用 Tailwind 内置尺寸（`w-4`、`h-5`、`p-2`）。禁止无必要的任意值（`w-[37px]`）。
+
+以下情况允许任意值：
+- `text-[9px]` / `text-[10px]` / `text-[11px]`：mono 微文字，超出 Tailwind scale
+- `max-w-[1400px]`：固定布局宽度
+- `tracking-[0.2em]`：设计规范要求的特殊字间距
+
+---
+
 ## 色彩体系
 
 所有颜色定义在 `packages/tailwind/src/globals.css` 的 `@theme inline` 块中。
@@ -224,7 +250,14 @@ import { Button } from '@eous/ui'
 
 <Button variant="glow">Start Building</Button>       // 橙色填充 + glow 阴影
 <Button variant="accent-outline">Get Started</Button> // 透明背景，hover 边框变橙
+<Button variant="ghost-icon">
+  <Settings size={16} />
+</Button>                    // 透明背景方形图标按钮，hover 切换为橙色
 ```
+
+| 变体 | 说明 | 典型场景 |
+|------|------|----------|
+| `ghost-icon` | 透明背景方形图标按钮，hover 切换为橙色 | Header 图标按钮 |
 
 ---
 

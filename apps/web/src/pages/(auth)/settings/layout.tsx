@@ -1,10 +1,11 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { Settings, Bot, Sliders } from 'lucide-react'
+import { Settings, Bot, Sliders, Database } from 'lucide-react'
 import { cn } from '@eous/ui'
 
 const subNav = [
   { to: '/settings/general', label: 'General', icon: Sliders },
   { to: '/settings/providers', label: 'Providers', icon: Bot },
+  { to: '/settings/data-sources', label: 'Data Sources', icon: Database },
 ]
 
 export default function SettingsLayout() {
