@@ -1,5 +1,13 @@
 import { Search, Bell, Moon, Sun, LogOut } from 'lucide-react'
-import { Button, Dot, useTheme, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@eous/ui'
+import {
+  Button,
+  Dot,
+  useTheme,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@eous/ui'
 import { useState } from 'react'
 
 export function Header() {
@@ -26,8 +34,10 @@ export function Header() {
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
           />
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 font-mono text-[10px]
-                         text-muted-foreground/50 border border-border rounded px-1 py-0.5">
+          <kbd
+            className="hidden sm:inline-flex items-center gap-0.5 font-mono text-[10px]
+                         text-muted-foreground/50 border border-border rounded px-1 py-0.5"
+          >
             /
           </kbd>
         </div>
@@ -36,8 +46,10 @@ export function Header() {
       {/* Right actions */}
       <div className="flex items-center gap-2">
         {/* Notification bell */}
-        <button className="relative w-8 h-8 flex items-center justify-center rounded-md
-                          text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
+        <button
+          className="relative w-8 h-8 flex items-center justify-center rounded-md
+                          text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
           <Bell size={16} />
           <Dot size="xs" variant="glow" className="absolute top-1.5 right-1.5" />
         </button>
@@ -54,18 +66,22 @@ export function Header() {
         {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <div className="w-8 h-8 rounded-md border border-border flex items-center justify-center
+            <div
+              className="w-8 h-8 rounded-md border border-border flex items-center justify-center
                             font-mono text-xs text-muted-foreground hover:border-[hsl(25,95%,53%/0.4)]
-                            hover:text-[hsl(25,95%,53%)] transition-all cursor-pointer">
+                            hover:text-[hsl(25,95%,53%)] transition-all cursor-pointer"
+            >
               S
             </div>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40 border-[hsl(20,8%,25%)]">
+          <DropdownMenuContent align="end" className="w-40">
             <DropdownMenuItem
               onClick={async () => {
                 try {
                   await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
-                } catch { /* ignore */ }
+                } catch {
+                  /* ignore */
+                }
                 window.location.href = '/login'
               }}
               className="text-muted-foreground hover:text-red-400 cursor-pointer font-mono text-xs gap-2"
