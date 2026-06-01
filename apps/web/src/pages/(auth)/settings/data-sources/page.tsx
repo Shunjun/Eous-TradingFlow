@@ -10,6 +10,11 @@ import {
   IconBox,
   StatusBadge,
   cn,
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
 } from '@eous/ui'
 import {
   Database,
@@ -107,22 +112,18 @@ function ConfigField({
         {field.required && <span className="text-red-400 ml-0.5">*</span>}
       </Label>
       {field.type === 'select' ? (
-        <select
-          id={id}
-          value={String(value ?? '')}
-          onChange={(e) => onChange(field.key, e.target.value)}
-          className="w-full h-9 rounded-md border border-border bg-background px-3 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-          required={field.required}
-        >
-          <option value="" disabled>
-            Select {field.label}…
-          </option>
-          {field.options?.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        <Select value={String(value ?? '') || undefined} onValueChange={(v) => onChange(field.key, v)}>
+          <SelectTrigger id={id}>
+            <SelectValue placeholder={`Select ${field.label}…`} />
+          </SelectTrigger>
+          <SelectContent>
+            {field.options?.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       ) : field.type === 'boolean' ? (
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -224,20 +225,18 @@ function AddDataSourceForm({
             <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
               Provider Type
             </Label>
-            <select
-              value={kind}
-              onChange={(e) => handleKindChange(e.target.value)}
-              className="w-full h-9 rounded-md border border-border bg-background px-3 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="" disabled>
-                Select data source type…
-              </option>
-              {providers.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+            <Select value={kind || undefined} onValueChange={handleKindChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select data source type…" />
+              </SelectTrigger>
+              <SelectContent>
+                {providers.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {kind && selected && (

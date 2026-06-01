@@ -6,6 +6,11 @@ import {
   Button,
   Input,
   cn,
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
 } from '@eous/ui'
 import {
   BarChart3,
@@ -262,26 +267,27 @@ export default function WatchlistPage() {
               <label className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                 Data Source
               </label>
-              <select
-                value={selectedId}
-                onChange={(e) => {
-                  setSelectedId(e.target.value)
+              <Select
+                value={selectedId || undefined}
+                onValueChange={(v) => {
+                  setSelectedId(v)
                   setSelectedSymbol(null)
                   setKlineData([])
                   setResults([])
                 }}
-                className="w-full h-8 rounded-md border border-border bg-background px-2 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
               >
-                {instances.length === 0 && (
-                  <option value="">No instances configured</option>
-                )}
-                {instances.map((inst) => (
-                  <option key={inst.id} value={inst.id}>
-                    {inst.name}
-                    {inst.identityLabel ? ` (${inst.identityLabel})` : ''}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="No instances configured" />
+                </SelectTrigger>
+                <SelectContent>
+                  {instances.map((inst) => (
+                    <SelectItem key={inst.id} value={inst.id}>
+                      {inst.name}
+                      {inst.identityLabel ? ` (${inst.identityLabel})` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </CardPanelBody>
           </CardPanel>
 

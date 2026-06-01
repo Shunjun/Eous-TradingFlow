@@ -33,6 +33,17 @@ export {
   DropdownMenuRadioGroup,
 } from './components/ui/dropdown-menu'
 
+export {
+  Select,
+  SelectGroup,
+  SelectValue,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+} from './components/ui/select'
+
 export { Dot, dotVariants } from './components/ui/dot'
 export type { DotProps } from './components/ui/dot'
 

@@ -10,6 +10,11 @@ import {
   IconBox,
   StatusBadge,
   cn,
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
 } from '@eous/ui'
 import {
   Bot,
@@ -147,20 +152,18 @@ function AddProviderForm({
             <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
               Provider Type
             </Label>
-            <select
-              value={kind}
-              onChange={(e) => handleKindChange(e.target.value)}
-              className="w-full h-9 rounded-md border border-border bg-background px-3 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="" disabled>
-                Select provider type…
-              </option>
-              {templates.map((t) => (
-                <option key={t.kind} value={t.kind}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
+            <Select value={kind || undefined} onValueChange={handleKindChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select provider type…" />
+              </SelectTrigger>
+              <SelectContent>
+                {templates.map((t) => (
+                  <SelectItem key={t.kind} value={t.kind}>
+                    {t.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {selected?.hint && (
               <p className="text-[10px] font-mono text-muted-foreground">
                 Get API key: {selected.hint}
