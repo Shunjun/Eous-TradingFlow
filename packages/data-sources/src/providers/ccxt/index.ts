@@ -29,7 +29,9 @@ function getExchange(exchangeId: string): Exchange {
   if (!ExClass) {
     throw new Error(`Unsupported exchange: ${exchangeId}`)
   }
-  return new ExClass({ timeout: TIMEOUT_MS })
+  const envProxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY || process.env.ALL_PROXY || undefined
+  const proxy = envProxy
+  return new ExClass({ timeout: TIMEOUT_MS, proxy })
 }
 
 function estimateLimit(request: KlinesRequest, timeframe: string): number {

@@ -16,17 +16,7 @@ import {
   SelectItem,
   SelectValue,
 } from '@eous/ui'
-import {
-  Database,
-  Plus,
-  X,
-  Trash2,
-  Zap,
-  Check,
-  Loader2,
-  Search,
-  Tag,
-} from 'lucide-react'
+import { Database, Plus, X, Trash2, Zap, Check, Loader2, Search, Tag } from 'lucide-react'
 
 /* ── Types ─────────────────────────────────────────────── */
 
@@ -112,7 +102,10 @@ function ConfigField({
         {field.required && <span className="text-red-400 ml-0.5">*</span>}
       </Label>
       {field.type === 'select' ? (
-        <Select value={String(value ?? '') || undefined} onValueChange={(v) => onChange(field.key, v)}>
+        <Select
+          value={String(value ?? '') || undefined}
+          onValueChange={(v) => onChange(field.key, v)}
+        >
           <SelectTrigger id={id}>
             <SelectValue placeholder={`Select ${field.label}…`} />
           </SelectTrigger>
@@ -138,12 +131,18 @@ function ConfigField({
       ) : (
         <Input
           id={id}
-          type={field.type === 'password' ? 'password' : field.type === 'number' ? 'number' : 'text'}
+          type={
+            field.type === 'password' ? 'password' : field.type === 'number' ? 'number' : 'text'
+          }
           value={String(value ?? '')}
           onChange={(e) =>
             onChange(
               field.key,
-              field.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value,
+              field.type === 'number'
+                ? e.target.value === ''
+                  ? ''
+                  : Number(e.target.value)
+                : e.target.value,
             )
           }
           placeholder={field.placeholder}
@@ -265,9 +264,7 @@ function AddDataSourceForm({
                 />
               ))}
 
-              {error && (
-                <p className="text-xs font-mono text-red-400">{error}</p>
-              )}
+              {error && <p className="text-xs font-mono text-red-400">{error}</p>}
 
               <div className="flex items-center gap-2 pt-1">
                 <Button
@@ -277,11 +274,7 @@ function AddDataSourceForm({
                   disabled={loading}
                   className="font-mono gap-1.5"
                 >
-                  {loading ? (
-                    <Loader2 size={12} className="animate-spin" />
-                  ) : (
-                    <Check size={12} />
-                  )}
+                  {loading ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
                   Create
                 </Button>
                 <Button
@@ -304,13 +297,7 @@ function AddDataSourceForm({
 
 /* ── Symbol Search Form ────────────────────────────────── */
 
-function SymbolSearchForm({
-  instanceId,
-  onAdded,
-}: {
-  instanceId: string
-  onAdded: () => void
-}) {
+function SymbolSearchForm({ instanceId, onAdded }: { instanceId: string; onAdded: () => void }) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [searching, setSearching] = useState(false)
@@ -382,11 +369,7 @@ function SymbolSearchForm({
           disabled={searching || !query.trim()}
           className="font-mono gap-1.5 h-8 text-[11px]"
         >
-          {searching ? (
-            <Loader2 size={10} className="animate-spin" />
-          ) : (
-            <Search size={10} />
-          )}
+          {searching ? <Loader2 size={10} className="animate-spin" /> : <Search size={10} />}
           Search
         </Button>
       </form>
@@ -497,7 +480,7 @@ function DataSourceCard({
           {testResult && (
             <StatusBadge
               status={testResult.ok ? 'success' : 'error'}
-              label={testResult.ok ? 'Connected' : testResult.error ?? 'Failed'}
+              label={testResult.ok ? 'Connected' : (testResult.error ?? 'Failed')}
             />
           )}
           <Button
@@ -517,11 +500,7 @@ function DataSourceCard({
             disabled={deleting}
             className="h-7 w-7 text-muted-foreground hover:text-red-400"
           >
-            {deleting ? (
-              <Loader2 size={12} className="animate-spin" />
-            ) : (
-              <Trash2 size={12} />
-            )}
+            {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
           </Button>
         </div>
       </div>
@@ -539,9 +518,7 @@ export default function DataSourcesPage() {
 
   const loadInstances = useCallback(async () => {
     try {
-      const data = await apiFetch<{ instances: DataSourceInstance[] }>(
-        '/api/data-source-instances',
-      )
+      const data = await apiFetch<{ instances: DataSourceInstance[] }>('/api/data-source-instances')
       setInstances(data.instances)
     } catch {
       // silent
@@ -601,9 +578,7 @@ export default function DataSourcesPage() {
         <CardPanel>
           <CardPanelBody className="p-12 text-center">
             <Database size={32} className="mx-auto text-muted-foreground/40 mb-3" />
-            <p className="text-sm text-muted-foreground font-mono">
-              No data sources configured.
-            </p>
+            <p className="text-sm text-muted-foreground font-mono">No data sources configured.</p>
           </CardPanelBody>
         </CardPanel>
       ) : (
