@@ -1,5 +1,5 @@
-import { Search, Bell, Moon, Sun } from 'lucide-react'
-import { Button, Dot, useTheme } from '@eous/ui'
+import { Search, Bell, Moon, Sun, LogOut } from 'lucide-react'
+import { Button, Dot, useTheme, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@eous/ui'
 import { useState } from 'react'
 
 export function Header() {
@@ -51,19 +51,30 @@ export function Header() {
           {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
         </button>
 
-        {/* User avatar */}
-        <div className="w-8 h-8 rounded-md border border-border flex items-center justify-center
-                        font-mono text-xs text-muted-foreground hover:border-[hsl(25,95%,53%/0.4)]
-                        hover:text-[hsl(25,95%,53%)] transition-all cursor-pointer"
-             onClick={async () => {
-               try {
-                 await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
-               } catch { /* ignore */ }
-               window.location.href = '/login'
-             }}
-             title="Logout">
-          S
-        </div>
+        {/* User menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <div className="w-8 h-8 rounded-md border border-border flex items-center justify-center
+                            font-mono text-xs text-muted-foreground hover:border-[hsl(25,95%,53%/0.4)]
+                            hover:text-[hsl(25,95%,53%)] transition-all cursor-pointer">
+              S
+            </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            <DropdownMenuItem
+              onClick={async () => {
+                try {
+                  await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+                } catch { /* ignore */ }
+                window.location.href = '/login'
+              }}
+              className="text-muted-foreground hover:text-red-400 cursor-pointer font-mono text-xs gap-2"
+            >
+              <LogOut size={13} />
+              Logout
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   )
