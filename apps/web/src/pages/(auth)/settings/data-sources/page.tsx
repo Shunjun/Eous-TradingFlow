@@ -36,7 +36,7 @@ interface ConfigFieldSchema {
 }
 
 interface DataSourceProvider {
-  kind: string
+  id: string
   name: string
   configSchema: ConfigFieldSchema[]
 }
@@ -169,11 +169,11 @@ function AddDataSourceForm({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  const selected = providers.find((p) => p.kind === kind)
+  const selected = providers.find((p) => p.id === kind)
 
   function handleKindChange(nextKind: string) {
     setKind(nextKind)
-    const prov = providers.find((p) => p.kind === nextKind)
+    const prov = providers.find((p) => p.id === nextKind)
     if (prov) {
       setName(prov.name)
       const defaults: Record<string, unknown> = {}
@@ -231,7 +231,7 @@ function AddDataSourceForm({
                 Select data source type…
               </option>
               {providers.map((p) => (
-                <option key={p.kind} value={p.kind}>
+                <option key={p.id} value={p.id}>
                   {p.name}
                 </option>
               ))}
