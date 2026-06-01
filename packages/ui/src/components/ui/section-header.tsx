@@ -12,8 +12,8 @@ const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps>(
   ({ className, label, heading, headingAccent, description, ...props }, ref) => (
     <div ref={ref} className={cn('mb-14', className)} {...props}>
       <div className="flex items-center gap-3 mb-4">
-        <div className="h-px flex-1 max-w-[40px] bg-[hsl(25,95%,53%/0.4)]" />
-        <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-[hsl(25,95%,53%)]">
+        <div className="h-px flex-1 max-w-10 bg-primary/40" />
+        <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-primary">
           {label}
         </span>
       </div>

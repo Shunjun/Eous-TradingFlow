@@ -21,7 +21,7 @@ export function Header() {
         <div
           className={`flex items-center gap-2 flex-1 rounded-md border px-3 py-1.5 transition-all duration-200 ${
             searchFocused
-              ? 'border-[hsl(25,95%,53%/0.4)] bg-[hsl(25,95%,53%/0.03)]'
+              ? 'border-primary/40 bg-primary/5'
               : 'border-border bg-muted/50'
           }`}
         >
@@ -46,30 +46,27 @@ export function Header() {
       {/* Right actions */}
       <div className="flex items-center gap-2">
         {/* Notification bell */}
-        <button
-          className="relative w-8 h-8 flex items-center justify-center rounded-md
-                          text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-        >
+        <Button variant="ghost-icon" size="icon" className="relative">
           <Bell size={16} />
           <Dot size="xs" variant="glow" className="absolute top-1.5 right-1.5" />
-        </button>
+        </Button>
 
         {/* Theme toggle */}
-        <button
+        <Button
+          variant="ghost-icon"
+          size="icon"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="w-8 h-8 flex items-center justify-center rounded-md
-                     text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-        </button>
+        </Button>
 
         {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div
               className="w-8 h-8 rounded-md border border-border flex items-center justify-center
-                            font-mono text-xs text-muted-foreground hover:border-[hsl(25,95%,53%/0.4)]
-                            hover:text-[hsl(25,95%,53%)] transition-all cursor-pointer"
+                            font-mono text-xs text-muted-foreground hover:border-primary/40
+                            hover:text-primary transition-all cursor-pointer"
             >
               S
             </div>

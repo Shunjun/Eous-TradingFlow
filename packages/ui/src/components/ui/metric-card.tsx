@@ -9,9 +9,9 @@ const metricCardVariants = cva(
     variants: {
       variant: {
         default:
-          'hover:border-[hsl(25,95%,53%/0.3)] hover:bg-[hsl(25,95%,53%/0.03)]',
+          'hover:border-primary/30 hover:bg-primary/5',
         compact:
-          'hover:border-[hsl(25,95%,53%/0.3)] hover:bg-[hsl(25,95%,53%/0.04)] text-center',
+          'hover:border-primary/30 hover:bg-primary/5 text-center',
       },
     },
     defaultVariants: {

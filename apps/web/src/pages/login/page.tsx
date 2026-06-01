@@ -53,8 +53,8 @@ export default function LoginPage() {
     <div className="flex h-screen flex-col bg-background">
       {/* Brand — top left */}
       <div className="flex items-center gap-2.5 px-6 py-5">
-        <IconBox size="sm" className="border-[hsl(25,95%,53%)] bg-[hsl(25,95%,53%/0.1)]" interactive={false}>
-          <GitBranch size={14} className="text-[hsl(25,95%,53%)]" />
+        <IconBox size="sm" className="border-primary bg-primary/10" interactive={false}>
+          <GitBranch size={14} className="text-primary" />
         </IconBox>
         <span className="font-mono font-bold text-sm tracking-wide">EOUS</span>
       </div>
@@ -66,8 +66,8 @@ export default function LoginPage() {
 
           {/* Error line */}
           {error && (
-            <div className="border-l-2 border-[hsl(25,95%,53%)] pl-3">
-              <p className="font-mono text-xs text-[hsl(25,95%,53%)]">{error}</p>
+            <div className="border-l-2 border-primary pl-3">
+              <p className="font-mono text-xs text-primary">{error}</p>
             </div>
           )}
 

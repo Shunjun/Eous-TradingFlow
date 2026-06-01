@@ -12,7 +12,7 @@ const iconBoxVariants = cva(
         lg: 'w-9 h-9',
       },
       interactive: {
-        true: 'group-hover:border-[hsl(25,95%,53%/0.4)] group-hover:bg-[hsl(25,95%,53%/0.06)]',
+        true: 'group-hover:border-primary/40 group-hover:bg-primary/5',
         false: '',
       },
     },

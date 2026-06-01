@@ -8,7 +8,7 @@ const statusBadgeVariants = cva(
   {
     variants: {
       status: {
-        running: 'text-[hsl(25,95%,53%)] bg-[hsl(25,95%,53%/0.1)]',
+        running: 'text-primary bg-primary/10',
         completed: 'text-emerald-500 bg-emerald-500/10',
         success: 'text-emerald-500 bg-emerald-500/10',
         failed: 'text-red-400 bg-red-400/10',

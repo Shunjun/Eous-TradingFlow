@@ -2,7 +2,7 @@ import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '../../lib/utils'
 
-const dotVariants = cva('inline-block rounded-full bg-[hsl(25,95%,53%)]', {
+const dotVariants = cva('inline-block rounded-full bg-primary', {
   variants: {
     size: {
       xs: 'w-1 h-1',

@@ -39,9 +39,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
   },
   {
     title: 'SYSTEM',
-    items: [
-      { id: 'settings', label: 'Settings', icon: Settings },
-    ],
+    items: [{ id: 'settings', label: 'Settings', icon: Settings }],
   },
 ]
 
@@ -62,13 +60,17 @@ export function Sidebar() {
     <aside
       className={cn(
         'h-screen flex flex-col border-r border-border bg-card transition-all duration-300 relative',
-        collapsed ? 'w-16' : 'w-56'
+        collapsed ? 'w-16' : 'w-56',
       )}
     >
       {/* Logo */}
       <div className="h-14 flex items-center gap-2.5 px-4 border-b border-border shrink-0">
-        <IconBox size="sm" className="border-[hsl(25,95%,53%)] bg-[hsl(25,95%,53%/0.1)]" interactive={false}>
-          <GitBranch size={14} className="text-[hsl(25,95%,53%)]" />
+        <IconBox
+          size="sm"
+          className="border-primary bg-primary/10"
+          interactive={false}
+        >
+          <GitBranch size={14} className="text-primary" />
         </IconBox>
         {!collapsed && (
           <span className="font-mono font-bold text-sm tracking-wide truncate">EOUS</span>
@@ -76,7 +78,7 @@ export function Sidebar() {
       </div>
 
       {/* Nav sections */}
-      <nav className="flex-1 overflow-y-auto overflow-x-visible py-3 px-2 space-y-5">
+      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-5">
         {navSections.map((section) => (
           <div key={section.title}>
             {!collapsed && (
@@ -97,8 +99,8 @@ export function Sidebar() {
                         'w-full flex items-center gap-2.5 rounded-md transition-all duration-200 group relative',
                         collapsed ? 'justify-center px-2 py-2' : 'px-2.5 py-2',
                         isActive
-                          ? 'bg-[hsl(25,95%,53%/0.1)] text-[hsl(25,95%,53%)]'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted',
                       )
                     }
                     title={collapsed ? item.label : undefined}
@@ -110,16 +112,18 @@ export function Sidebar() {
                           className={cn(
                             'shrink-0 transition-colors',
                             isActive
-                              ? 'text-[hsl(25,95%,53%)]'
-                              : 'text-muted-foreground group-hover:text-foreground'
+                              ? 'text-primary'
+                              : 'text-muted-foreground group-hover:text-foreground',
                           )}
                         />
                         {!collapsed && (
                           <>
                             <span className="text-sm truncate flex-1 text-left">{item.label}</span>
                             {item.badge && (
-                              <span className="font-mono text-[10px] bg-[hsl(25,95%,53%/0.15)]
-                                               text-[hsl(25,95%,53%)] rounded px-1.5 py-0.5 leading-none">
+                              <span
+                                className="font-mono text-[10px] bg-primary/15
+                                               text-primary rounded px-1.5 py-0.5 leading-none"
+                              >
                                 {item.badge}
                               </span>
                             )}
@@ -127,7 +131,7 @@ export function Sidebar() {
                         )}
                         {/* Active indicator */}
                         {isActive && (
-                          <span className="absolute -left-[18px] top-1/2 -translate-y-1/2 w-1.5 h-3 rounded-r-full bg-[hsl(25,95%,53%)]" />
+                          <span className="absolute -left-2 top-1/2 -translate-y-1/2 w-1.5 h-3 rounded-r-full bg-primary" />
                         )}
                       </>
                     )}

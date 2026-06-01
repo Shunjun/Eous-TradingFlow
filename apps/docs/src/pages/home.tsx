@@ -261,12 +261,12 @@ function FeatureCard({
   return (
     <div className="line-card rounded-lg p-6 group cursor-default">
       <div className="flex items-center gap-3 mb-4">
-        <IconBox size="lg" className="group-hover:border-[hsl(25,95%,53%/0.4)] group-hover:bg-[hsl(25,95%,53%/0.06)]">
-          <Icon size={18} className="text-muted-foreground group-hover:text-[hsl(25,95%,53%)] transition-colors duration-300" />
+        <IconBox size="lg" className="group-hover:border-primary/40 group-hover:bg-primary/5">
+          <Icon size={18} className="text-muted-foreground group-hover:text-primary transition-colors duration-300" />
         </IconBox>
         <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground
                          border border-border rounded px-1.5 py-0.5
-                         group-hover:border-[hsl(25,95%,53%/0.3)] group-hover:text-[hsl(25,95%,53%)]
+                         group-hover:border-primary/30 group-hover:text-primary
                          transition-all duration-300">
           {tag}
         </span>
@@ -294,8 +294,8 @@ export function HomePage() {
       <nav className="relative z-10 flex items-center justify-between px-6 md:px-12 py-5
                       border-b border-border/50">
         <div className="flex items-center gap-2.5">
-          <IconBox size="sm" className="border-[hsl(25,95%,53%)] bg-[hsl(25,95%,53%/0.1)]" interactive={false}>
-            <GitBranch size={14} className="text-[hsl(25,95%,53%)]" />
+          <IconBox size="sm" className="border-primary bg-primary/10" interactive={false}>
+            <GitBranch size={14} className="text-primary" />
           </IconBox>
           <span className="font-mono font-bold text-sm tracking-wide">EOUS</span>
         </div>
@@ -338,7 +338,7 @@ export function HomePage() {
                         transition-all duration-700 delay-100 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
           >
             <span className="text-foreground">EOUS</span>
-            <span className="text-[hsl(25,95%,53%)]">.</span>
+            <span className="text-primary">.</span>
           </h1>
 
           {/* Tagline */}
@@ -429,11 +429,11 @@ export function HomePage() {
               <div
                 key={label}
                 className="flex items-center gap-2.5 px-4 py-3 rounded-lg border border-border
-                           hover:border-[hsl(25,95%,53%/0.3)] hover:bg-[hsl(25,95%,53%/0.04)]
+                           hover:border-primary/30 hover:bg-primary/5
                            transition-all duration-300 group cursor-default"
               >
                 <IconBox size="sm" interactive>
-                  <Icon size={15} className="text-muted-foreground group-hover:text-[hsl(25,95%,53%)] transition-colors" />
+                  <Icon size={15} className="text-muted-foreground group-hover:text-primary transition-colors" />
                 </IconBox>
                 <span className="font-mono text-[11px] text-muted-foreground group-hover:text-foreground transition-colors">
                   {label}
@@ -457,10 +457,10 @@ export function HomePage() {
           {/* Architecture diagram */}
           <div className="border border-border rounded-lg p-8 dot-grid relative overflow-hidden mt-14">
             {/* Corner decorations */}
-            <div className="absolute top-3 left-3 w-2 h-2 border-t border-l border-[hsl(25,95%,53%/0.3)]" />
-            <div className="absolute top-3 right-3 w-2 h-2 border-t border-r border-[hsl(25,95%,53%/0.3)]" />
-            <div className="absolute bottom-3 left-3 w-2 h-2 border-b border-l border-[hsl(25,95%,53%/0.3)]" />
-            <div className="absolute bottom-3 right-3 w-2 h-2 border-b border-r border-[hsl(25,95%,53%/0.3)]" />
+            <div className="absolute top-3 left-3 w-2 h-2 border-t border-l border-primary/30" />
+            <div className="absolute top-3 right-3 w-2 h-2 border-t border-r border-primary/30" />
+            <div className="absolute bottom-3 left-3 w-2 h-2 border-b border-l border-primary/30" />
+            <div className="absolute bottom-3 right-3 w-2 h-2 border-b border-r border-primary/30" />
 
             <ArchitectureDiagram />
 
@@ -516,12 +516,12 @@ export function HomePage() {
           <div className="line-card rounded-xl p-10 md:p-14 relative overflow-hidden">
             {/* Decorative corner lines */}
             <div className="absolute top-4 left-4">
-              <div className="w-8 h-px bg-[hsl(25,95%,53%/0.4)]" />
-              <div className="w-px h-8 bg-[hsl(25,95%,53%/0.4)]" />
+              <div className="w-8 h-px bg-primary/40" />
+              <div className="w-px h-8 bg-primary/40" />
             </div>
             <div className="absolute bottom-4 right-4">
-              <div className="w-8 h-px bg-[hsl(25,95%,53%/0.4)]" />
-              <div className="w-px h-8 bg-[hsl(25,95%,53%/0.4)]" />
+              <div className="w-8 h-px bg-primary/40" />
+              <div className="w-px h-8 bg-primary/40" />
             </div>
 
             <h2 className="font-mono text-2xl md:text-3xl font-bold mb-4">
@@ -547,7 +547,7 @@ export function HomePage() {
       <footer className="relative z-10 border-t border-border/50 px-6 md:px-12 py-8">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <GitBranch size={14} className="text-[hsl(25,95%,53%)]" />
+            <GitBranch size={14} className="text-primary" />
             <span className="font-mono text-xs text-muted-foreground">
               Eous TradingFlow
             </span>

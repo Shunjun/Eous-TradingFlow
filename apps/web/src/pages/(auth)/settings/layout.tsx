@@ -28,7 +28,7 @@ export default function SettingsLayout() {
                 cn(
                   'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-all duration-200',
                   isActive
-                    ? 'bg-[hsl(25,95%,53%/0.1)] text-[hsl(25,95%,53%)]'
+                    ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted',
                 )
               }
@@ -39,7 +39,7 @@ export default function SettingsLayout() {
                     size={16}
                     className={cn(
                       'shrink-0 transition-colors',
-                      isActive ? 'text-[hsl(25,95%,53%)]' : 'text-muted-foreground',
+                      isActive ? 'text-primary' : 'text-muted-foreground',
                     )}
                   />
                   <span className="truncate">{item.label}</span>

@@ -232,12 +232,12 @@ export default function DashboardPage() {
           <button
             key={label}
             className="flex items-center gap-3 p-4 rounded-lg border border-border
-                       hover:border-[hsl(25,95%,53%/0.3)] hover:bg-[hsl(25,95%,53%/0.03)]
+                       hover:border-primary/30 hover:bg-primary/5
                        transition-all duration-300 group text-left"
           >
             <IconBox size="lg">
               <Icon size={16}
-                    className="text-muted-foreground group-hover:text-[hsl(25,95%,53%)] transition-colors" />
+                    className="text-muted-foreground group-hover:text-primary transition-colors" />
             </IconBox>
             <div>
               <p className="text-sm font-medium">{label}</p>

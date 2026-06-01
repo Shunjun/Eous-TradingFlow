@@ -150,7 +150,7 @@ function AddProviderForm({
             <select
               value={kind}
               onChange={(e) => handleKindChange(e.target.value)}
-              className="w-full h-9 rounded-md border border-border bg-background px-3 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-[hsl(25,95%,53%)]"
+              className="w-full h-9 rounded-md border border-border bg-background px-3 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             >
               <option value="" disabled>
                 Select provider type…
@@ -649,7 +649,7 @@ function ProviderCard({
                       className={cn(
                         'w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0',
                         model.enabled
-                          ? 'border-[hsl(25,95%,53%)] bg-[hsl(25,95%,53%/0.15)] text-[hsl(25,95%,53%)]'
+                          ? 'border-primary bg-primary/15 text-primary'
                           : 'border-border bg-transparent text-transparent',
                       )}
                     >
