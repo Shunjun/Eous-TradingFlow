@@ -11,7 +11,7 @@ import {
   ChevronRight,
   Wallet,
 } from 'lucide-react'
-import { cn, Dot, IconBox } from '@eous/ui'
+import { cn, IconBox } from '@eous/ui'
 
 interface NavItem {
   id: string
@@ -127,7 +127,7 @@ export function Sidebar() {
                         )}
                         {/* Active indicator */}
                         {isActive && (
-                          <Dot size="xs" variant="breath" className="absolute left-1.5" />
+                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-3 rounded-r-full bg-[hsl(25,95%,53%)]" />
                         )}
                       </>
                     )}
