@@ -127,7 +127,7 @@ export function Sidebar() {
                         )}
                         {/* Active indicator */}
                         {isActive && (
-                          <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-3 rounded-r-full bg-[hsl(25,95%,53%)]" />
+                          <span className="absolute -left-[18px] top-1/2 -translate-y-1/2 w-1.5 h-3 rounded-r-full bg-[hsl(25,95%,53%)]" />
                         )}
                       </>
                     )}
