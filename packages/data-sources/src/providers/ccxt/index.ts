@@ -29,7 +29,10 @@ function getExchange(exchangeId: string): Exchange {
   if (!ExClass) {
     throw new Error(`Unsupported exchange: ${exchangeId}`)
   }
-  const envProxy = process.env.HTTPS_PROXY || process.env.HTTP_PROXY || process.env.ALL_PROXY || undefined
+  const envProxy = process.env.HTTPS_PROXY || process.env.https_proxy
+  || process.env.HTTP_PROXY || process.env.http_proxy
+  || process.env.ALL_PROXY || process.env.all_proxy
+  || undefined
   const proxy = envProxy
   return new ExClass({ timeout: TIMEOUT_MS, proxy })
 }
