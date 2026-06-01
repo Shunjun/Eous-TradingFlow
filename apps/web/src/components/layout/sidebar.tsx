@@ -76,7 +76,7 @@ export function Sidebar() {
       </div>
 
       {/* Nav sections */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-5">
+      <nav className="flex-1 overflow-y-auto overflow-x-visible py-3 px-2 space-y-5">
         {navSections.map((section) => (
           <div key={section.title}>
             {!collapsed && (
