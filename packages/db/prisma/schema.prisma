@@ -16,7 +16,8 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  sessions Session[]
+  sessions       Session[]
+  providers      Provider[]
 
   @@map("users")
 }
@@ -32,4 +33,38 @@ model Session {
   @@index([userId])
   @@index([token])
   @@map("sessions")
+}
+
+model Provider {
+  id              String   @id @default(cuid())
+  name            String
+  kind            String
+  baseUrl         String
+  apiKeyEncrypted String
+  apiKeyIv        String
+  isActive        Boolean  @default(true)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  models         ProviderModel[]
+
+  @@unique([userId, name])
+  @@map("providers")
+}
+
+model ProviderModel {
+  id           String   @id @default(cuid())
+  providerId   String   @map("provider_id")
+  modelId      String   @map("model_id")              // "gpt-4o"
+  displayName  String?  @map("display_name")           // "GPT-4o"
+  maxTokens    Int?     @map("max_tokens")
+  capabilities String   @default("[]")                 // JSON string array
+  enabled      Boolean  @default(true)
+  provider     Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@unique([providerId, modelId])
+  @@map("provider_models")
 }

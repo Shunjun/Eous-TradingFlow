@@ -9,7 +9,6 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Bot,
   Wallet,
 } from 'lucide-react'
 import { cn, Dot, IconBox } from '@eous/ui'
@@ -41,7 +40,6 @@ const navSections: { title: string; items: NavItem[] }[] = [
   {
     title: 'SYSTEM',
     items: [
-      { id: 'provider', label: 'Providers', icon: Bot },
       { id: 'settings', label: 'Settings', icon: Settings },
     ],
   },
@@ -54,7 +52,6 @@ const navToPath: Record<string, string> = {
   workflows: '/workflows',
   agents: '/agents',
   datasets: '/datasets',
-  provider: '/providers',
   settings: '/settings',
 }
 
