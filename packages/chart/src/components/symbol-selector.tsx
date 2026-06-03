@@ -6,9 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   Input,
-  Button,
 } from '@eous/ui'
 import { Search, ChevronDown, Loader2 } from 'lucide-react'
 import type { ProviderOption, SymbolItem } from '../types'
@@ -97,11 +95,9 @@ export function SymbolSelector({
       switch (e.key) {
         case 'Escape': {
           if (searchQuery && !onSearchChange) {
-            // Clear search first, close on second Escape
             e.preventDefault()
             setSearchQuery('')
           }
-          // Let Dialog handle close on second Escape
           break
         }
         case 'ArrowDown': {
@@ -168,7 +164,7 @@ export function SymbolSelector({
           </span>
           <ChevronDown
             size={12}
-            className={cn('shrink-0 transition-transform', open && 'rotate-180')}
+            className={cn('shrink-0 transition-transform duration-200', open && 'rotate-180')}
           />
         </button>
       </DialogTrigger>
@@ -177,18 +173,17 @@ export function SymbolSelector({
       <DialogContent
         container={containerRef?.current ?? null}
         noOverlay
-        className="w-[480px] max-w-[480px] gap-4"
+        className="w-[360px] max-w-[360px] max-h-[440px] gap-0"
         onOpenAutoFocus={handleOpenAutoFocus}
         onKeyDown={handleKeyDown}
       >
         {/* ── Header ─────────────────────────────────────── */}
         <DialogHeader>
-          <DialogTitle className="font-mono text-sm">Select Symbol</DialogTitle>
-          <DialogDescription>Choose a trading symbol and data provider.</DialogDescription>
+          <DialogTitle className="font-mono text-xs">Select Symbol</DialogTitle>
         </DialogHeader>
 
         {/* ── Search ─────────────────────────────────────── */}
-        <div className="relative">
+        <div className="relative mt-3">
           <Search
             size={14}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
@@ -201,40 +196,40 @@ export function SymbolSelector({
             placeholder="Search symbols..."
             spellCheck={false}
             autoComplete="off"
-            className="h-8 pl-9 pr-3 text-xs font-mono"
+            className="h-8 pl-9 pr-3 text-[11px] font-mono placeholder:text-[10px] placeholder:text-muted-foreground/60 placeholder:font-mono border-border focus:ring-1 focus:ring-primary/20"
           />
         </div>
 
         {/* ── Provider tabs ──────────────────────────────── */}
-        <div className="flex items-center gap-1 overflow-x-auto">
+        <div className="flex gap-1.5 overflow-x-auto mt-3">
           {providers.map((provider) => {
             const isActive = provider.id === activeProviderId
             return (
-              <Button
+              <button
                 key={provider.id}
-                variant={isActive ? 'accent-outline' : 'ghost'}
-                size="sm"
                 onClick={() => onProviderChange(provider.id)}
-                className="h-7 px-2.5 text-[10px] font-mono"
+                className={cn(
+                  'px-2 py-1 text-[10px] font-mono rounded transition-colors shrink-0',
+                  isActive
+                    ? 'bg-primary/15 text-primary'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                )}
               >
                 {provider.name}
-              </Button>
+              </button>
             )
           })}
         </div>
 
-        {/* ── Divider ───────────────────────────────────── */}
-        <div className="border-t border-border" />
-
         {/* ── Symbol list ────────────────────────────────── */}
-        <div className="max-h-[360px] overflow-y-auto -mx-1">
+        <div className="max-h-[320px] overflow-y-auto mt-3">
           {loading ? (
             <div className="flex items-center justify-center py-10">
               <Loader2 size={16} className="animate-spin text-muted-foreground" />
             </div>
           ) : filteredSymbols.length === 0 ? (
-            <div className="px-4 py-10 text-center">
-              <p className="text-xs text-muted-foreground font-mono">No symbols found</p>
+            <div className="flex items-center justify-center py-10">
+              <p className="text-[11px] text-muted-foreground font-mono">No symbols found</p>
             </div>
           ) : (
             <div className="space-y-0.5">
@@ -248,29 +243,29 @@ export function SymbolSelector({
                     key={`${item.providerId}-${item.symbol}`}
                     onClick={() => handleSelect(item)}
                     className={cn(
-                      'w-full flex items-center justify-between gap-3 px-3 py-2 text-left rounded-md transition-colors',
-                      'hover:bg-muted',
+                      'w-full flex items-center justify-between gap-2 py-2 px-3 text-left rounded-md transition-colors',
+                      'hover:bg-muted/60',
                       isHighlighted && 'bg-muted',
                       isSelected && !isHighlighted && 'bg-primary/10',
                     )}
                   >
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono font-medium text-foreground">
+                      <div className="flex items-center">
+                        <span className="text-[11px] font-mono font-medium text-foreground">
                           {item.symbol}
                         </span>
                         {item.exchange && (
-                          <span className="text-[9px] text-muted-foreground font-mono">
+                          <span className="text-[9px] uppercase text-muted-foreground/60 ml-1.5">
                             {item.exchange}
                           </span>
                         )}
                       </div>
-                      <span className="text-[10px] text-muted-foreground truncate block leading-tight mt-0.5">
+                      <span className="text-[10px] text-muted-foreground truncate block leading-tight">
                         {item.name}
                       </span>
                     </div>
 
-                    <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded font-mono bg-muted text-muted-foreground">
+                    <span className="shrink-0 text-[9px] px-1.5 py-0.5 rounded font-mono bg-muted text-muted-foreground">
                       {providerName}
                     </span>
                   </button>
