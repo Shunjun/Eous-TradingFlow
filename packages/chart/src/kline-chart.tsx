@@ -1,13 +1,16 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
+import type { ISeriesApi } from 'lightweight-charts'
 import { useIndicatorStore } from '@eous/stores'
 import type { KlineChartProps, IndicatorConfig } from './types'
 import type { FetchKlinesFn } from './core/kline-data'
 import { useChart } from './hooks/use-chart'
 import { useResolvedTheme } from './hooks/use-resolved-theme'
 import { ChartToolbar } from './components/chart-toolbar'
-import { IndicatorPanel } from './components/indicator-panel'
+import { IndicatorLegend } from './components/indicator-legend'
+import { ResizablePanel } from './components/resizable-panel'
 import { LineToolsSidebar } from './components/line-tools-sidebar'
 import { LINE_TOOL_DEFINITIONS } from './line-tools/registry'
+import { getIndicatorDefinition } from './indicators/registry'
 import type { LineToolType } from 'lightweight-charts-line-tools-core'
 
 const EMPTY_CONFIGS: IndicatorConfig[] = []
@@ -48,9 +51,6 @@ export function KlineChart({
     engines,
     addIndicator,
     removeIndicator,
-    switchMode,
-    moveUp,
-    moveDown,
     loadKlines,
     switchInterval,
     loadEarlier,
@@ -58,6 +58,34 @@ export function KlineChart({
     toggleDrawingTool,
     deleteSelectedDrawing,
   } = useChart(containerRef, chartTheme)
+
+  // ── Resizable panel state ────────────────────────────────
+  const [panelOpen, setPanelOpen] = useState(false)
+  const [selectedIndicatorId, setSelectedIndicatorId] = useState<string | null>(null)
+
+  // Series map for legend (indicator ID -> series refs)
+  const seriesMapRef = useRef<Map<string, ISeriesApi<'Line' | 'Histogram'>[]>>(new Map())
+
+  // Update series map when indicators change
+  useEffect(() => {
+    const indicatorEngine = engines.indicator.current
+    if (!indicatorEngine) return
+
+    const updateSeriesMap = () => {
+      const instances = indicatorEngine.getInstances()
+      const newMap = new Map<string, ISeriesApi<'Line' | 'Histogram'>[]>()
+      for (const [id, instance] of instances) {
+        newMap.set(id, instance.seriesRefs)
+      }
+      seriesMapRef.current = newMap
+    }
+
+    // Initial update
+    updateSeriesMap()
+
+    // We'll call updateSeriesMap after addIndicator/removeIndicator
+    return () => {}
+  }, [engines.indicator])
 
   const lineToolsEngine = engines.lineTools.current
 
@@ -178,6 +206,20 @@ export function KlineChart({
   }, [hasSelectedDrawing, deleteSelectedDrawing, lineToolsEngine])
 
   // ── Handlers ────────────────────────────────────────────
+
+  const handleDoubleClickIndicator = useCallback(
+    (id: string) => {
+      setSelectedIndicatorId(id)
+      setPanelOpen(true)
+    },
+    [],
+  )
+
+  const handleClosePanel = useCallback(() => {
+    setPanelOpen(false)
+    setSelectedIndicatorId(null)
+  }, [])
+
   const handleSelectTool = useCallback(
     (id: string) => {
       if (id === 'none') {
@@ -207,35 +249,6 @@ export function KlineChart({
     },
     [symbol, removeIndicator],
   )
-
-  const handleToggleIndicator = useCallback(
-    (id: string) => {
-      const configs = symbol ? (useIndicatorStore.getState().configsBySymbol[symbol] ?? []) : []
-      const config = configs.find((c) => c.id === id)
-      if (!config) return
-      if (config.enabled) {
-        if (symbol)
-          useIndicatorStore.getState().updateConfigForSymbol(symbol, id, { enabled: false })
-        removeIndicator(id)
-      } else {
-        if (symbol)
-          useIndicatorStore.getState().updateConfigForSymbol(symbol, id, { enabled: true })
-        addIndicator({ ...config, enabled: true })
-      }
-    },
-    [symbol, addIndicator, removeIndicator],
-  )
-
-  const handleSwitchMode = useCallback(
-    (id: string, mode: 'overlay' | 'split') => {
-      if (symbol) useIndicatorStore.getState().updateConfigForSymbol(symbol, id, { mode })
-      switchMode(id, mode)
-    },
-    [symbol, switchMode],
-  )
-
-  const handleMoveUp = useCallback((id: string) => moveUp(id), [moveUp])
-  const handleMoveDown = useCallback((id: string) => moveDown(id), [moveDown])
 
   const handleUpdateIndicatorConfig = useCallback(
     (id: string, updates: Partial<IndicatorConfig>) => {
@@ -278,26 +291,58 @@ export function KlineChart({
         />
 
         {/* Chart container */}
-        <div className="relative flex-1 min-h-0">
+        <div className="relative flex-1 min-h-0" data-chart-container>
           <div ref={containerRef} className="h-full w-full" />
           {!symbol && (
             <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm font-mono pointer-events-none">
               Select a symbol
             </div>
           )}
+
+          {/* Indicator legend */}
+          {engines.chart.current?.chart && (
+            <IndicatorLegend
+              indicators={indicatorConfigs}
+              chartRef={engines.chart.current.chart}
+              seriesMapRef={seriesMapRef}
+              onDoubleClickIndicator={handleDoubleClickIndicator}
+            />
+          )}
         </div>
 
-        {/* Right panel: indicators */}
-        <IndicatorPanel
-          indicators={indicatorConfigs}
-          onAdd={handleAddIndicator}
-          onRemove={handleRemoveIndicator}
-          onToggle={handleToggleIndicator}
-          onSwitchMode={handleSwitchMode}
-          onMoveUp={handleMoveUp}
-          onMoveDown={handleMoveDown}
-          onUpdateConfig={handleUpdateIndicatorConfig}
-        />
+        {/* Right panel: settings */}
+        <ResizablePanel
+          title={
+            selectedIndicatorId
+              ? (() => {
+                  const config = indicatorConfigs.find((c) => c.id === selectedIndicatorId)
+                  if (!config) return '设置'
+                  const def = getIndicatorDefinition(config.type)
+                  return def ? `${def.label} 设置` : '设置'
+                })()
+              : '设置'
+          }
+          open={panelOpen}
+          onClose={handleClosePanel}
+        >
+          {selectedIndicatorId &&
+            (() => {
+              const config = indicatorConfigs.find((c) => c.id === selectedIndicatorId)
+              if (!config) return null
+              const def = getIndicatorDefinition(config.type)
+              if (!def) return null
+              return (
+                <def.SettingsComponent
+                  config={config}
+                  onUpdate={(updates) => handleUpdateIndicatorConfig(config.id, updates)}
+                  onRemove={() => {
+                    handleRemoveIndicator(config.id)
+                    handleClosePanel()
+                  }}
+                />
+              )
+            })()}
+        </ResizablePanel>
       </div>
     </div>
   )

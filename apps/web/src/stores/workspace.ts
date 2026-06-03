@@ -35,6 +35,18 @@ interface WorkspaceState {
 
 const DEFAULT_LAYOUT: MosaicNode<string> = 'welcome'
 
+function parseLayout(node: unknown): MosaicNode<string> {
+  if (!node) return DEFAULT_LAYOUT
+  if (typeof node === 'string') {
+    try {
+      return JSON.parse(node) as MosaicNode<string>
+    } catch {
+      return node as MosaicNode<string>
+    }
+  }
+  return node as MosaicNode<string>
+}
+
 export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   layouts: [],
   activeLayoutId: null,
@@ -66,7 +78,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         set({
           layouts,
           activeLayoutId,
-          layout: (remote.schemaJson as MosaicNode<string>) ?? DEFAULT_LAYOUT,
+          layout: parseLayout(remote.schemaJson),
           dirty: false,
           loading: false,
         })
@@ -89,7 +101,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       const { layout: remote } = await api.getWorkspaceLayout(id)
       set({
         activeLayoutId: id,
-        layout: (remote.schemaJson as MosaicNode<string>) ?? DEFAULT_LAYOUT,
+        layout: parseLayout(remote.schemaJson),
         dirty: false,
       })
     } catch {
