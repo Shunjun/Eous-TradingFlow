@@ -1,6 +1,5 @@
 import type { Time } from 'lightweight-charts'
 import type { FetchKlinesFn } from './core/kline-data'
-import type { ReactNode } from 'react'
 
 // ── Data ────────────────────────────────────────────────────────────────────
 

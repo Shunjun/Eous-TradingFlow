@@ -5,6 +5,7 @@ import type { FetchKlinesFn } from '../core/kline-data'
 import { useChart } from '../hooks/use-chart'
 import { useResolvedTheme } from '../hooks/use-resolved-theme'
 import { ChartToolbar } from './chart-toolbar'
+import { IndicatorPanel } from './indicator-panel'
 import { LineToolsSidebar } from './line-tools-sidebar'
 import { LINE_TOOL_DEFINITIONS } from '../line-tools/registry'
 import type { LineToolType } from 'lightweight-charts-line-tools-core'
@@ -207,6 +208,15 @@ export function KlineChart({
   const handleMoveUp = useCallback((id: string) => moveUp(id), [moveUp])
   const handleMoveDown = useCallback((id: string) => moveDown(id), [moveDown])
 
+  const handleUpdateIndicatorConfig = useCallback(
+    (id: string, updates: Partial<IndicatorConfig>) => {
+      if (symbol) useIndicatorStore.getState().updateConfigForSymbol(symbol, id, updates)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ;(engines.indicator.current as any)?.updateConfig(id, updates)
+    },
+    [symbol, engines],
+  )
+
   return (
     <div className="flex flex-col h-full w-full min-h-0">
       {/* Toolbar — always visible */}
@@ -215,13 +225,6 @@ export function KlineChart({
         intervals={intervals}
         onIntervalChange={onIntervalChange ?? (() => {})}
         symbol={symbol}
-        indicators={indicatorConfigs}
-        onAddIndicator={handleAddIndicator}
-        onRemoveIndicator={handleRemoveIndicator}
-        onToggleIndicator={handleToggleIndicator}
-        onSwitchIndicatorMode={handleSwitchMode}
-        onMoveIndicatorUp={handleMoveUp}
-        onMoveIndicatorDown={handleMoveDown}
       />
 
       {/* Chart area with sidebar */}
@@ -244,6 +247,18 @@ export function KlineChart({
             </div>
           )}
         </div>
+
+        {/* Right panel: indicators */}
+        <IndicatorPanel
+          indicators={indicatorConfigs}
+          onAdd={handleAddIndicator}
+          onRemove={handleRemoveIndicator}
+          onToggle={handleToggleIndicator}
+          onSwitchMode={handleSwitchMode}
+          onMoveUp={handleMoveUp}
+          onMoveDown={handleMoveDown}
+          onUpdateConfig={handleUpdateIndicatorConfig}
+        />
       </div>
     </div>
   )

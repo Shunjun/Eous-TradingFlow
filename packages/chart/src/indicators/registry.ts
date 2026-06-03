@@ -1,42 +1,42 @@
 import type { IndicatorDefinition } from '../types'
-import { sma, ema, macd } from './calculator'
+import { createSMADefinition } from './sma/definition'
+import { createEMADefinition } from './ema/definition'
+import { createMACDDefinition } from './macd/definition'
+import { createRSIDefinition } from './rsi/definition'
+import { createBollingerBandsDefinition } from './bollinger-bands/definition'
 
 // ── Built-in Indicator Definitions ──────────────────────────────────────────
 
-export const INDICATOR_REGISTRY: Record<string, IndicatorDefinition> = {
-  sma: {
-    type: 'sma',
-    label: 'SMA',
-    defaultParams: { period: 20 },
-    defaultMode: 'overlay',
-    calculate: (closes, params) => sma(closes, params.period),
-    seriesCount: 1,
-    seriesTypes: ['Line'],
-    defaultColors: ['hsl(45, 93%, 47%)'],
-    seriesLabels: ['SMA({period})'],
-  },
-  ema: {
-    type: 'ema',
-    label: 'EMA',
-    defaultParams: { period: 12 },
-    defaultMode: 'overlay',
-    calculate: (closes, params) => ema(closes, params.period),
-    seriesCount: 1,
-    seriesTypes: ['Line'],
-    defaultColors: ['hsl(217, 91%, 60%)'],
-    seriesLabels: ['EMA({period})'],
-  },
-  macd: {
-    type: 'macd',
-    label: 'MACD',
-    defaultParams: { fast: 12, slow: 26, signal: 9 },
-    defaultMode: 'split',
-    calculate: (closes, params) => macd(closes, params),
-    seriesCount: 3,
-    seriesTypes: ['Line', 'Line', 'Histogram'],
-    defaultColors: ['hsl(217, 91%, 60%)', 'hsl(25, 95%, 53%)', 'hsl(220, 9%, 46%)'],
-    seriesLabels: ['MACD', 'Signal', 'Histogram'],
-  },
+const BUILT_IN_DEFINITIONS: IndicatorDefinition[] = [
+  createSMADefinition(),
+  createEMADefinition(),
+  createMACDDefinition(),
+  createRSIDefinition(),
+  createBollingerBandsDefinition(),
+]
+
+// ── Registry ────────────────────────────────────────────────────────────────
+
+const registry = new Map<string, IndicatorDefinition>()
+
+for (const def of BUILT_IN_DEFINITIONS) {
+  registry.set(def.type, def)
 }
+
+export function getIndicatorDefinition(type: string): IndicatorDefinition | undefined {
+  return registry.get(type)
+}
+
+export function getAllIndicatorDefinitions(): IndicatorDefinition[] {
+  return [...registry.values()]
+}
+
+export function getIndicatorTypes(): string[] {
+  return [...registry.keys()]
+}
+
+export const INDICATOR_REGISTRY: Record<string, IndicatorDefinition> = Object.fromEntries(
+  BUILT_IN_DEFINITIONS.map((d) => [d.type, d]),
+)
 
 export const INDICATOR_TYPES = Object.keys(INDICATOR_REGISTRY)

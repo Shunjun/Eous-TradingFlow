@@ -55,7 +55,7 @@ export class IndicatorEngine {
       // Add series to main pane (pane 0)
       for (let i = 0; i < definition.seriesCount; i++) {
         const seriesType = definition.seriesTypes[i]
-        const color = config.color ?? definition.defaultColors[i]
+        const color = config.colors?.[i] ?? config.color ?? definition.defaultColors[i]
 
         if (seriesType === 'Line') {
           const s = this.chart.addSeries(LineSeries, {
@@ -87,7 +87,7 @@ export class IndicatorEngine {
 
       for (let i = 0; i < definition.seriesCount; i++) {
         const seriesType = definition.seriesTypes[i]
-        const color = config.color ?? definition.defaultColors[i]
+        const color = config.colors?.[i] ?? config.color ?? definition.defaultColors[i]
 
         if (seriesType === 'Line') {
           const s = this.chart.addSeries(LineSeries, {
@@ -224,8 +224,13 @@ export class IndicatorEngine {
       }
     }
 
-    // If color changed, update series options
-    if (updates.color) {
+    // If color/colors changed, update series options
+    if (updates.colors) {
+      for (let i = 0; i < instance.seriesRefs.length; i++) {
+        const c = updates.colors[i] ?? updates.colors[0]
+        if (c) instance.seriesRefs[i].applyOptions({ color: c })
+      }
+    } else if (updates.color) {
       for (let i = 0; i < instance.seriesRefs.length; i++) {
         instance.seriesRefs[i].applyOptions({ color: updates.color })
       }

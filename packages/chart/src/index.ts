@@ -2,5 +2,5 @@
 export { KlineChart } from './components/kline-chart'
 
 // Types
-export type { KlineChartProps, OhlcvData, IntervalOption } from './types'
+export type { KlineChartProps, OhlcvData, IntervalOption, IndicatorConfig, IndicatorDisplayMode } from './types'
 export type { KlineDataPoint, FetchKlinesFn } from './core/kline-data'
