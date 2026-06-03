@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@eous/stores": "workspace:*",
+    "@eous/tailwind": "workspace:*",
     "lightweight-charts": "^5.0.0",
     "lightweight-charts-line-tools-core": "github:difurious/lightweight-charts-line-tools-core",
     "lightweight-charts-line-tools-lines": "github:difurious/lightweight-charts-line-tools-lines",

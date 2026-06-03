@@ -7,6 +7,7 @@
  *   packages/tailwind/src -> packages/tailwind -> packages -> packages/ui/src
  */
 @source "../../ui/src";
+@source "../../chart/src";
 
 /*
  * shadcn/ui design tokens — HSL format, no wrapper.

@@ -194,6 +194,9 @@ importers:
       '@eous/stores':
         specifier: workspace:*
         version: link:../stores
+      '@eous/tailwind':
+        specifier: workspace:*
+        version: link:../tailwind
       lightweight-charts:
         specifier: ^5.0.0
         version: 5.2.0
