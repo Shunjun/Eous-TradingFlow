@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { IntervalItem, IntervalSettings } from './types'
 
 // ── Defaults ────────────────────────────────────────────────────────────────
@@ -125,20 +125,20 @@ function subscribe(key: string, listener: () => void) {
   }
 }
 
-function getSnapshot(key: string): IntervalSettings {
-  return load(key)
-}
-
 // ── Hook ────────────────────────────────────────────────────────────────────
 
 export function useIntervalSettings(storageKey?: string) {
   const key = storageKey ?? defaultStorageKey()
 
-  const settings = useSyncExternalStore(
-    (cb) => subscribe(key, cb),
-    () => getSnapshot(key),
-    () => DEFAULT_INTERVAL_SETTINGS,
-  )
+  const [settings, setSettings] = useState<IntervalSettings>(() => load(key))
+
+  useEffect(() => {
+    return subscribe(key, () => {
+      const next = load(key)
+      // Only update state if the data actually changed (by reference)
+      setSettings((prev) => (prev === next ? prev : next))
+    })
+  }, [key])
 
   const updateIntervals = useCallback(
     (intervals: IntervalItem[]) => {
