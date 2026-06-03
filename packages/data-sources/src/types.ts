@@ -42,9 +42,17 @@ export interface Kline {
 
 export interface KlinesRequest {
   symbol: string
-  interval: '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w'
+  interval: string
   from: number // unix ms
   to: number // unix ms
+}
+
+// ── Interval 定义 ──
+export interface IntervalDef {
+  /** 显示标签，如 "1m", "5m", "1h", "1d" */
+  label: string
+  /** 内部值，用于请求 */
+  value: string
 }
 
 // ── Provider 接口 ──
@@ -52,6 +60,9 @@ export interface DataSourceProvider {
   id: string // 唯一标识，如 "yahoo-finance"
   name: string // 显示名 "Yahoo Finance"
   configSchema: ConfigField[] // 配置表单定义
+
+  /** 返回该 provider 支持的时间周期列表 */
+  getSupportedIntervals(): IntervalDef[]
 
   /**
    * 根据用户配置生成 provider 的唯一标识。

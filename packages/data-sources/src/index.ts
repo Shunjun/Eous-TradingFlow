@@ -4,6 +4,7 @@ export type {
   Quote,
   Kline,
   KlinesRequest,
+  IntervalDef,
   DataSourceProvider,
 } from './types.js'
 

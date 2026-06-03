@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   CardPanel,
   CardPanelHeader,
@@ -12,14 +12,9 @@ import {
   SelectItem,
   SelectValue,
 } from '@eous/ui'
-import {
-  BarChart3,
-  Search,
-  Loader2,
-  Plus,
-  TrendingUp,
-} from 'lucide-react'
-import { KlineChart } from '../../../components/views/kline-chart'
+import { BarChart3, Search, Loader2, Plus, TrendingUp } from 'lucide-react'
+import { KlineChart } from '@eous/chart'
+import type { FetchKlinesFn, KlineDataPoint, IntervalOption } from '@eous/chart'
 
 /* ── Types ─────────────────────────────────────────────── */
 
@@ -43,15 +38,6 @@ interface TrackedSymbol {
   name: string | null
   exchange: string | null
   type: string | null
-}
-
-interface KlineData {
-  timestamp: number
-  open: number
-  high: number
-  low: number
-  close: number
-  volume?: number
 }
 
 /* ── API helper ────────────────────────────────────────── */
@@ -85,30 +71,47 @@ export default function WatchlistPage() {
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState('')
 
-  // kline
+  // selected symbol
   const [selectedSymbol, setSelectedSymbol] = useState<{
     symbol: string
     name?: string
   } | null>(null)
-  const [klineData, setKlineData] = useState<KlineData[]>([])
+
+  // interval
   const [interval, setInterval] = useState('1d')
-  const [klineLoading, setKlineLoading] = useState(false)
-  const [klineError, setKlineError] = useState('')
+  const [intervals, setIntervals] = useState<IntervalOption[]>([])
 
   // adding symbol
   const [adding, setAdding] = useState<string | null>(null)
 
+  // ── Data fetching function (provided to KlineChart) ──────
+  const fetchKlinesFn = useMemo<FetchKlinesFn | undefined>(() => {
+    if (!selectedId) return undefined
+    const instanceId = selectedId
+    return async ({ symbol, interval, from, to }) => {
+      const body: Record<string, unknown> = { symbol, interval }
+      if (from !== undefined) body.from = from
+      if (to !== undefined) body.to = to
+
+      const data = await apiFetch<{ klines: KlineDataPoint[] }>(
+        `/api/data-source-instances/${instanceId}/klines`,
+        { method: 'POST', body: JSON.stringify(body) },
+      )
+      return data.klines
+    }
+  }, [selectedId])
+
   // ── Load instances ─────────────────────────────────────
 
   useEffect(() => {
-    apiFetch<{ instances: DataSourceInstance[] }>(
-      '/api/data-source-instances',
-    ).then((d) => {
-      setInstances(d.instances)
-      if (d.instances.length > 0 && !selectedId) {
-        setSelectedId(d.instances[0].id)
-      }
-    }).catch(() => {})
+    apiFetch<{ instances: DataSourceInstance[] }>('/api/data-source-instances')
+      .then((d) => {
+        setInstances(d.instances)
+        if (d.instances.length > 0 && !selectedId) {
+          setSelectedId(d.instances[0].id)
+        }
+      })
+      .catch(() => {})
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Load tracked symbols when instance changes ─────────
@@ -129,10 +132,27 @@ export default function WatchlistPage() {
   }, [])
 
   useEffect(() => {
-    if (selectedId) {
-      loadTracked(selectedId)
-    }
+    if (selectedId) loadTracked(selectedId)
   }, [selectedId, loadTracked])
+
+  // ── Load supported intervals when instance changes ─────
+  useEffect(() => {
+    if (!selectedId) {
+      setIntervals([])
+      return
+    }
+    apiFetch<{ intervals: IntervalOption[] }>(
+      `/api/data-source-instances/${selectedId}/intervals`,
+    )
+      .then((d) => {
+        setIntervals(d.intervals)
+        // Reset interval if current one is not in the new list
+        if (d.intervals.length > 0 && !d.intervals.some((i) => i.value === interval)) {
+          setInterval(d.intervals[d.intervals.length - 1].value)
+        }
+      })
+      .catch(() => setIntervals([]))
+  }, [selectedId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Search ─────────────────────────────────────────────
 
@@ -145,10 +165,7 @@ export default function WatchlistPage() {
     try {
       const data = await apiFetch<{ symbols: SearchResult[] }>(
         `/api/data-source-instances/${selectedId}/search`,
-        {
-          method: 'POST',
-          body: JSON.stringify({ query: query.trim() }),
-        },
+        { method: 'POST', body: JSON.stringify({ query: query.trim() }) },
       )
       setResults(data.symbols)
     } catch (err: unknown) {
@@ -182,58 +199,11 @@ export default function WatchlistPage() {
     }
   }
 
-  // ── Load klines ────────────────────────────────────────
-
-  const loadKlines = useCallback(
-    async (symbol: string, iv: string) => {
-      if (!selectedId) return
-      setKlineLoading(true)
-      setKlineError('')
-      try {
-        const data = await apiFetch<{ klines: KlineData[] }>(
-          `/api/data-source-instances/${selectedId}/klines`,
-          {
-            method: 'POST',
-            body: JSON.stringify({
-              symbol,
-              interval: iv,
-            }),
-          },
-        )
-        setKlineData(data.klines)
-      } catch (err: unknown) {
-        setKlineError(err instanceof Error ? err.message : 'Failed to load klines')
-        setKlineData([])
-      } finally {
-        setKlineLoading(false)
-      }
-    },
-    [selectedId],
-  )
-
-  // reload when selectedSymbol or interval changes
-  useEffect(() => {
-    if (selectedSymbol) {
-      loadKlines(selectedSymbol.symbol, interval)
-    }
-  }, [selectedSymbol, interval, loadKlines])
-
   // ── Select a symbol ────────────────────────────────────
 
   function selectSymbol(symbol: string, name?: string | null) {
     setSelectedSymbol({ symbol, name: name ?? undefined })
   }
-
-  // ── Chart data transform ──────────────────────────────
-
-  const chartData = klineData.map((k) => ({
-    time: String(Math.floor(k.timestamp / 1000)),
-    open: k.open,
-    high: k.high,
-    low: k.low,
-    close: k.close,
-    volume: k.volume,
-  }))
 
   // ── Render ─────────────────────────────────────────────
 
@@ -249,9 +219,7 @@ export default function WatchlistPage() {
           <span className="font-mono text-xs text-muted-foreground">
             / {selectedSymbol.symbol}
             {selectedSymbol.name && (
-              <span className="ml-1 text-muted-foreground/60">
-                ({selectedSymbol.name})
-              </span>
+              <span className="ml-1 text-muted-foreground/60">({selectedSymbol.name})</span>
             )}
           </span>
         )}
@@ -272,7 +240,6 @@ export default function WatchlistPage() {
                 onValueChange={(v) => {
                   setSelectedId(v)
                   setSelectedSymbol(null)
-                  setKlineData([])
                   setResults([])
                 }}
               >
@@ -321,23 +288,14 @@ export default function WatchlistPage() {
                   )}
                 </Button>
               </form>
-              {searchError && (
-                <p className="text-[10px] font-mono text-red-400">
-                  {searchError}
-                </p>
-              )}
+              {searchError && <p className="text-[10px] font-mono text-red-400">{searchError}</p>}
             </CardPanelBody>
           </CardPanel>
 
           {/* Tracked symbols + search results */}
           <CardPanel className="flex-1 min-h-0 overflow-hidden flex flex-col">
-            <CardPanelHeader
-              icon={TrendingUp}
-              title="Symbols"
-              className="shrink-0"
-            />
+            <CardPanelHeader icon={TrendingUp} title="Symbols" className="shrink-0" />
             <CardPanelBody className="flex-1 overflow-y-auto p-0">
-              {/* Tracked symbols */}
               {trackedSymbols.length > 0 && (
                 <div className="border-b border-border/50">
                   <div className="px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70 bg-muted/20">
@@ -355,9 +313,7 @@ export default function WatchlistPage() {
                       )}
                     >
                       <div className="min-w-0 flex-1">
-                        <div className="font-mono text-xs font-medium truncate">
-                          {s.symbol}
-                        </div>
+                        <div className="font-mono text-xs font-medium truncate">{s.symbol}</div>
                         {s.name && (
                           <div className="font-mono text-[10px] text-muted-foreground truncate">
                             {s.name}
@@ -374,16 +330,13 @@ export default function WatchlistPage() {
                 </div>
               )}
 
-              {/* Search results */}
               {results.length > 0 && (
                 <div>
                   <div className="px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground/70 bg-muted/20">
                     Search Results
                   </div>
                   {results.map((r) => {
-                    const alreadyTracked = trackedSymbols.some(
-                      (t) => t.symbol === r.symbol,
-                    )
+                    const alreadyTracked = trackedSymbols.some((t) => t.symbol === r.symbol)
                     return (
                       <div
                         key={r.symbol}
@@ -393,9 +346,7 @@ export default function WatchlistPage() {
                           onClick={() => selectSymbol(r.symbol, r.name)}
                           className="flex-1 min-w-0 text-left"
                         >
-                          <div className="font-mono text-xs font-medium truncate">
-                            {r.symbol}
-                          </div>
+                          <div className="font-mono text-xs font-medium truncate">{r.symbol}</div>
                           <div className="font-mono text-[10px] text-muted-foreground truncate">
                             {r.name}
                           </div>
@@ -428,55 +379,26 @@ export default function WatchlistPage() {
                 </div>
               )}
 
-              {/* Empty state */}
               {trackedSymbols.length === 0 && results.length === 0 && (
                 <div className="flex items-center justify-center py-8 text-muted-foreground font-mono text-[11px]">
-                  {selectedId
-                    ? 'No symbols yet. Search to add.'
-                    : 'Select a data source.'}
+                  {selectedId ? 'No symbols yet. Search to add.' : 'Select a data source.'}
                 </div>
               )}
             </CardPanelBody>
           </CardPanel>
         </div>
 
-        {/* ── Right Panel: Kline Chart ────────────────── */}
+        {/* ── Right Panel: Kline Chart (always mounted) ── */}
         <div className="flex-1 min-w-0">
           <CardPanel className="h-full flex flex-col">
-            <CardPanelBody className="flex-1 min-h-0 p-0">
-              {selectedSymbol ? (
-                klineLoading ? (
-                  <div className="flex h-full items-center justify-center gap-2 text-muted-foreground font-mono text-xs">
-                    <Loader2 size={14} className="animate-spin" />
-                    Loading {selectedSymbol.symbol}...
-                  </div>
-                ) : klineError ? (
-                  <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground font-mono text-xs">
-                    <span className="text-red-400">{klineError}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() =>
-                        loadKlines(selectedSymbol.symbol, interval)
-                      }
-                      className="font-mono text-[11px]"
-                    >
-                      Retry
-                    </Button>
-                  </div>
-                ) : (
-                  <KlineChart
-                    data={chartData}
-                    symbol={selectedSymbol.symbol}
-                    interval={interval}
-                    onIntervalChange={setInterval}
-                  />
-                )
-              ) : (
-                <div className="flex h-full items-center justify-center text-muted-foreground font-mono text-xs">
-                  Select a symbol to view chart
-                </div>
-              )}
+            <CardPanelBody className="flex-1 min-h-0 p-0 relative">
+              <KlineChart
+                symbol={selectedSymbol?.symbol}
+                interval={interval}
+                intervals={intervals}
+                onIntervalChange={setInterval}
+                fetchKlines={fetchKlinesFn}
+              />
             </CardPanelBody>
           </CardPanel>
         </div>

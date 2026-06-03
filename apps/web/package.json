@@ -10,14 +10,17 @@
     "lint": "eslint src/"
   },
   "dependencies": {
+    "@eous/chart": "workspace:*",
+    "@eous/stores": "workspace:*",
     "@eous/tailwind": "workspace:*",
     "@eous/types": "workspace:*",
     "@eous/ui": "workspace:*",
     "lucide-react": "^0.460.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-mosaic-component": "^6.1.1",
     "react-router-dom": "^7.6.0",
-    "lightweight-charts": "^5.0.0"
+    "zustand": "^5.0.0"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

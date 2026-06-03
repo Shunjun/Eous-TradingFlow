@@ -5,6 +5,7 @@ import { authRouter } from './routes/auth.js'
 import { providerRouter, templatesRouter } from './routes/provider.js'
 import { dataSourceRouter, dataSourceInstanceRouter } from './routes/data-source.js'
 import { workspaceRouter } from './routes/workspace.js'
+import { AppError } from './lib/app-error.js'
 
 export const app = new Hono()
 
@@ -17,3 +18,11 @@ app.route('/api/provider-templates', templatesRouter)
 app.route('/api', dataSourceRouter)
 app.route('/api', dataSourceInstanceRouter)
 app.route('/api/workspace', workspaceRouter)
+
+app.onError((err, c) => {
+  if (err instanceof AppError) {
+    return c.json({ error: err.message }, err.statusCode as 400)
+  }
+  console.error('[server] unhandled error:', err)
+  return c.json({ error: 'Internal server error' }, 500)
+})

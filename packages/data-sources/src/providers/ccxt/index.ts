@@ -7,10 +7,24 @@ import type {
   Quote,
   Kline,
   KlinesRequest,
+  IntervalDef,
 } from '../../types.js'
+import { parseIntervalMs } from '../../utils.js'
+
+// ── CCXT 支持的时间周期 ──
+const SUPPORTED_INTERVALS: IntervalDef[] = [
+  { label: '1m', value: '1m' },
+  { label: '5m', value: '5m' },
+  { label: '15m', value: '15m' },
+  { label: '30m', value: '30m' },
+  { label: '1h', value: '1h' },
+  { label: '4h', value: '4h' },
+  { label: '1d', value: '1d' },
+  { label: '1w', value: '1w' },
+]
 
 // ── interval 映射到 CCXT timeframe ──
-const INTERVAL_MAP: Record<KlinesRequest['interval'], string> = {
+const INTERVAL_MAP: Record<string, string> = {
   '1m': '1m',
   '5m': '5m',
   '15m': '15m',
@@ -40,17 +54,7 @@ function getExchange(exchangeId: string, proxyUrl?: string): Exchange {
 }
 
 function estimateLimit(request: KlinesRequest, timeframe: string): number {
-  const msPerBar: Record<string, number> = {
-    '1m': 60_000,
-    '5m': 300_000,
-    '15m': 900_000,
-    '30m': 1_800_000,
-    '1h': 3_600_000,
-    '4h': 14_400_000,
-    '1d': 86_400_000,
-    '1w': 604_800_000,
-  }
-  const ms = msPerBar[timeframe] ?? 86_400_000
+  const ms = parseIntervalMs(timeframe)
   const count = Math.ceil((request.to - request.from) / ms)
   return Math.min(Math.max(count, 1), 1000)
 }
@@ -85,6 +89,10 @@ export const CCXTProvider: DataSourceProvider = {
       hint: 'SOCKS5/HTTP proxy, e.g. socks5://127.0.0.1:1080',
     },
   ],
+
+  getSupportedIntervals() {
+    return SUPPORTED_INTERVALS
+  },
 
   resolveIdentity(config) {
     const ex = config['exchange'] || 'unknown'

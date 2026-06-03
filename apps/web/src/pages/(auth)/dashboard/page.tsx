@@ -3,7 +3,7 @@ import { Mosaic, MosaicWindow, type MosaicNode } from 'react-mosaic-component'
 import 'react-mosaic-component/react-mosaic-component.css'
 import { Button } from '@eous/ui'
 import { Plus } from 'lucide-react'
-import { useWorkspaceStore } from '../../../stores/workspace.js'
+import { useWorkspaceStore } from '@eous/stores'
 import WelcomeContent from '../../../components/dashboard/WelcomeContent.js'
 import PlaceholderPanel from '../../../components/dashboard/PlaceholderPanel.js'
 import ToolbarControls from '../../../components/dashboard/ToolbarControls.js'
@@ -13,16 +13,16 @@ export default function DashboardPage() {
   const layout = useWorkspaceStore((s) => s.layout)
   const loaded = useWorkspaceStore((s) => s.loaded)
   const setLayout = useWorkspaceStore((s) => s.setLayout)
-  const saveLayout = useWorkspaceStore((s) => s.saveLayout)
+  const save = useWorkspaceStore((s) => s.save)
   const dirty = useWorkspaceStore((s) => s.dirty)
-  const loadLayout = useWorkspaceStore((s) => s.loadLayout)
+  const load = useWorkspaceStore((s) => s.load)
 
   const [panelCount, setPanelCount] = useState(1)
 
   useEffect(() => {
-    loadLayout()
+    load()
     return () => {
-      if (dirty) saveLayout()
+      if (dirty) save()
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -67,7 +67,7 @@ export default function DashboardPage() {
           onRelease={(node: MosaicNode<string> | null) => {
             if (node) {
               setLayout(node)
-              saveLayout()
+              save()
             }
           }}
           zeroStateView={<ZeroState />}

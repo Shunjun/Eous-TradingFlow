@@ -1,0 +1,32 @@
+{
+  "name": "@eous/chart",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "dependencies": {
+    "@eous/stores": "workspace:*",
+    "lucide-react": "^0.460.0",
+    "lightweight-charts": "^5.0.0",
+    "lightweight-charts-line-tools-core": "github:difurious/lightweight-charts-line-tools-core",
+    "lightweight-charts-line-tools-lines": "github:difurious/lightweight-charts-line-tools-lines",
+    "lightweight-charts-line-tools-rectangle": "github:difurious/lightweight-charts-line-tools-rectangle",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@eous/types": "workspace:*",
+    "@eous/ui": "workspace:*",
+    "@types/react": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}

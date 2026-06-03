@@ -4,16 +4,27 @@ import type {
   Quote,
   Kline,
   KlinesRequest,
+  IntervalDef,
 } from '../../types.js'
 
-// ── Yahoo interval 映射 ──
-const INTERVAL_MAP: Record<KlinesRequest['interval'], string> = {
+// ── Yahoo 支持的时间周期 ──
+const SUPPORTED_INTERVALS: IntervalDef[] = [
+  { label: '1m', value: '1m' },
+  { label: '5m', value: '5m' },
+  { label: '15m', value: '15m' },
+  { label: '30m', value: '30m' },
+  { label: '1h', value: '1h' },
+  { label: '1d', value: '1d' },
+  { label: '1w', value: '1w' },
+]
+
+// ── Yahoo interval 映射（value → Yahoo API interval）──
+const INTERVAL_MAP: Record<string, string> = {
   '1m': '1m',
   '5m': '5m',
   '15m': '15m',
   '30m': '30m',
   '1h': '1h',
-  '4h': '1d', // Yahoo 不支持 4h，降级到 1d
   '1d': '1d',
   '1w': '1wk',
 }
@@ -126,6 +137,10 @@ export const YahooFinanceProvider: DataSourceProvider = {
     },
   ],
 
+  getSupportedIntervals() {
+    return SUPPORTED_INTERVALS
+  },
+
   resolveIdentity(config) {
     return { displayName: 'Yahoo Finance', key: '' }
   },
@@ -193,7 +208,7 @@ export const YahooFinanceProvider: DataSourceProvider = {
   },
 
   async getKlines(request: KlinesRequest, config) {
-    const interval = INTERVAL_MAP[request.interval]
+    const interval = INTERVAL_MAP[request.interval] ?? '1d'
     const period1 = Math.floor(request.from / 1000) // ms → s
     const period2 = Math.floor(request.to / 1000)
 
