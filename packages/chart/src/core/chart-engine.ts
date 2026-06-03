@@ -1,0 +1,196 @@
+import {
+  createChart,
+  CandlestickSeries,
+  HistogramSeries,
+  CrosshairMode,
+  ColorType,
+  LineStyle,
+} from 'lightweight-charts'
+import type { IChartApi, ISeriesApi } from 'lightweight-charts'
+import type { Time } from 'lightweight-charts'
+import type { ChartTheme, ParsedBar, VolumeBar } from '../types'
+import type { KlineDataPoint } from './kline-data'
+import type { EventBus } from './event-bus'
+
+// ── Data Helpers ────────────────────────────────────────────────────────────
+
+export function parseTime(raw: string): Time {
+  if (/^\d+$/.test(raw)) {
+    return Number(raw) as Time
+  }
+  return raw as unknown as Time
+}
+
+export function parseOhlcvData(
+  data: { time: string; open: number; high: number; low: number; close: number; volume?: number }[],
+  upColorTransparent: string,
+  downColorTransparent: string,
+): { candles: ParsedBar[]; volumes: VolumeBar[] } {
+  const candles: ParsedBar[] = []
+  const volumes: VolumeBar[] = []
+
+  for (const d of data) {
+    const time = parseTime(d.time)
+    candles.push({ time, open: d.open, high: d.high, low: d.low, close: d.close })
+    if (d.volume !== undefined) {
+      volumes.push({
+        time,
+        value: d.volume,
+        color: d.close >= d.open ? upColorTransparent : downColorTransparent,
+      })
+    }
+  }
+  return { candles, volumes }
+}
+
+// ── ChartEngine ──────────────────────────────────────────────────────────────
+
+export class ChartEngine {
+  readonly chart: IChartApi
+  readonly candleSeries: ISeriesApi<'Candlestick'>
+  volumeSeries: ISeriesApi<'Histogram'> | null = null
+  readonly container: HTMLElement
+
+  private unsubData: () => void
+  private unsubTheme: () => void
+
+  constructor(
+    container: HTMLElement,
+    eventBus: EventBus,
+    _klineData: unknown,
+    theme: ChartTheme,
+  ) {
+    this.container = container
+
+    this.chart = createChart(container, {
+      autoSize: true,
+      layout: {
+        background: { type: ColorType.Solid, color: theme.background },
+        textColor: theme.foreground,
+        fontSize: 11,
+        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+      },
+      grid: {
+        vertLines: { color: theme.border },
+        horzLines: { color: theme.border },
+      },
+      crosshair: {
+        mode: CrosshairMode.Normal,
+        vertLine: {
+          color: theme.foreground,
+          width: 1,
+          style: LineStyle.Dashed,
+          labelBackgroundColor: theme.foreground,
+        },
+        horzLine: {
+          color: theme.foreground,
+          width: 1,
+          style: LineStyle.Dashed,
+          labelBackgroundColor: theme.foreground,
+        },
+      },
+      rightPriceScale: {
+        borderColor: theme.border,
+        scaleMargins: { top: 0.05, bottom: 0.25 },
+      },
+      timeScale: {
+        borderColor: theme.border,
+        timeVisible: true,
+        secondsVisible: false,
+      },
+      handleScroll: true,
+      handleScale: true,
+    })
+
+    this.candleSeries = this.chart.addSeries(CandlestickSeries, {
+      upColor: theme.upColor,
+      downColor: theme.downColor,
+      borderUpColor: theme.upColor,
+      borderDownColor: theme.downColor,
+      wickUpColor: theme.upColor,
+      wickDownColor: theme.downColor,
+    })
+
+    // Subscribe to events
+    this.unsubData = eventBus.on('data:updated', ({ klines, fit }) => {
+      this.setData(klines, fit)
+    })
+    this.unsubTheme = eventBus.on('theme:changed', ({ theme: t }) => {
+      this.applyTheme(t)
+    })
+  }
+
+  private setData(klines: KlineDataPoint[], fit: boolean): void {
+    const { candles, volumes } = parseOhlcvData(
+      klines.map((k) => ({
+        time: String(Math.floor(k.timestamp / 1000)),
+        open: k.open,
+        high: k.high,
+        low: k.low,
+        close: k.close,
+        volume: k.volume,
+      })),
+      'hsla(160, 84%, 39%, 0.4)',
+      'hsla(0, 91%, 71%, 0.4)',
+    )
+    this.candleSeries.setData(candles)
+    if (volumes.length > 0) {
+      if (!this.volumeSeries) {
+        this.volumeSeries = this.chart.addSeries(HistogramSeries, {
+          priceFormat: { type: 'volume' },
+          priceScaleId: 'volume',
+        })
+        this.chart.priceScale('volume').applyOptions({
+          scaleMargins: { top: 0.8, bottom: 0 },
+        })
+      }
+      this.volumeSeries.setData(volumes)
+    }
+    if (fit) {
+      this.chart.timeScale().fitContent()
+    }
+  }
+
+  private applyTheme(t: ChartTheme): void {
+    this.chart.applyOptions({
+      layout: {
+        background: { type: ColorType.Solid, color: t.background },
+        textColor: t.foreground,
+      },
+      grid: {
+        vertLines: { color: t.border },
+        horzLines: { color: t.border },
+      },
+      crosshair: {
+        vertLine: { color: t.foreground, labelBackgroundColor: t.foreground },
+        horzLine: { color: t.foreground, labelBackgroundColor: t.foreground },
+      },
+      rightPriceScale: { borderColor: t.border },
+      timeScale: { borderColor: t.border },
+    })
+    this.candleSeries.applyOptions({
+      upColor: t.upColor,
+      downColor: t.downColor,
+      borderUpColor: t.upColor,
+      borderDownColor: t.downColor,
+      wickUpColor: t.upColor,
+      wickDownColor: t.downColor,
+    })
+  }
+
+  resize(): void {
+    this.chart.resize(this.container.clientWidth, this.container.clientHeight)
+  }
+
+  getVisibleRange(): { from: number; to: number } | null {
+    const range = this.chart.timeScale().getVisibleRange()
+    if (!range) return null
+    return { from: range.from as number, to: range.to as number }
+  }
+
+  destroy(): void {
+    this.unsubData()
+    this.unsubTheme()
+    this.chart.remove()
+  }
+}

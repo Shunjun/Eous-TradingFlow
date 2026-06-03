@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { MosaicNode } from 'react-mosaic-component'
+import { api } from '../lib/api.js'
 
 export interface PanelDef {
   id: string
@@ -32,9 +33,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   loadLayout: async () => {
     try {
-      const res = await fetch('/api/workspace/layout', { credentials: 'include' })
-      if (!res.ok) return
-      const { layout } = (await res.json()) as { layout: MosaicNode<string> | null }
+      const { layout } = await api.getWorkspaceLayout() as { layout: MosaicNode<string> | null }
       set({
         layout: layout ?? DEFAULT_LAYOUT,
         loaded: true,
@@ -49,12 +48,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     if (!dirty || !layout) return
 
     try {
-      await fetch('/api/workspace/layout', {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ layout }),
-      })
+      await api.saveWorkspaceLayout(layout)
       set({ dirty: false })
     } catch {
       // Will retry on next save

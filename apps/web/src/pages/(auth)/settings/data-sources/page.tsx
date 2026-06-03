@@ -17,67 +17,13 @@ import {
   SelectValue,
 } from '@eous/ui'
 import { Database, Plus, X, Trash2, Zap, Check, Loader2, Search, Tag } from 'lucide-react'
-
-/* ── Types ─────────────────────────────────────────────── */
-
-interface ConfigFieldSchema {
-  key: string
-  label: string
-  type: 'text' | 'password' | 'select' | 'number' | 'boolean'
-  required?: boolean
-  placeholder?: string
-  options?: { label: string; value: string }[]
-  default?: unknown
-}
-
-interface DataSourceProvider {
-  id: string
-  name: string
-  configSchema: ConfigFieldSchema[]
-}
-
-interface TrackedSymbol {
-  id: string
-  symbol: string
-  name: string | null
-  exchange: string | null
-  type: string | null
-}
-
-interface DataSourceInstance {
-  id: string
-  name: string
-  providerKind: string
-  identityKey?: string
-  identityLabel?: string
-  createdAt: string
-}
-
-interface DataSourceDetail extends DataSourceInstance {
-  trackedSymbols: TrackedSymbol[]
-}
-
-interface SearchResult {
-  symbol: string
-  name: string
-  exchange?: string
-  type?: string
-}
-
-/* ── API helpers ───────────────────────────────────────── */
-
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
-  })
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.error ?? `HTTP ${res.status}`)
-  }
-  return res.json() as Promise<T>
-}
+import type {
+  ConfigFieldSchema,
+  DataSourceProvider,
+  DataSourceInstance,
+  SymbolSearchResult,
+} from '@eous/types'
+import { api } from '@/lib/api'
 
 /* ── Dynamic Config Field ──────────────────────────────── */
 
@@ -198,10 +144,7 @@ function AddDataSourceForm({
     setError('')
     setLoading(true)
     try {
-      await apiFetch('/api/data-source-instances', {
-        method: 'POST',
-        body: JSON.stringify({ name, providerKind: kind, config }),
-      })
+      await api.createDataSourceInstance({ name, providerKind: kind, config })
       onCreated()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to create data source')
@@ -299,7 +242,7 @@ function AddDataSourceForm({
 
 function SymbolSearchForm({ instanceId, onAdded }: { instanceId: string; onAdded: () => void }) {
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<SearchResult[]>([])
+  const [results, setResults] = useState<SymbolSearchResult[]>([])
   const [searching, setSearching] = useState(false)
   const [adding, setAdding] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -311,14 +254,8 @@ function SymbolSearchForm({ instanceId, onAdded }: { instanceId: string; onAdded
     setSearching(true)
     setResults([])
     try {
-      const data = await apiFetch<{ results: SearchResult[] }>(
-        `/api/data-source-instances/${instanceId}/search`,
-        {
-          method: 'POST',
-          body: JSON.stringify({ query: query.trim() }),
-        },
-      )
-      setResults(data.results)
+      const data = await api.searchDataSourceSymbols(instanceId, { query: query.trim() })
+      setResults('symbols' in data ? data.symbols : data.results)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Search failed')
     } finally {
@@ -326,17 +263,14 @@ function SymbolSearchForm({ instanceId, onAdded }: { instanceId: string; onAdded
     }
   }
 
-  async function handleAddSymbol(result: SearchResult) {
+  async function handleAddSymbol(result: SymbolSearchResult) {
     setAdding(result.symbol)
     try {
-      await apiFetch(`/api/data-source-instances/${instanceId}/symbols`, {
-        method: 'POST',
-        body: JSON.stringify({
-          symbol: result.symbol,
-          name: result.name,
-          exchange: result.exchange,
-          type: result.type,
-        }),
+      await api.addDataSourceSymbol(instanceId, {
+        symbol: result.symbol,
+        name: result.name,
+        exchange: result.exchange,
+        type: result.type,
       })
       setResults((prev) => prev.filter((r) => r.symbol !== result.symbol))
       onAdded()
@@ -441,10 +375,7 @@ function DataSourceCard({
     setTesting(true)
     setTestResult(null)
     try {
-      const result = await apiFetch<{ ok: boolean; error?: string }>(
-        `/api/data-source-instances/${instance.id}/test`,
-        { method: 'POST' },
-      )
+      const result = await api.testDataSourceInstance(instance.id)
       setTestResult(result)
     } catch (err: unknown) {
       setTestResult({ ok: false, error: err instanceof Error ? err.message : 'Connection failed' })
@@ -457,9 +388,7 @@ function DataSourceCard({
     if (!confirm(`Delete data source "${instance.name}"?`)) return
     setDeleting(true)
     try {
-      await apiFetch(`/api/data-source-instances/${instance.id}`, {
-        method: 'DELETE',
-      })
+      await api.deleteDataSourceInstance(instance.id)
       onRefresh()
     } catch {
       setDeleting(false)
@@ -518,7 +447,7 @@ export default function DataSourcesPage() {
 
   const loadInstances = useCallback(async () => {
     try {
-      const data = await apiFetch<{ instances: DataSourceInstance[] }>('/api/data-source-instances')
+      const data = await api.listDataSourceInstances()
       setInstances(data.instances)
     } catch {
       // silent
@@ -529,8 +458,9 @@ export default function DataSourcesPage() {
 
   useEffect(() => {
     loadInstances()
-    apiFetch<{ providers: DataSourceProvider[] }>('/api/data-source-providers')
-      .then((d) => setProviders(d.providers))
+    api
+      .listDataSourceProviders()
+      .then((d: { providers: DataSourceProvider[] }) => setProviders(d.providers))
       .catch(() => {})
   }, [loadInstances])
 

@@ -1,14 +1,12 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useIndicatorStore } from '@eous/stores'
 import type { KlineChartProps, IndicatorConfig } from '../types'
-import type { FetchKlinesFn, KlineDataPoint } from '../kline-data'
-import { KLineData } from '../kline-data'
-import { useChartEngine } from '../hooks/use-chart-engine'
-import { useIndicatorManager } from '../hooks/use-indicators'
-import { useLineTools } from '../hooks/use-line-tools'
+import type { FetchKlinesFn } from '../core/kline-data'
+import { useChart } from '../hooks/use-chart'
 import { useResolvedTheme } from '../hooks/use-resolved-theme'
-import { parseTime } from '../chart-engine'
 import { ChartToolbar } from './chart-toolbar'
+import { LineToolsSidebar } from './line-tools-sidebar'
+import { LINE_TOOL_DEFINITIONS } from '../line-tools/registry'
 import type { LineToolType } from 'lightweight-charts-line-tools-core'
 
 const EMPTY_CONFIGS: IndicatorConfig[] = []
@@ -24,33 +22,14 @@ export function KlineChart({
 }: KlineChartProps) {
   const chartTheme = useResolvedTheme()
   const containerRef = useRef<HTMLDivElement>(null)
-  const { engineRef } = useChartEngine(containerRef, chartTheme)
+  const {
+    engines,
+    addIndicator, removeIndicator, switchMode, moveUp, moveDown,
+    loadKlines, switchInterval, loadEarlier, getKlineData,
+    toggleDrawingTool, deleteSelectedDrawing,
+  } = useChart(containerRef, chartTheme)
 
-  const chart = engineRef.current?.chart ?? null
-  const candleSeries = engineRef.current?.candleSeries ?? null
-
-  const indicators = useIndicatorManager(chart, candleSeries)
-  const lineTools = useLineTools(chart, candleSeries)
-
-  // ── KLineData instance ─────────────────────────────────────
-  const klineDataRef = useRef<KLineData | null>(null)
-
-  // Create KLineData when engine is ready
-  useEffect(() => {
-    const engine = engineRef.current
-    if (!engine) return
-    klineDataRef.current = new KLineData(engine, chartTheme)
-    return () => {
-      klineDataRef.current = null
-    }
-    // Only create once when engine is ready
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [engineRef.current])
-
-  // Keep theme in sync
-  useEffect(() => {
-    klineDataRef.current?.updateTheme(chartTheme)
-  }, [chartTheme])
+  const lineToolsEngine = engines.lineTools.current
 
   // ── Infinite scroll ─────────────────────────────────────
   const fetchKlinesRef = useRef(fetchKlines)
@@ -61,6 +40,8 @@ export function KlineChart({
   intervalRef.current = interval
 
   useEffect(() => {
+    const chart = engines.chart.current?.chart
+    const candleSeries = engines.chart.current?.candleSeries
     if (!chart || !candleSeries) return
     const chartRef = chart
     const seriesRef = candleSeries
@@ -69,7 +50,7 @@ export function KlineChart({
     let cooldownTimer: ReturnType<typeof setTimeout> | null = null
 
     function handleVisibleRangeChange() {
-      const klineData = klineDataRef.current
+      const klineData = getKlineData()
       if (!klineData || klineData.loading || !klineData.hasMoreData) return
 
       const range = chartRef.timeScale().getVisibleLogicalRange()
@@ -83,7 +64,7 @@ export function KlineChart({
         if (!data || data.length === 0) return
         const oldestBar = data[0] as { time: number }
 
-        klineData.loadEarlier(
+        loadEarlier(
           fetchKlinesRef.current!,
           symbolRef.current!,
           intervalRef.current,
@@ -102,14 +83,14 @@ export function KlineChart({
       if (timer) clearTimeout(timer)
       if (cooldownTimer) clearTimeout(cooldownTimer)
     }
-  }, [chart, candleSeries])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Load data on symbol/interval change ───────────────────
   const lastFetchedRef = useRef<{ symbol: string; interval: string } | null>(null)
 
   useEffect(() => {
-    const klineData = klineDataRef.current
-    if (!klineData || !fetchKlines || !symbol) return
+    if (!fetchKlines || !symbol) return
 
     const prev = lastFetchedRef.current
     const symbolChanged = prev?.symbol !== symbol
@@ -117,13 +98,11 @@ export function KlineChart({
     lastFetchedRef.current = { symbol, interval }
 
     if (symbolChanged || !prev) {
-      // New symbol or first load → fetch latest data, fit
-      klineData.loadInitial(fetchKlines, symbol, interval)
+      loadKlines(fetchKlines, symbol, interval)
     } else if (intervalChanged) {
-      // Interval changed → fetch latest data with new interval, fit
-      klineData.switchInterval(fetchKlines, symbol, interval)
+      switchInterval(fetchKlines, symbol, interval)
     }
-  }, [symbol, interval, fetchKlines, engineRef])
+  }, [symbol, interval, fetchKlines, loadKlines, switchInterval])
 
   // ── Indicator configs (persisted per symbol via Zustand store) ──────
   const indicatorConfigs = useIndicatorStore((s) =>
@@ -136,52 +115,67 @@ export function KlineChart({
     const configs = useIndicatorStore.getState().configsBySymbol[symbol]
     if (!configs || configs.length === 0) return
     for (const config of configs) {
-      if (config.enabled) indicators.addIndicator(config)
+      if (config.enabled) addIndicator(config)
     }
     return () => {
-      indicators.destroy()
+      // cleanup handled by useChart destroy
     }
-  }, [symbol])
+  }, [symbol, addIndicator])
 
   // ── Drawing tools state ─────────────────────────────────
-  const [activeDrawingTool, setActiveDrawingTool] = useState('none')
+  const [activeDrawingTool, setActiveDrawingTool] = useState<LineToolType | 'none'>('none')
   const [hasSelectedDrawing, setHasSelectedDrawing] = useState(false)
+
+  // Subscribe to selection changes from the engine
+  useEffect(() => {
+    if (!lineToolsEngine) return
+    return lineToolsEngine.onSelectionChange(setHasSelectedDrawing)
+  }, [lineToolsEngine])
 
   // ── Keyboard shortcuts ──────────────────────────────────
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') setActiveDrawingTool('none')
+      if (e.key === 'Escape') {
+        setActiveDrawingTool('none')
+        lineToolsEngine?.setActiveTool('none')
+      }
       if ((e.key === 'Delete' || e.key === 'Backspace') && hasSelectedDrawing) {
-        lineTools.deleteSelected()
+        deleteSelectedDrawing()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [hasSelectedDrawing, lineTools])
+  }, [hasSelectedDrawing, deleteSelectedDrawing, lineToolsEngine])
 
   // ── Handlers ────────────────────────────────────────────
-  const handleDrawingToolChange = useCallback(
-    (tool: string) => {
-      setActiveDrawingTool(tool)
-      if (tool !== 'none') lineTools.addLineTool(tool as LineToolType)
+  const handleSelectTool = useCallback(
+    (id: string) => {
+      if (id === 'none') {
+        setActiveDrawingTool('none')
+        lineToolsEngine?.setActiveTool('none')
+      } else {
+        const toolType = id as LineToolType
+        setActiveDrawingTool(toolType)
+        toggleDrawingTool(toolType)
+      }
     },
-    [lineTools],
+    [lineToolsEngine, toggleDrawingTool],
   )
 
   const handleAddIndicator = useCallback(
     (config: IndicatorConfig) => {
       if (symbol) useIndicatorStore.getState().addConfigForSymbol(symbol, config)
-      indicators.addIndicator(config)
+      addIndicator(config)
     },
-    [symbol, indicators],
+    [symbol, addIndicator],
   )
 
   const handleRemoveIndicator = useCallback(
     (id: string) => {
       if (symbol) useIndicatorStore.getState().removeConfigForSymbol(symbol, id)
-      indicators.removeIndicator(id)
+      removeIndicator(id)
     },
-    [symbol, indicators],
+    [symbol, removeIndicator],
   )
 
   const handleToggleIndicator = useCallback(
@@ -192,26 +186,26 @@ export function KlineChart({
       if (config.enabled) {
         if (symbol)
           useIndicatorStore.getState().updateConfigForSymbol(symbol, id, { enabled: false })
-        indicators.removeIndicator(id)
+        removeIndicator(id)
       } else {
         if (symbol)
           useIndicatorStore.getState().updateConfigForSymbol(symbol, id, { enabled: true })
-        indicators.addIndicator({ ...config, enabled: true })
+        addIndicator({ ...config, enabled: true })
       }
     },
-    [symbol, indicators],
+    [symbol, addIndicator, removeIndicator],
   )
 
   const handleSwitchMode = useCallback(
     (id: string, mode: 'overlay' | 'split') => {
       if (symbol) useIndicatorStore.getState().updateConfigForSymbol(symbol, id, { mode })
-      indicators.switchMode(id, mode)
+      switchMode(id, mode)
     },
-    [symbol, indicators],
+    [symbol, switchMode],
   )
 
-  const handleMoveUp = useCallback((id: string) => indicators.moveUp(id), [indicators])
-  const handleMoveDown = useCallback((id: string) => indicators.moveDown(id), [indicators])
+  const handleMoveUp = useCallback((id: string) => moveUp(id), [moveUp])
+  const handleMoveDown = useCallback((id: string) => moveDown(id), [moveDown])
 
   return (
     <div className="flex flex-col h-full w-full min-h-0">
@@ -228,20 +222,28 @@ export function KlineChart({
         onSwitchIndicatorMode={handleSwitchMode}
         onMoveIndicatorUp={handleMoveUp}
         onMoveIndicatorDown={handleMoveDown}
-        activeDrawingTool={activeDrawingTool}
-        onDrawingToolChange={handleDrawingToolChange}
-        onDeleteSelected={() => lineTools.deleteSelected()}
-        hasSelectedDrawing={hasSelectedDrawing}
       />
 
-      {/* Chart area — always rendered */}
-      <div className="relative flex-1 min-h-0">
-        <div ref={containerRef} className="h-full w-full" />
-        {!symbol && (
-          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm font-mono pointer-events-none">
-            Select a symbol
-          </div>
-        )}
+      {/* Chart area with sidebar */}
+      <div className="relative flex-1 flex min-h-0">
+        {/* Left sidebar: line tools */}
+        <LineToolsSidebar
+          activeTool={activeDrawingTool}
+          tools={LINE_TOOL_DEFINITIONS}
+          onSelectTool={handleSelectTool}
+          onDeleteSelected={deleteSelectedDrawing}
+          hasSelected={hasSelectedDrawing}
+        />
+
+        {/* Chart container */}
+        <div className="relative flex-1 min-h-0">
+          <div ref={containerRef} className="h-full w-full" />
+          {!symbol && (
+            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm font-mono pointer-events-none">
+              Select a symbol
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

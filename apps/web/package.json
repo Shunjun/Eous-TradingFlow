@@ -10,6 +10,7 @@
     "lint": "eslint src/"
   },
   "dependencies": {
+    "@eous/api-client-http": "workspace:*",
     "@eous/chart": "workspace:*",
     "@eous/stores": "workspace:*",
     "@eous/tailwind": "workspace:*",

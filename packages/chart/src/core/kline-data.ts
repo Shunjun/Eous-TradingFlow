@@ -1,7 +1,7 @@
-import type { ChartEngine } from './chart-engine'
-import { parseOhlcvData } from './chart-engine'
-import type { OhlcvData, ParsedBar, VolumeBar, ChartTheme } from './types'
-import { parseIntervalMs } from './utils/interval'
+import type { Time } from 'lightweight-charts'
+import type { ChartTheme } from '../types'
+import { parseIntervalMs } from '../utils/interval'
+import type { EventBus } from './event-bus'
 
 /** Default number of bars to load per request */
 const LOAD_BAR_COUNT = 365
@@ -9,7 +9,7 @@ const LOAD_BAR_COUNT = 365
 /* ── Types ─────────────────────────────────────────────── */
 
 export interface KlineDataPoint {
-  timestamp: number  // ms
+  timestamp: number // ms
   open: number
   high: number
   low: number
@@ -31,7 +31,7 @@ export class KLineData {
   private _loading = false
   private _hasMore = true
   private fetchId = 0
-  private engine: ChartEngine
+  private eventBus: EventBus
   private theme: ChartTheme
 
   // Prevent infinite scroll during/after interval switch
@@ -39,24 +39,33 @@ export class KLineData {
   // Cooldown: don't trigger infinite scroll right after a fetch completes
   private lastLoadTime = 0
 
-  constructor(engine: ChartEngine, theme: ChartTheme) {
-    this.engine = engine
+  constructor(eventBus: EventBus, theme: ChartTheme) {
+    this.eventBus = eventBus
     this.theme = theme
   }
 
-  get loading() { return this._loading }
-  get hasMoreData() { return this._hasMore }
+  get loading() {
+    return this._loading
+  }
+  get hasMoreData() {
+    return this._hasMore
+  }
+
+  /** Return close price series for indicator computation */
+  getCloses(): { time: Time; close: number }[] {
+    return this.klines.map((k) => ({
+      time: Math.floor(k.timestamp / 1000) as Time,
+      close: k.close,
+    }))
+  }
 
   updateTheme(theme: ChartTheme) {
     this.theme = theme
+    this.eventBus.emit('theme:changed', { theme })
   }
 
   // ── Initial load (no data → fit) ───────────────────────
-  async loadInitial(
-    fetchFn: FetchKlinesFn,
-    symbol: string,
-    interval: string,
-  ): Promise<void> {
+  async loadInitial(fetchFn: FetchKlinesFn, symbol: string, interval: string): Promise<void> {
     this.suspendScroll = true
     this.klines = []
     this._hasMore = true
@@ -65,11 +74,7 @@ export class KLineData {
   }
 
   // ── Switch interval (fetch latest data → fit) ──────────
-  async switchInterval(
-    fetchFn: FetchKlinesFn,
-    symbol: string,
-    interval: string,
-  ): Promise<void> {
+  async switchInterval(fetchFn: FetchKlinesFn, symbol: string, interval: string): Promise<void> {
     this.suspendScroll = true
     this.klines = []
     this._hasMore = true
@@ -92,10 +97,16 @@ export class KLineData {
 
     const ms = oldestTimestamp * 1000
     const intervalMs = parseIntervalMs(interval)
-    await this.fetch(fetchFn, symbol, interval, {
-      from: ms - LOAD_BAR_COUNT * intervalMs,
-      to: ms - 1,
-    }, false)
+    await this.fetch(
+      fetchFn,
+      symbol,
+      interval,
+      {
+        from: ms - LOAD_BAR_COUNT * intervalMs,
+        to: ms - 1,
+      },
+      false,
+    )
   }
 
   // ── Internal fetch ─────────────────────────────────────
@@ -111,7 +122,7 @@ export class KLineData {
 
     try {
       const data = await fetchFn({ symbol, interval, ...opts })
-      if (id !== this.fetchId) return  // stale
+      if (id !== this.fetchId) return // stale
 
       if (fit) {
         // Replace
@@ -122,7 +133,7 @@ export class KLineData {
       }
 
       this._hasMore = data.length >= 100
-      this.renderToChart(fit)
+      this.eventBus.emit('data:updated', { klines: this.klines, fit })
       this.lastLoadTime = Date.now()
     } catch {
       if (id !== this.fetchId) return
@@ -145,20 +156,11 @@ export class KLineData {
     return [...toAdd, ...existing]
   }
 
-  // ── Render to chart engine ─────────────────────────────
-  private renderToChart(fit: boolean) {
-    const { candles, volumes } = parseOhlcvData(
-      this.klines.map((k) => ({
-        time: String(Math.floor(k.timestamp / 1000)),
-        open: k.open,
-        high: k.high,
-        low: k.low,
-        close: k.close,
-        volume: k.volume,
-      })),
-      this.theme.upColorTransparent,
-      this.theme.downColorTransparent,
-    )
-    this.engine.setData(candles, volumes, fit)
+  destroy(): void {
+    this.klines = []
+    this._hasMore = true
+    this._loading = false
   }
 }
+
+export { LOAD_BAR_COUNT }

@@ -30,39 +30,8 @@ import {
   Pencil,
   Save,
 } from 'lucide-react'
-
-/* ── Types ─────────────────────────────────────────────── */
-
-interface Provider {
-  id: string
-  name: string
-  kind: string
-  baseUrl: string
-  isActive: boolean
-  createdAt: string
-}
-
-interface ProviderModel {
-  id: string
-  modelId: string
-  displayName: string | null
-  maxTokens: number | null
-  capabilities: string[]
-  enabled: boolean
-}
-
-interface ProviderTemplate {
-  kind: string
-  label: string
-  defaultBaseUrl: string
-  hint?: string
-}
-
-interface TestResult {
-  ok?: boolean
-  modelCount?: number
-  error?: string
-}
+import type { Provider, ProviderModel, ProviderTemplate, TestResult } from '@eous/types'
+import { api } from '@/lib/api'
 
 /* ── Capability color map ──────────────────────────────── */
 
@@ -72,21 +41,6 @@ const CAP_COLORS: Record<string, string> = {
   reasoning: 'text-orange-400 bg-orange-400/10',
   json_mode: 'text-cyan-400 bg-cyan-400/10',
   streaming: 'text-emerald-400 bg-emerald-400/10',
-}
-
-/* ── API helpers ───────────────────────────────────────── */
-
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
-  })
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.error ?? `HTTP ${res.status}`)
-  }
-  return res.json() as Promise<T>
 }
 
 /* ── Add Provider Form ─────────────────────────────────── */
@@ -126,10 +80,7 @@ function AddProviderForm({
     setError('')
     setLoading(true)
     try {
-      await apiFetch<{ provider: Provider }>('/api/providers', {
-        method: 'POST',
-        body: JSON.stringify({ name, kind, baseUrl, apiKey }),
-      })
+      await api.createProvider({ name, kind, baseUrl, apiKey })
       onCreated()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to create provider')
@@ -282,14 +233,11 @@ function AddModelForm({
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean)
-      await apiFetch(`/api/providers/${providerId}/models`, {
-        method: 'POST',
-        body: JSON.stringify({
-          modelId,
-          displayName: displayName || undefined,
-          maxTokens: maxTokens ? Number(maxTokens) : undefined,
-          capabilities: caps.length ? caps : undefined,
-        }),
+      await api.addProviderModel(providerId, {
+        modelId,
+        displayName: displayName || undefined,
+        maxTokens: maxTokens ? Number(maxTokens) : undefined,
+        capabilities: caps.length ? caps : undefined,
       })
       onAdded()
     } catch (err: unknown) {
@@ -401,13 +349,10 @@ function EditModelForm({
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean)
-      await apiFetch(`/api/providers/${providerId}/models/${model.modelId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({
-          displayName: displayName || null,
-          maxTokens: maxTokens ? Number(maxTokens) : null,
-          capabilities: caps,
-        }),
+      await api.updateProviderModel(providerId, model.modelId, {
+        displayName: displayName || null,
+        maxTokens: maxTokens ? Number(maxTokens) : null,
+        capabilities: caps,
       })
       onSaved()
     } catch (err: unknown) {
@@ -498,7 +443,7 @@ function ProviderCard({
 
   const loadModels = useCallback(async () => {
     try {
-      const data = await apiFetch<{ models: ProviderModel[] }>(`/api/providers/${provider.id}`)
+      const data = await api.getProvider(provider.id)
       setModels(data.models)
       setLoaded(true)
     } catch {
@@ -514,9 +459,7 @@ function ProviderCard({
     setTesting(true)
     setTestResult(null)
     try {
-      const result = await apiFetch<TestResult>(`/api/providers/${provider.id}/test`, {
-        method: 'POST',
-      })
+      const result = await api.testProvider(provider.id)
       setTestResult(result)
     } catch (err: unknown) {
       setTestResult({ error: err instanceof Error ? err.message : 'Connection failed' })
@@ -530,7 +473,7 @@ function ProviderCard({
       return
     setDeleting(true)
     try {
-      await apiFetch(`/api/providers/${provider.id}`, { method: 'DELETE' })
+      await api.deleteProvider(provider.id)
       onRefresh()
     } catch {
       setDeleting(false)
@@ -540,7 +483,7 @@ function ProviderCard({
   async function handleSync() {
     setSyncing(true)
     try {
-      await apiFetch(`/api/providers/${provider.id}/sync`, { method: 'POST' })
+      await api.syncProvider(provider.id)
       await loadModels()
     } catch {
       // silent
@@ -551,10 +494,7 @@ function ProviderCard({
 
   async function handleToggleModel(model: ProviderModel) {
     try {
-      await apiFetch(`/api/providers/${provider.id}/models/${model.modelId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ enabled: !model.enabled }),
-      })
+      await api.updateProviderModel(provider.id, model.modelId, { enabled: !model.enabled })
       setModels((prev) =>
         prev.map((m) => (m.id === model.id ? { ...m, enabled: !m.enabled } : m)),
       )
@@ -767,7 +707,7 @@ export default function ProvidersPage() {
 
   const loadProviders = useCallback(async () => {
     try {
-      const data = await apiFetch<{ providers: Provider[] }>('/api/providers')
+      const data = await api.listProviders()
       setProviders(data.providers)
     } catch {
       // silent
@@ -778,8 +718,8 @@ export default function ProvidersPage() {
 
   useEffect(() => {
     loadProviders()
-    apiFetch<{ templates: ProviderTemplate[] }>('/api/provider-templates')
-      .then((d) => setTemplates(d.templates))
+    api.listProviderTemplates()
+      .then((d: { templates: ProviderTemplate[] }) => setTemplates(d.templates))
       .catch(() => {})
   }, [loadProviders])
 

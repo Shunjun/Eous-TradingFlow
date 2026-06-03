@@ -15,45 +15,8 @@ import {
 import { BarChart3, Search, Loader2, Plus, TrendingUp } from 'lucide-react'
 import { KlineChart } from '@eous/chart'
 import type { FetchKlinesFn, KlineDataPoint, IntervalOption } from '@eous/chart'
-
-/* ── Types ─────────────────────────────────────────────── */
-
-interface DataSourceInstance {
-  id: string
-  name: string
-  providerKind: string
-  identityLabel: string | null
-}
-
-interface SearchResult {
-  symbol: string
-  name: string
-  exchange?: string
-  type?: string
-}
-
-interface TrackedSymbol {
-  id: string
-  symbol: string
-  name: string | null
-  exchange: string | null
-  type: string | null
-}
-
-/* ── API helper ────────────────────────────────────────── */
-
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
-  })
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.error ?? `HTTP ${res.status}`)
-  }
-  return res.json() as Promise<T>
-}
+import type { DataSourceInstance, TrackedSymbol, SymbolSearchResult } from '@eous/types'
+import { api } from '../../../lib/api.js'
 
 /* ── Page ──────────────────────────────────────────────── */
 
@@ -67,7 +30,7 @@ export default function WatchlistPage() {
 
   // search
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<SearchResult[]>([])
+  const [results, setResults] = useState<SymbolSearchResult[]>([])
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState('')
 
@@ -93,19 +56,20 @@ export default function WatchlistPage() {
       if (from !== undefined) body.from = from
       if (to !== undefined) body.to = to
 
-      const data = await apiFetch<{ klines: KlineDataPoint[] }>(
-        `/api/data-source-instances/${instanceId}/klines`,
-        { method: 'POST', body: JSON.stringify(body) },
+      const data = await api.getDataSourceKlines(
+        instanceId,
+        body as { symbol: string; interval: string; from?: number; to?: number },
       )
-      return data.klines
+      return data.klines as KlineDataPoint[]
     }
   }, [selectedId])
 
   // ── Load instances ─────────────────────────────────────
 
   useEffect(() => {
-    apiFetch<{ instances: DataSourceInstance[] }>('/api/data-source-instances')
-      .then((d) => {
+    api
+      .listDataSourceInstances()
+      .then((d: { instances: DataSourceInstance[] }) => {
         setInstances(d.instances)
         if (d.instances.length > 0 && !selectedId) {
           setSelectedId(d.instances[0].id)
@@ -122,9 +86,7 @@ export default function WatchlistPage() {
       return
     }
     try {
-      const data = await apiFetch<{
-        instance: { trackedSymbols: TrackedSymbol[] }
-      }>(`/api/data-source-instances/${id}`)
+      const data = await api.getDataSourceInstance(id)
       setTrackedSymbols(data.instance.trackedSymbols)
     } catch {
       setTrackedSymbols([])
@@ -141,13 +103,12 @@ export default function WatchlistPage() {
       setIntervals([])
       return
     }
-    apiFetch<{ intervals: IntervalOption[] }>(
-      `/api/data-source-instances/${selectedId}/intervals`,
-    )
-      .then((d) => {
+    api
+      .getDataSourceIntervals(selectedId)
+      .then((d: { intervals: IntervalOption[] }) => {
         setIntervals(d.intervals)
         // Reset interval if current one is not in the new list
-        if (d.intervals.length > 0 && !d.intervals.some((i) => i.value === interval)) {
+        if (d.intervals.length > 0 && !d.intervals.some((i: IntervalOption) => i.value === interval)) {
           setInterval(d.intervals[d.intervals.length - 1].value)
         }
       })
@@ -163,11 +124,8 @@ export default function WatchlistPage() {
     setSearching(true)
     setResults([])
     try {
-      const data = await apiFetch<{ symbols: SearchResult[] }>(
-        `/api/data-source-instances/${selectedId}/search`,
-        { method: 'POST', body: JSON.stringify({ query: query.trim() }) },
-      )
-      setResults(data.symbols)
+      const data = await api.searchDataSourceSymbols(selectedId, { query: query.trim() })
+      setResults('symbols' in data ? data.symbols : data.results)
     } catch (err: unknown) {
       setSearchError(err instanceof Error ? err.message : 'Search failed')
     } finally {
@@ -177,18 +135,15 @@ export default function WatchlistPage() {
 
   // ── Add symbol to tracked ──────────────────────────────
 
-  async function handleAddSymbol(result: SearchResult) {
+  async function handleAddSymbol(result: SymbolSearchResult) {
     if (!selectedId) return
     setAdding(result.symbol)
     try {
-      await apiFetch(`/api/data-source-instances/${selectedId}/symbols`, {
-        method: 'POST',
-        body: JSON.stringify({
-          symbol: result.symbol,
-          name: result.name,
-          exchange: result.exchange,
-          type: result.type,
-        }),
+      await api.addDataSourceSymbol(selectedId, {
+        symbol: result.symbol,
+        name: result.name,
+        exchange: result.exchange,
+        type: result.type,
       })
       setResults((prev) => prev.filter((r) => r.symbol !== result.symbol))
       await loadTracked(selectedId)

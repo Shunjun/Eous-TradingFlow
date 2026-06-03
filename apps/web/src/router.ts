@@ -2,6 +2,7 @@ import { Suspense, createElement } from 'react'
 import { createBrowserRouter, redirect, type RouteObject } from 'react-router-dom'
 import { FileSystemRouter } from './lib/file-system-router.js'
 import { PageLoading } from './components/PageLoading.js'
+import { api, ApiError } from './lib/api.js'
 
 // ── Scan page files ────────────────────────────────────
 const pages = import.meta.glob('./pages/**/*.tsx')
@@ -35,18 +36,25 @@ function injectLoaders(routes: RouteObject[]): void {
     // Auth layout: pathless route with children → enforce login
     if (!route.path && route.children && !route.loader) {
       route.loader = async () => {
-        const res = await fetch('/api/auth/me', { credentials: 'include' })
-        if (!res.ok) throw redirect('/login')
-        return res.json()
+        try {
+          return await api.me()
+        } catch (e) {
+          if (e instanceof ApiError) throw redirect('/login')
+          throw e
+        }
       }
     }
 
     // Login page: redirect to / if already authenticated
     if (route.path === 'login' && !route.loader) {
       route.loader = async () => {
-        const res = await fetch('/api/auth/me', { credentials: 'include' })
-        if (res.ok) throw redirect('/')
-        return null
+        try {
+          await api.me()
+          throw redirect('/')
+        } catch (e) {
+          if (e instanceof ApiError) return null
+          throw e
+        }
       }
     }
 

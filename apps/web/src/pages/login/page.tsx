@@ -7,12 +7,17 @@ import {
   Button,
   Label,
 } from '@eous/ui'
+import { api, ApiError } from '../../lib/api.js'
 
 /* ── Loader: redirect to / if already authenticated ─── */
 export async function loader() {
-  const res = await fetch('/api/auth/me', { credentials: 'include' })
-  if (res.ok) throw redirect('/')
-  return null
+  try {
+    await api.me()
+    throw redirect('/')
+  } catch (e) {
+    if (e instanceof ApiError) return null
+    throw e
+  }
 }
 
 /* ── Page ────────────────────────────────────────────── */
@@ -29,21 +34,10 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      })
-
-      if (!res.ok) {
-        setError('Invalid email or password')
-        return
-      }
-
+      await api.login({ email, password })
       navigate('/', { replace: true })
     } catch {
-      setError('Something went wrong')
+      setError('Invalid email or password')
     } finally {
       setLoading(false)
     }

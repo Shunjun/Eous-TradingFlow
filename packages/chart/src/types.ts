@@ -1,5 +1,6 @@
 import type { Time } from 'lightweight-charts'
-import type { FetchKlinesFn } from './kline-data'
+import type { FetchKlinesFn } from './core/kline-data'
+import type { ReactNode } from 'react'
 
 // ── Data ────────────────────────────────────────────────────────────────────
 
@@ -75,6 +76,8 @@ export interface IndicatorConfig {
   mode: IndicatorDisplayMode
   params: Record<string, number>
   color?: string
+  /** Per-series colors (for multi-series indicators like MACD, Bollinger Bands) */
+  colors?: string[]
 }
 
 export interface IndicatorDataPoint {
@@ -84,10 +87,26 @@ export interface IndicatorDataPoint {
 
 export type IndicatorOutput = IndicatorDataPoint[][]
 
+export interface ParamConfig {
+  key: string
+  label: string
+  min: number
+  max: number
+  step: number
+}
+
+export interface IndicatorSettingsProps {
+  config: IndicatorConfig
+  onUpdate: (updates: Partial<IndicatorConfig>) => void
+  onRemove: () => void
+}
+
 export interface IndicatorDefinition {
   type: string
   label: string
+  category: 'trend' | 'oscillator'
   defaultParams: Record<string, number>
+  paramConfig: ParamConfig[]
   defaultMode: IndicatorDisplayMode
   calculate: (
     closes: { time: Time; close: number }[],
@@ -97,4 +116,5 @@ export interface IndicatorDefinition {
   seriesTypes: ('Line' | 'Histogram')[]
   defaultColors: string[]
   seriesLabels?: string[]
+  SettingsComponent: React.ComponentType<IndicatorSettingsProps>
 }

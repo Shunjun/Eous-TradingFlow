@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
 } from '@eous/ui'
 import { useState } from 'react'
+import { api } from '../../lib/api.js'
 
 export function Header() {
   const { theme, setTheme } = useTheme()
@@ -75,7 +76,7 @@ export function Header() {
             <DropdownMenuItem
               onClick={async () => {
                 try {
-                  await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
+                  await api.logout()
                 } catch {
                   /* ignore */
                 }

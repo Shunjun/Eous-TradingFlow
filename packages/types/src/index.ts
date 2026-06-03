@@ -16,4 +16,17 @@ export type {
 } from './workflow.js'
 export type { ExecutionStatus, ExecutionTrigger, NodeResult, ExecutionRecord } from './execution.js'
 export type { NodeDataBase, InputHandleDef, OutputHandleDef, NodeTypeMeta } from './node.js'
-export type { ApiClient } from './api.js'
+export type {
+  ApiClient,
+  UserProfile,
+  Provider,
+  ProviderModel,
+  ProviderTemplate,
+  TestResult,
+  ConfigFieldSchema,
+  DataSourceProvider,
+  DataSourceInstance,
+  DataSourceDetail,
+  TrackedSymbol,
+  SymbolSearchResult,
+} from './api.js'
