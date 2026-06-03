@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useIndicatorStore } from '@eous/stores'
-import type { KlineChartProps, IndicatorConfig } from '../types'
-import type { FetchKlinesFn } from '../core/kline-data'
-import { useChart } from '../hooks/use-chart'
-import { useResolvedTheme } from '../hooks/use-resolved-theme'
-import { ChartToolbar } from './chart-toolbar'
-import { IndicatorPanel } from './indicator-panel'
-import { LineToolsSidebar } from './line-tools-sidebar'
-import { LINE_TOOL_DEFINITIONS } from '../line-tools/registry'
+import type { KlineChartProps, IndicatorConfig } from './types'
+import type { FetchKlinesFn } from './core/kline-data'
+import { useChart } from './hooks/use-chart'
+import { useResolvedTheme } from './hooks/use-resolved-theme'
+import { ChartToolbar } from './components/chart-toolbar'
+import { IndicatorPanel } from './components/indicator-panel'
+import { LineToolsSidebar } from './components/line-tools-sidebar'
+import { LINE_TOOL_DEFINITIONS } from './line-tools/registry'
 import type { LineToolType } from 'lightweight-charts-line-tools-core'
 
 const EMPTY_CONFIGS: IndicatorConfig[] = []
@@ -16,18 +16,47 @@ const EMPTY_CONFIGS: IndicatorConfig[] = []
 
 export function KlineChart({
   symbol,
-  interval = '1d',
+  interval: initialInterval = '1d',
   intervals = [],
   onIntervalChange,
   fetchKlines,
+  // Symbol selector
+  providers,
+  symbols,
+  activeProviderId,
+  onSymbolSelect,
+  onSearchChange,
+  onProviderChange,
+  symbolsLoading,
+  // Interval selector
+  unsupportedIntervals,
 }: KlineChartProps) {
+  // ── Internal interval state ──────────────────────────────
+  const [currentInterval, setCurrentInterval] = useState(initialInterval)
+  const interval = currentInterval
+
+  const handleIntervalChange = useCallback(
+    (iv: string) => {
+      setCurrentInterval(iv)
+      onIntervalChange?.(iv)
+    },
+    [onIntervalChange],
+  )
   const chartTheme = useResolvedTheme()
   const containerRef = useRef<HTMLDivElement>(null)
   const {
     engines,
-    addIndicator, removeIndicator, switchMode, moveUp, moveDown,
-    loadKlines, switchInterval, loadEarlier, getKlineData,
-    toggleDrawingTool, deleteSelectedDrawing,
+    addIndicator,
+    removeIndicator,
+    switchMode,
+    moveUp,
+    moveDown,
+    loadKlines,
+    switchInterval,
+    loadEarlier,
+    getKlineData,
+    toggleDrawingTool,
+    deleteSelectedDrawing,
   } = useChart(containerRef, chartTheme)
 
   const lineToolsEngine = engines.lineTools.current
@@ -84,7 +113,7 @@ export function KlineChart({
       if (timer) clearTimeout(timer)
       if (cooldownTimer) clearTimeout(cooldownTimer)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // ── Load data on symbol/interval change ───────────────────
@@ -210,8 +239,9 @@ export function KlineChart({
 
   const handleUpdateIndicatorConfig = useCallback(
     (id: string, updates: Partial<IndicatorConfig>) => {
-      if (symbol) useIndicatorStore.getState().updateConfigForSymbol(symbol, id, updates)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (symbol)
+        useIndicatorStore.getState().updateConfigForSymbol(symbol, id, updates)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ;(engines.indicator.current as any)?.updateConfig(id, updates)
     },
     [symbol, engines],
@@ -223,8 +253,17 @@ export function KlineChart({
       <ChartToolbar
         interval={interval}
         intervals={intervals}
-        onIntervalChange={onIntervalChange ?? (() => {})}
+        onIntervalChange={handleIntervalChange}
+        unsupportedIntervals={unsupportedIntervals}
         symbol={symbol}
+        providers={providers}
+        symbols={symbols}
+        activeProviderId={activeProviderId}
+        onSymbolSelect={onSymbolSelect}
+        onSearchChange={onSearchChange}
+        onProviderChange={onProviderChange}
+        symbolsLoading={symbolsLoading}
+        onAddIndicator={handleAddIndicator}
       />
 
       {/* Chart area with sidebar */}

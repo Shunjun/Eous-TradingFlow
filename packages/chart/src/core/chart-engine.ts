@@ -54,12 +54,7 @@ export class ChartEngine {
   private unsubData: () => void
   private unsubTheme: () => void
 
-  constructor(
-    container: HTMLElement,
-    eventBus: EventBus,
-    _klineData: unknown,
-    theme: ChartTheme,
-  ) {
+  constructor(container: HTMLElement, eventBus: EventBus, _klineData: unknown, theme: ChartTheme) {
     this.container = container
 
     this.chart = createChart(container, {

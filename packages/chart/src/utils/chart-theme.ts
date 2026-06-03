@@ -1,4 +1,4 @@
-import type { ChartTheme } from './types'
+import type { ChartTheme } from '../types'
 
 export function resolveCssVar(varName: string): string {
   if (typeof window === 'undefined') return ''

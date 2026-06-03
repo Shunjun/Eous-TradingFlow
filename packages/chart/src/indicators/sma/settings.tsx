@@ -15,7 +15,9 @@ export function SMASettings({ config, onUpdate, onRemove }: IndicatorSettingsPro
             max={200}
             step={1}
             value={period}
-            onChange={(e) => onUpdate({ params: { ...config.params, period: Number(e.target.value) } })}
+            onChange={(e) =>
+              onUpdate({ params: { ...config.params, period: Number(e.target.value) } })
+            }
             className="w-24 accent-primary"
           />
           <span className="w-8 text-right tabular-nums">{period}</span>

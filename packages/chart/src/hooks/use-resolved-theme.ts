@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ChartTheme } from '../types'
-import { resolveChartTheme } from '../chart-theme'
+import { resolveChartTheme } from '../utils/chart-theme'
 
 /**
  * Tracks the actual resolved theme by watching DOM class changes.

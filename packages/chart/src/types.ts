@@ -53,7 +53,7 @@ export interface IntervalOption {
 export interface KlineChartProps {
   /** Symbol to display (e.g. "BTC/USDT") */
   symbol?: string
-  /** Interval (e.g. "1m", "5m", "15m", "1h", "4h", "1d", "1w") */
+  /** Initial interval (e.g. "1m", "5m", "15m", "1h", "4h", "1d", "1w"). Component manages state internally. */
   interval?: string
   /** Available intervals from the data provider. If empty, no interval buttons shown. */
   intervals?: IntervalOption[]
@@ -61,6 +61,26 @@ export interface KlineChartProps {
   onIntervalChange?: (interval: string) => void
   /** Data fetching function provided by the app layer */
   fetchKlines?: FetchKlinesFn
+
+  // ── Symbol selector props ────────────────────────────────────────────────
+  /** Available data providers */
+  providers?: ProviderOption[]
+  /** Symbols for the current provider */
+  symbols?: SymbolItem[]
+  /** Active provider ID */
+  activeProviderId?: string
+  /** Called when user selects a symbol */
+  onSymbolSelect?: (item: SymbolItem) => void
+  /** Called when search text changes (for async search) */
+  onSearchChange?: (query: string) => void
+  /** Called when user switches provider */
+  onProviderChange?: (providerId: string) => void
+  /** Whether symbol list is loading */
+  symbolsLoading?: boolean
+
+  // ── Interval selector props ──────────────────────────────────────────────
+  /** Interval values the provider does NOT support (hidden from toolbar but preserved in config) */
+  unsupportedIntervals?: string[]
 }
 
 // ── Indicators ──────────────────────────────────────────────────────────────
@@ -98,6 +118,28 @@ export interface IndicatorSettingsProps {
   config: IndicatorConfig
   onUpdate: (updates: Partial<IndicatorConfig>) => void
   onRemove: () => void
+}
+
+// ── Symbol Selector ──────────────────────────────────────────────────────────
+
+export interface ProviderOption {
+  /** Provider instance ID */
+  id: string
+  /** Display name (e.g. "Yahoo Finance", "CCXT") */
+  name: string
+}
+
+export interface SymbolItem {
+  /** Symbol code (e.g. "BTC/USDT", "AAPL") */
+  symbol: string
+  /** Human-readable name (e.g. "Bitcoin / Tether", "Apple Inc.") */
+  name: string
+  /** Exchange identifier */
+  exchange?: string
+  /** Asset type */
+  type?: string
+  /** Provider instance ID this symbol belongs to */
+  providerId: string
 }
 
 export interface IndicatorDefinition {

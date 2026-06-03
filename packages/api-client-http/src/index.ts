@@ -31,7 +31,9 @@ export interface ResponseContext {
 }
 
 export type RequestInterceptor = (ctx: RequestContext) => RequestContext | Promise<RequestContext>
-export type ResponseInterceptor = (ctx: ResponseContext) => ResponseContext | Promise<ResponseContext>
+export type ResponseInterceptor = (
+  ctx: ResponseContext,
+) => ResponseContext | Promise<ResponseContext>
 
 export interface HttpClientOptions {
   baseURL?: string
@@ -105,7 +107,9 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       if (resCtx.status === 401 && onUnauthorized) {
         onUnauthorized()
       }
-      const errorBody = await resCtx.json<{ error?: string }>().catch((): { error?: string } => ({}))
+      const errorBody = await resCtx
+        .json<{ error?: string }>()
+        .catch((): { error?: string } => ({}))
       throw new ApiError(resCtx.status, errorBody.error ?? `HTTP ${resCtx.status}`)
     }
 
@@ -176,14 +180,20 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
     addProviderModel: (providerId, params) =>
       post(`/providers/${encodeURIComponent(providerId)}/models`, params, true),
     updateProviderModel: (providerId, modelId, params) =>
-      patch(`/providers/${encodeURIComponent(providerId)}/models/${encodeURIComponent(modelId)}`, params, true),
+      patch(
+        `/providers/${encodeURIComponent(providerId)}/models/${encodeURIComponent(modelId)}`,
+        params,
+        true,
+      ),
     deleteProviderModel: (providerId, modelId) =>
-      del(`/providers/${encodeURIComponent(providerId)}/models/${encodeURIComponent(modelId)}`, true),
+      del(
+        `/providers/${encodeURIComponent(providerId)}/models/${encodeURIComponent(modelId)}`,
+        true,
+      ),
 
     // ── Data Source APIs ──
     listDataSourceInstances: () => get('/data-source-instances'),
-    getDataSourceInstance: (id: string) =>
-      get(`/data-source-instances/${encodeURIComponent(id)}`),
+    getDataSourceInstance: (id: string) => get(`/data-source-instances/${encodeURIComponent(id)}`),
     createDataSourceInstance: (params) => post('/data-source-instances', params, true),
     deleteDataSourceInstance: (id: string) =>
       del(`/data-source-instances/${encodeURIComponent(id)}`, true),
