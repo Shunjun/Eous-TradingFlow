@@ -29,4 +29,5 @@ export type {
   DataSourceDetail,
   TrackedSymbol,
   SymbolSearchResult,
+  WorkspaceLayoutSummary,
 } from './api.js'

@@ -14,14 +14,30 @@ model User {
   passwordHash String   @map("password_hash")
   name             String?
   workspaceLayout  String?  @map("workspace_layout")
+  activeLayoutId   String?  @map("active_layout_id")
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   sessions       Session[]
   providers      Provider[]
   dataSourceInstances DataSourceInstance[]
+  workspaceLayouts WorkspaceLayout[]
 
   @@map("users")
+}
+
+model WorkspaceLayout {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String   @default("Default")
+  schemaJson   String   @default("null")  @map("schema_json")
+  sortOrder    Int      @default(0)       @map("sort_order")
+  createdAt    DateTime @default(now())   @map("created_at")
+  updatedAt    DateTime @updatedAt        @map("updated_at")
+
+  @@index([userId])
+  @@map("workspace_layouts")
 }
 
 model Session {

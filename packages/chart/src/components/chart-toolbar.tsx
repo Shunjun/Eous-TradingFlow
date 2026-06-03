@@ -90,10 +90,10 @@ export function ChartToolbar({
   return (
     <div className="flex items-center px-3 py-1.5 border-b border-border shrink-0 gap-0">
       {/* Left: Symbol selector */}
-      {providers && providers.length > 0 && symbol && (
+      {providers && providers.length > 0 && (
         <>
           <SymbolSelector
-            symbol={symbol}
+            symbol={symbol || undefined}
             providers={providers}
             symbols={symbols ?? []}
             activeProviderId={activeProviderId ?? ''}

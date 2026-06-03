@@ -86,6 +86,12 @@ export interface SymbolSearchResult {
   type?: string
 }
 
+export interface WorkspaceLayoutSummary {
+  id: string
+  name: string
+  updatedAt: string
+}
+
 /* ── API Client Interface ─────────────────────────────── */
 
 export interface ApiClient {
@@ -191,6 +197,10 @@ export interface ApiClient {
   ): Promise<{ klines: unknown[] }>
 
   // ── Workspace APIs ──
-  getWorkspaceLayout(): Promise<{ layout: unknown }>
-  saveWorkspaceLayout(layout: unknown): Promise<void>
+  listWorkspaceLayouts(): Promise<{ layouts: WorkspaceLayoutSummary[]; activeLayoutId: string | null }>
+  getWorkspaceLayout(id: string): Promise<{ layout: { id: string; name: string; schemaJson: unknown; updatedAt: string } }>
+  createWorkspaceLayout(params: { name: string; setActive?: boolean; copyFromId?: string }): Promise<{ id: string; name: string }>
+  saveWorkspaceLayout(id: string, params: { schemaJson: unknown; name?: string }): Promise<void>
+  deleteWorkspaceLayout(id: string): Promise<{ newActiveLayoutId?: string }>
+  activateWorkspaceLayout(id: string): Promise<{ activeLayoutId: string }>
 }

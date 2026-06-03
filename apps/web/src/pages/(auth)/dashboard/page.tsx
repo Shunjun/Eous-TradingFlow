@@ -3,7 +3,7 @@ import { Mosaic, MosaicWindow, type MosaicNode } from 'react-mosaic-component'
 import 'react-mosaic-component/react-mosaic-component.css'
 import { Button } from '@eous/ui'
 import { Plus } from 'lucide-react'
-import { useWorkspaceStore } from '@eous/stores'
+import { useWorkspaceStore } from '../../../stores/workspace.js'
 import WelcomeContent from '../../../components/dashboard/WelcomeContent.js'
 import PlaceholderPanel from '../../../components/dashboard/PlaceholderPanel.js'
 import ToolbarControls from '../../../components/dashboard/ToolbarControls.js'
@@ -11,20 +11,40 @@ import ZeroState from '../../../components/dashboard/ZeroState.js'
 
 export default function DashboardPage() {
   const layout = useWorkspaceStore((s) => s.layout)
-  const loaded = useWorkspaceStore((s) => s.loaded)
-  const setLayout = useWorkspaceStore((s) => s.setLayout)
-  const save = useWorkspaceStore((s) => s.save)
+  const loading = useWorkspaceStore((s) => s.loading)
+  const layouts = useWorkspaceStore((s) => s.layouts)
+  const activeLayoutId = useWorkspaceStore((s) => s.activeLayoutId)
   const dirty = useWorkspaceStore((s) => s.dirty)
-  const load = useWorkspaceStore((s) => s.load)
+  const saving = useWorkspaceStore((s) => s.saving)
+  const setLayout = useWorkspaceStore((s) => s.setLayout)
+  const loadAll = useWorkspaceStore((s) => s.loadAll)
+  const switchLayout = useWorkspaceStore((s) => s.switchLayout)
+  const createLayout = useWorkspaceStore((s) => s.createLayout)
+  const saveCurrentLayout = useWorkspaceStore((s) => s.saveCurrentLayout)
 
   const [panelCount, setPanelCount] = useState(1)
 
   useEffect(() => {
-    load()
-    return () => {
-      if (dirty) save()
-    }
+    loadAll()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSwitch = useCallback(
+    (id: string) => {
+      if (id === activeLayoutId) return
+      if (dirty && !window.confirm('有未保存的更改，放弃？')) return
+      switchLayout(id)
+    },
+    [activeLayoutId, dirty, switchLayout],
+  )
+
+  const handleNewLayout = useCallback(() => {
+    const name = `Layout ${layouts.length + 1}`
+    createLayout(name)
+  }, [layouts.length, createLayout])
+
+  const handleSave = useCallback(() => {
+    saveCurrentLayout()
+  }, [saveCurrentLayout])
 
   const handleAddPanel = useCallback(() => {
     const current = useWorkspaceStore.getState().layout
@@ -40,7 +60,7 @@ export default function DashboardPage() {
     setLayout(newLayout)
   }, [panelCount, setLayout])
 
-  if (!loaded) {
+  if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
         <p className="text-sm text-muted-foreground">Loading workspace…</p>
@@ -50,26 +70,47 @@ export default function DashboardPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between px-6 pt-4 pb-2 shrink-0">
-        <div>
-          <h1 className="text-xl font-semibold">Dashboard</h1>
-          <p className="text-xs font-mono text-muted-foreground mt-0.5">Customizable workspace</p>
+      {/* Toolbar */}
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border shrink-0">
+        <div className="flex items-center gap-1">
+          {layouts.map((l) => (
+            <button
+              key={l.id}
+              onClick={() => handleSwitch(l.id)}
+              className={
+                l.id === activeLayoutId
+                  ? 'px-2.5 py-1 text-xs font-medium rounded bg-accent text-accent-foreground'
+                  : 'px-2.5 py-1 text-xs font-medium rounded hover:bg-muted text-muted-foreground'
+              }
+            >
+              {l.name}
+            </button>
+          ))}
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleNewLayout}>
+            <Plus size={14} />
+          </Button>
         </div>
-        <Button variant="accent-outline" size="sm" onClick={handleAddPanel}>
-          <Plus className="h-3.5 w-3.5 mr-1.5" />
-          Add Panel
-        </Button>
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant={dirty ? 'accent-outline' : 'ghost'}
+            size="sm"
+            onClick={handleSave}
+            disabled={!dirty || saving}
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </Button>
+          <Button variant="accent-outline" size="sm" onClick={handleAddPanel}>
+            <Plus className="h-3.5 w-3.5 mr-1" />
+            Add Panel
+          </Button>
+        </div>
       </div>
-      <div className="flex-1 min-h-0 px-4 pb-4">
+
+      {/* Mosaic area */}
+      <div className="flex-1 min-h-0 p-2">
         <Mosaic<string>
           value={layout}
           onChange={(node: MosaicNode<string> | null) => setLayout(node)}
-          onRelease={(node: MosaicNode<string> | null) => {
-            if (node) {
-              setLayout(node)
-              save()
-            }
-          }}
           zeroStateView={<ZeroState />}
           renderTile={(id, path) => (
             <MosaicWindow<string>

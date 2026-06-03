@@ -11,4 +11,5 @@ export type {
   DataSourceDetail,
   TrackedSymbol,
   SymbolSearchResult,
+  WorkspaceLayoutSummary,
 } from '@eous/types'

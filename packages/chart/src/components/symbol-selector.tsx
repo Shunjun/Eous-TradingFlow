@@ -6,8 +6,8 @@ import type { ProviderOption, SymbolItem } from '../types'
 // ── Props ────────────────────────────────────────────────────────────────────
 
 export interface SymbolSelectorProps {
-  /** Currently selected symbol code (e.g. "BTC/USDT") */
-  symbol: string
+  /** Currently selected symbol code (e.g. "BTC/USDT"). Undefined shows "Select symbol" placeholder. */
+  symbol?: string
   /** Available data providers (displayed as filter tabs) */
   providers: ProviderOption[]
   /** Symbol list. If onSearchChange is provided, this shows the parent-filtered results */
@@ -182,7 +182,9 @@ export function SymbolSelector({
           open && 'bg-muted/40 text-foreground',
         )}
       >
-        <span className="truncate max-w-[120px]">{symbol}</span>
+        <span className={cn('truncate max-w-[120px]', !symbol && 'text-muted-foreground')}>
+          {symbol || 'Select symbol'}
+        </span>
         <ChevronDown
           size={12}
           className={cn('shrink-0 transition-transform', open && 'rotate-180')}

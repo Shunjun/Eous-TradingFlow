@@ -210,7 +210,15 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       post(`/data-source-instances/${encodeURIComponent(instanceId)}/klines`, params),
 
     // ── Workspace APIs ──
-    getWorkspaceLayout: () => get('/workspace/layout'),
-    saveWorkspaceLayout: (layout) => put('/workspace/layout', { layout }, true),
+    listWorkspaceLayouts: () => get('/workspace/layouts'),
+    getWorkspaceLayout: (id: string) =>
+      get(`/workspace/layouts/${encodeURIComponent(id)}`),
+    createWorkspaceLayout: (params) => post('/workspace/layouts', params),
+    saveWorkspaceLayout: (id: string, params: { schemaJson: unknown; name?: string }) =>
+      put(`/workspace/layouts/${encodeURIComponent(id)}`, params, true),
+    deleteWorkspaceLayout: (id: string) =>
+      del(`/workspace/layouts/${encodeURIComponent(id)}`),
+    activateWorkspaceLayout: (id: string) =>
+      post(`/workspace/layouts/${encodeURIComponent(id)}/activate`, undefined, true),
   }
 }

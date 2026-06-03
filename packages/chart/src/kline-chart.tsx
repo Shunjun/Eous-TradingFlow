@@ -248,7 +248,7 @@ export function KlineChart({
   )
 
   return (
-    <div className="flex flex-col h-full w-full min-h-0">
+    <div className="flex flex-col h-full w-full min-h-0 border border-border rounded-lg overflow-hidden">
       {/* Toolbar — always visible */}
       <ChartToolbar
         interval={interval}
