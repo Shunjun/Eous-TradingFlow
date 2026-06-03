@@ -5,6 +5,19 @@ export type { ButtonProps } from './components/ui/button'
 export { Input } from './components/ui/input'
 
 export {
+  Dialog,
+  DialogPortal,
+  DialogOverlay,
+  DialogClose,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+  DialogDescription,
+} from './components/ui/dialog'
+
+export {
   Card,
   CardHeader,
   CardFooter,
