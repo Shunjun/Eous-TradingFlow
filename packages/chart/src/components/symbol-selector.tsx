@@ -4,8 +4,7 @@ import {
   Dialog,
   DialogTrigger,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Input,
 } from '@eous/ui'
 import { Search, ChevronDown, Loader2 } from 'lucide-react'
 import type { ProviderOption, SymbolItem } from '../types'
@@ -32,6 +31,8 @@ export interface SymbolSelectorProps {
   onProviderChange: (providerId: string) => void
   /** Whether the symbol list is loading (async search / provider switch) */
   loading?: boolean
+  /** Chart container ref for Dialog portal mounting */
+  containerRef?: React.RefObject<HTMLElement | null>
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -52,6 +53,7 @@ export function SymbolSelector({
   onSearchChange,
   onProviderChange,
   loading = false,
+  containerRef,
 }: SymbolSelectorProps) {
   const [open, setOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -174,21 +176,22 @@ export function SymbolSelector({
 
       {/* ── Dialog content ────────────────────────────────── */}
       <DialogContent
-        className="w-[480px] max-w-[480px] p-0 gap-0"
+        container={containerRef?.current ?? null}
+        noOverlay
+        className="w-[480px] max-w-[480px] rounded-lg"
         onOpenAutoFocus={handleOpenAutoFocus}
         onKeyDown={handleKeyDown}
       >
-        <DialogHeader className="px-4 pt-4 pb-2">
-          <DialogTitle className="text-sm font-mono">Select Symbol</DialogTitle>
-        </DialogHeader>
+        {/* Title */}
+        <div className="font-mono text-xs font-medium pb-3">Select Symbol</div>
 
         {/* ── Row 1: Search ──────────────────────────────── */}
-        <div className="relative px-4 pb-3">
+        <div className="relative pb-3">
           <Search
             size={14}
-            className="absolute left-[22px] top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none z-10"
           />
-          <input
+          <Input
             ref={inputRef}
             type="text"
             value={searchQuery}
@@ -197,17 +200,15 @@ export function SymbolSelector({
             spellCheck={false}
             autoComplete="off"
             className={cn(
-              'w-full h-8 pl-7 pr-3 text-xs font-mono',
-              'bg-muted/20 border border-border rounded-md',
+              'h-8 pl-8 pr-3 text-xs font-mono',
+              'bg-muted/20 border-border',
               'placeholder:text-muted-foreground/40',
-              'focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20',
-              'transition-colors',
             )}
           />
         </div>
 
         {/* ── Row 2: Provider tabs ───────────────────────── */}
-        <div className="flex items-center gap-1.5 px-4 pb-2 overflow-x-auto shrink-0">
+        <div className="flex items-center gap-1.5 pb-2 overflow-x-auto shrink-0">
           {providers.map((provider) => {
             const isActive = provider.id === activeProviderId
             return (
@@ -215,10 +216,10 @@ export function SymbolSelector({
                 key={provider.id}
                 onClick={() => onProviderChange(provider.id)}
                 className={cn(
-                  'px-2.5 py-1 rounded-full text-[10px] font-mono whitespace-nowrap transition-colors',
+                  'px-2.5 py-1 rounded-md text-[10px] font-mono whitespace-nowrap transition-colors',
                   isActive
-                    ? 'bg-primary/12 text-primary font-medium'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/30',
+                    ? 'bg-primary/10 text-primary font-medium'
+                    : 'text-muted-foreground hover:bg-muted/50',
                 )}
               >
                 {provider.name}
@@ -252,10 +253,10 @@ export function SymbolSelector({
                     key={`${item.providerId}-${item.symbol}`}
                     onClick={() => handleSelect(item)}
                     className={cn(
-                      'w-full flex items-start gap-3 px-4 py-2 text-left transition-colors border-0',
-                      'hover:bg-muted/30',
+                      'w-full flex items-start gap-3 px-4 py-2.5 text-left transition-colors border-0',
+                      'hover:bg-muted/40',
                       isHighlighted && 'bg-muted/40',
-                      isSelected && !isHighlighted && 'bg-primary/[3%]',
+                      isSelected && !isHighlighted && 'bg-primary/10',
                     )}
                   >
                     <div className="flex-1 min-w-0">
@@ -274,7 +275,7 @@ export function SymbolSelector({
                       </span>
                     </div>
 
-                    <span className="shrink-0 text-[9px] px-1.5 py-0.5 rounded font-mono mt-0.5 bg-muted/40 text-muted-foreground">
+                    <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded font-mono mt-0.5 bg-muted/50 text-muted-foreground">
                       {providerName}
                     </span>
                   </button>

@@ -47,6 +47,7 @@ export function KlineChart({
   )
   const chartTheme = useResolvedTheme()
   const containerRef = useRef<HTMLDivElement>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
   const {
     engines,
     addIndicator,
@@ -261,7 +262,7 @@ export function KlineChart({
   )
 
   return (
-    <div className="flex flex-col h-full w-full min-h-0 border border-border rounded-lg overflow-hidden">
+    <div ref={wrapperRef} className="flex flex-col h-full w-full min-h-0 border border-border rounded-lg overflow-hidden">
       {/* Toolbar — always visible */}
       <ChartToolbar
         interval={interval}
@@ -277,6 +278,7 @@ export function KlineChart({
         onProviderChange={onProviderChange}
         symbolsLoading={symbolsLoading}
         onAddIndicator={handleAddIndicator}
+        containerRef={wrapperRef}
       />
 
       {/* Chart area with sidebar */}

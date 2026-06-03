@@ -117,7 +117,13 @@ export default function DashboardPage() {
               path={path}
               title={id === 'welcome' ? 'Welcome' : id}
               createNode={() => `panel-${crypto.randomUUID().slice(0, 8)}`}
-              toolbarControls={<ToolbarControls />}
+              toolbarControls={
+                <ToolbarControls
+                  tileId={id}
+                  currentLayout={layout}
+                  onLayoutChange={setLayout}
+                />
+              }
             >
               {id === 'welcome' ? <WelcomeContent /> : <PlaceholderPanel title={id} />}
             </MosaicWindow>

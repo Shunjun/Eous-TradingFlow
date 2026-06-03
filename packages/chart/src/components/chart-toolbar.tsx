@@ -44,6 +44,9 @@ interface ChartToolbarProps {
 
   // Indicator add
   onAddIndicator?: (config: IndicatorConfig) => void
+
+  // Container ref for Dialog portal
+  containerRef?: React.RefObject<HTMLElement | null>
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
@@ -62,6 +65,7 @@ export function ChartToolbar({
   onProviderChange,
   symbolsLoading,
   onAddIndicator,
+  containerRef,
 }: ChartToolbarProps) {
   const [indicatorOpen, setIndicatorOpen] = useState(false)
 
@@ -101,6 +105,7 @@ export function ChartToolbar({
             onSearchChange={onSearchChange}
             onProviderChange={onProviderChange ?? (() => {})}
             loading={symbolsLoading}
+            containerRef={containerRef}
           />
           {/* Divider */}
           <div className="w-px h-4 bg-border mx-2 shrink-0" />
