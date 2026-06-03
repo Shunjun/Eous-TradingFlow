@@ -79,27 +79,23 @@ eous-platform/
 │   │   │   ├── app.tsx             # 路由 + 布局
 │   │   │   ├── routes/             # React Router 路由
 │   │   │   ├── components/
-│   │   │   │   ├── ui/             # shadcn 基础组件
-│   │   │   │   ├── workflow/       # 工作流编辑器组件
-│   │   │   │   │   ├── canvas.tsx         # React Flow 画布容器
-│   │   │   │   │   ├── nodes/             # 自定义节点渲染组件
-│   │   │   │   │   │   ├── source-node.tsx
-│   │   │   │   │   │   ├── compute-node.tsx
-│   │   │   │   │   │   ├── llm-node.tsx
-│   │   │   │   │   │   ├── control-node.tsx
-│   │   │   │   │   │   └── output-node.tsx
-│   │   │   │   │   ├── sidebar.tsx        # 节点面板（拖拽源）
-│   │   │   │   │   └── config-panel.tsx   # 节点配置侧边栏
+│   │   │   │   ├── layout/         # 全局布局
+│   │   │   │   │   ├── console-layout.tsx
+│   │   │   │   │   ├── header.tsx
+│   │   │   │   │   └── sidebar.tsx
+│   │   │   │   ├── dashboard/      # Dashboard 工作台组件
+│   │   │   │   │   ├── WelcomeContent.tsx
+│   │   │   │   │   ├── PlaceholderPanel.tsx
+│   │   │   │   │   ├── ToolbarControls.tsx
+│   │   │   │   │   └── ZeroState.tsx
+│   │   │   │   ├── workflow/       # 工作流编辑器（P5，待实现）
 │   │   │   │   ├── views/          # 共享视图组件
-│   │   │   │   │   ├── kline-chart.tsx
 │   │   │   │   │   ├── line-chart.tsx
 │   │   │   │   │   ├── news-list.tsx
 │   │   │   │   │   ├── report-viewer.tsx
 │   │   │   │   │   └── data-table.tsx
-│   │   │   │   ├── workspace/      # 工作台组件
-│   │   │   │   │   └── mosaic-layout.tsx
-│   │   │   │   ├── agent/          # Agent 对话组件
-│   │   │   │   └── assets/         # 标的管理组件
+│   │   │   │   ├── agent/          # Agent 对话组件（P7，待实现）
+│   │   │   │   └── assets/         # 标的管理组件（P8，待实现）
 │   │   │   ├── stores/             # Zustand stores
 │   │   │   ├── hooks/              # 自定义 Hooks
 │   │   │   └── lib/                # 工具
@@ -110,31 +106,36 @@ eous-platform/
 │   │
 │   ├── server/                     # Hono 后端
 │   │   ├── src/
-│   │   │   ├── index.ts            # 入口
-│   │   │   ├── app.ts              # Hono app 创建 + 中间件
-│   │   │   ├── routes/
-│   │   │   │   ├── auth.ts
-│   │   │   │   ├── workflows.ts
-│   │   │   │   ├── executions.ts
-│   │   │   │   ├── assets.ts
-│   │   │   │   ├── data.ts
-│   │   │   │   └── providers.ts
-│   │   │   ├── services/           # 业务逻辑
-│   │   │   ├── engine/             # 工作流执行引擎
-│   │   │   │   ├── dag-executor.ts
-│   │   │   │   └── node-executors/
-│   │   │   ├── providers/          # 数据源适配器
-│   │   │   │   ├── market/
-│   │   │   │   │   ├── base.ts
-│   │   │   │   │   ├── yahoo.ts
-│   │   │   │   │   └── binance.ts
-│   │   │   │   ├── news/
-│   │   │   │   │   ├── base.ts
-│   │   │   │   │   └── newsapi.ts
-│   │   │   │   └── llm/
-│   │   │   │       └── factory.ts
-│   │   │   ├── ws/                 # WebSocket 管理
-│   │   │   └── lib/
+│   │   │   ├── index.ts            # 入口：启动服务、注册数据源、seed
+│   │   │   ├── app.ts              # Hono app 创建 + 路由注册 + 全局错误处理
+│   │   │   ├── routes/             # 路由层（只做 HTTP 协议转换）
+│   │   │   │   ├── auth.ts         # 注册/登录/登出/me
+│   │   │   │   ├── provider.ts     # LLM Provider CRUD + 模型管理
+│   │   │   │   ├── data-source.ts  # 数据源实例 CRUD + 搜索/K线
+│   │   │   │   ├── workspace.ts    # 工作区布局
+│   │   │   │   └── health.ts       # 健康检查
+│   │   │   ├── services/           # 服务层（业务逻辑编排）
+│   │   │   │   ├── auth.service.ts
+│   │   │   │   ├── provider.service.ts
+│   │   │   │   ├── data-source.service.ts
+│   │   │   │   └── workspace.service.ts
+│   │   │   ├── repositories/       # 数据访问层（Prisma 操作封装）
+│   │   │   │   ├── user.repo.ts
+│   │   │   │   ├── session.repo.ts
+│   │   │   │   ├── provider.repo.ts
+│   │   │   │   ├── data-source.repo.ts
+│   │   │   │   └── workspace.repo.ts
+│   │   │   ├── engine/             # 工作流执行引擎（P4，待实现）
+│   │   │   ├── ws/                 # WebSocket（P2，待实现）
+│   │   │   └── lib/                # 工具库
+│   │   │       ├── app-error.ts     # 统一错误类
+│   │   │       ├── auth-middleware.ts
+│   │   │       ├── auth-utils.ts
+│   │   │       ├── crypto-utils.ts
+│   │   │       ├── model-sync.ts
+│   │   │       ├── provider-templates.ts
+│   │   │       ├── seed.ts
+│   │   │       └── interval-utils.ts
 │   │   └── package.json
 │   │
 │   └── desktop/                    # Electron 壳（V2+）
@@ -147,6 +148,48 @@ eous-platform/
 │
 └── docs/                           # 产品文档
 ```
+
+### 后端分层架构
+
+服务端采用三层架构：Route → Service → Repository。
+
+```
+HTTP Request
+    │
+    ▼
+┌─────────────────────────────────────────┐
+│  Route Layer（路由层）                    │
+│  - 解析 HTTP 参数（body、params、cookie）│
+│  - 调用 Service                          │
+│  - 返回 JSON / Set-Cookie                │
+│  - 不含任何业务逻辑或数据库操作           │
+└─────────────────┬───────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────┐
+│  Service Layer（服务层）                  │
+│  - 业务校验（权限、冲突、状态）           │
+│  - 编排 Repository 调用                  │
+│  - 加解密（调 lib/crypto-utils）         │
+│  - 外部 API 调用                         │
+│  - 通过 AppError 抛出业务异常            │
+└─────────────────┬───────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────┐
+│  Repository Layer（数据访问层）           │
+│  - 封装 Prisma 调用                      │
+│  - 不含业务逻辑                          │
+│  - 每个 repo 对应一组数据表              │
+└─────────────────────────────────────────┘
+                  │
+                  ▼
+             Prisma / SQLite
+```
+
+**错误处理**：全局 `app.onError` 统一捕获。Service 层抛出 `AppError(message, statusCode)`，Route 层不写 try/catch。
+
+**依赖方向**：Route → Service → Repository → Prisma。层间单向依赖，不反向调用。
 
 ## 3. 数据模型
 
