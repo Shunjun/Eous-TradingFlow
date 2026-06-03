@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard,
+  Grid3x3,
   GitBranch,
   BrainCircuit,
   BarChart3,
@@ -24,7 +25,8 @@ const navSections: { title: string; items: NavItem[] }[] = [
   {
     title: 'OVERVIEW',
     items: [
-      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'home', label: 'Home', icon: LayoutDashboard },
+      { id: 'dashboard', label: 'Dashboard', icon: Grid3x3 },
       { id: 'watchlist', label: 'Watchlist', icon: BarChart3 },
       { id: 'news', label: 'News Feed', icon: Newspaper },
     ],
@@ -44,7 +46,8 @@ const navSections: { title: string; items: NavItem[] }[] = [
 ]
 
 const navToPath: Record<string, string> = {
-  dashboard: '/',
+  home: '/home',
+  dashboard: '/dashboard',
   watchlist: '/watchlist',
   news: '/news',
   workflows: '/workflows',

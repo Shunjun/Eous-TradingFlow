@@ -4,6 +4,7 @@ import { healthRouter } from './routes/health.js'
 import { authRouter } from './routes/auth.js'
 import { providerRouter, templatesRouter } from './routes/provider.js'
 import { dataSourceRouter, dataSourceInstanceRouter } from './routes/data-source.js'
+import { workspaceRouter } from './routes/workspace.js'
 
 export const app = new Hono()
 
@@ -15,3 +16,4 @@ app.route('/api/providers', providerRouter)
 app.route('/api/provider-templates', templatesRouter)
 app.route('/api', dataSourceRouter)
 app.route('/api', dataSourceInstanceRouter)
+app.route('/api/workspace', workspaceRouter)
