@@ -52,7 +52,7 @@ export class IndicatorEngine {
     const seriesRefs: ISeriesApi<'Line' | 'Histogram'>[] = []
 
     if (config.mode === 'overlay') {
-      // Add series to main pane (pane 0)
+      // Add series to main pane (pane 0) — share candle price scale
       for (let i = 0; i < definition.seriesCount; i++) {
         const seriesType = definition.seriesTypes[i]
         const color = config.colors?.[i] ?? config.color ?? definition.defaultColors[i]
@@ -61,7 +61,6 @@ export class IndicatorEngine {
           const s = this.chart.addSeries(LineSeries, {
             color,
             lineWidth: 1,
-            priceScaleId: `indicator-${config.id}-${i}`,
             lastValueVisible: false,
             priceLineVisible: false,
           }, 0)
@@ -70,7 +69,6 @@ export class IndicatorEngine {
         } else {
           const s = this.chart.addSeries(HistogramSeries, {
             color,
-            priceScaleId: `indicator-${config.id}-${i}`,
             lastValueVisible: false,
             priceLineVisible: false,
           }, 0)
