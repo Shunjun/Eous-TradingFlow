@@ -31,6 +31,9 @@ export function KlineChart({
   onSearchChange,
   onProviderChange,
   symbolsLoading,
+  onLoadMore,
+  hasMore,
+  loadingMore,
   // Interval selector
   unsupportedIntervals,
 }: KlineChartProps) {
@@ -277,6 +280,9 @@ export function KlineChart({
         onSearchChange={onSearchChange}
         onProviderChange={onProviderChange}
         symbolsLoading={symbolsLoading}
+        onLoadMore={onLoadMore}
+        hasMore={hasMore}
+        loadingMore={loadingMore}
         onAddIndicator={handleAddIndicator}
         containerRef={wrapperRef}
       />
@@ -318,11 +324,11 @@ export function KlineChart({
             selectedIndicatorId
               ? (() => {
                   const config = indicatorConfigs.find((c) => c.id === selectedIndicatorId)
-                  if (!config) return '设置'
+                  if (!config) return 'Settings'
                   const def = getIndicatorDefinition(config.type)
-                  return def ? `${def.label} 设置` : '设置'
+                  return def ? `${def.label} Settings` : 'Settings'
                 })()
-              : '设置'
+              : 'Settings'
           }
           open={panelOpen}
           onClose={handleClosePanel}

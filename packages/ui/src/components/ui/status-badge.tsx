@@ -25,8 +25,7 @@ const statusBadgeVariants = cva(
 type BadgeStatus = 'running' | 'completed' | 'failed' | 'idle' | 'success' | 'error'
 
 export interface StatusBadgeProps
-  extends React.HTMLAttributes<HTMLSpanElement>,
-    VariantProps<typeof statusBadgeVariants> {
+  extends React.HTMLAttributes<HTMLSpanElement>, VariantProps<typeof statusBadgeVariants> {
   status: BadgeStatus
   label: string
   showDot?: boolean
@@ -37,11 +36,7 @@ const StatusBadge = React.forwardRef<HTMLSpanElement, StatusBadgeProps>(
     const dotVariant = status === 'running' ? 'pulse' : undefined
 
     return (
-      <span
-        ref={ref}
-        className={cn(statusBadgeVariants({ status }), className)}
-        {...props}
-      >
+      <span ref={ref} className={cn(statusBadgeVariants({ status }), className)} {...props}>
         {showDot && status === 'running' && (
           <Dot size="xs" variant={dotVariant} className="inline-block align-middle" />
         )}

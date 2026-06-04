@@ -62,7 +62,7 @@ export function MACDSettings({ config, onUpdate, onRemove }: IndicatorSettingsPr
         onClick={onRemove}
         className="mt-1 px-2 py-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
       >
-        删除指标
+        Delete Indicator
       </button>
     </div>
   )

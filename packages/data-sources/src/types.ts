@@ -73,6 +73,12 @@ export interface DataSourceProvider {
     config: Record<string, string>,
   ): { displayName: string; key: string }
 
+  getDefaultSymbols(
+    offset: number,
+    limit: number,
+    config: Record<string, string>,
+  ): Promise<{ symbols: SymbolInfo[]; total: number }>
+
   searchSymbols(
     query: string,
     config: Record<string, string>,

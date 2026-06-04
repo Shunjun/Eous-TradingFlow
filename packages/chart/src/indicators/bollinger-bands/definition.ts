@@ -9,8 +9,8 @@ export function createBollingerBandsDefinition(): IndicatorDefinition {
     category: 'trend',
     defaultParams: { period: 20, stdDev: 2 },
     paramConfig: [
-      { key: 'period', label: '周期', min: 5, max: 100, step: 1 },
-      { key: 'stdDev', label: '标准差', min: 0.5, max: 5, step: 0.5 },
+      { key: 'period', label: 'Period', min: 5, max: 100, step: 1 },
+      { key: 'stdDev', label: 'Std Dev', min: 0.5, max: 5, step: 0.5 },
     ],
     defaultMode: 'overlay',
     calculate: (closes, params) => calculateBollingerBands(closes, params),

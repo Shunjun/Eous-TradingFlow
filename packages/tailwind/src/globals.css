@@ -93,6 +93,19 @@
   --ring: 25 95% 53%;
 }
 
+/* ─── Base text colors (inside @layer so utilities can override) ─── */
+@layer base {
+  body {
+    color: hsl(var(--foreground));
+    background-color: hsl(var(--background));
+  }
+
+  * {
+    @apply border-border;
+  }
+}
+
+
 /* ─── Line-art aesthetic utilities ─── */
 
 /* Subtle grid background */
@@ -396,10 +409,3 @@
   color: hsl(var(--primary)) !important;
 }
 
-/* ─── Base text colors (inside @layer so utilities can override) ─── */
-@layer base {
-  body {
-    color: hsl(var(--foreground));
-    background-color: hsl(var(--background));
-  }
-}

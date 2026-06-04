@@ -8,10 +8,8 @@ const metricCardVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          'hover:border-primary/30 hover:bg-primary/5',
-        compact:
-          'hover:border-primary/30 hover:bg-primary/5 text-center',
+        default: 'hover:border-primary/30 hover:bg-primary/5',
+        compact: 'hover:border-primary/30 hover:bg-primary/5 text-center',
       },
     },
     defaultVariants: {
@@ -21,8 +19,7 @@ const metricCardVariants = cva(
 )
 
 export interface MetricCardProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof metricCardVariants> {
+  extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof metricCardVariants> {
   label: string
   value: string
   change?: string
@@ -32,11 +29,7 @@ export interface MetricCardProps
 
 const MetricCard = React.forwardRef<HTMLDivElement, MetricCardProps>(
   ({ className, variant, label, value, change, trend, icon: Icon, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(metricCardVariants({ variant }), className)}
-      {...props}
-    >
+    <div ref={ref} className={cn(metricCardVariants({ variant }), className)} {...props}>
       {variant === 'compact' ? (
         <>
           <span className="font-mono text-xl font-bold block">{value}</span>

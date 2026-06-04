@@ -8,7 +8,10 @@
     "paths": {
       "@": ["./src"],
       "@/*": ["./src/*"],
-      "@eous/types": ["../../packages/types/src"]
+      "@eous/types": ["../../packages/types/src"],
+      "@/components/*": ["../../packages/ui/src/components/*"],
+      "@/lib/*": ["../../packages/ui/src/lib/*"],
+      "@/hooks/*": ["../../packages/ui/src/hooks/*"]
     }
   },
   "include": ["src", "vite.config.ts"]

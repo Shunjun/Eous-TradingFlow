@@ -11,7 +11,7 @@ interface ToolItem {
 
 const POINTER_TOOL: ToolItem = {
   id: 'none',
-  label: '选择',
+  label: 'Select',
   icon: MousePointer2,
 }
 
@@ -67,7 +67,7 @@ export function LineToolsSidebar({
           size="icon"
           className="h-8 w-8 text-red-400 hover:text-red-300"
           onClick={onDeleteSelected}
-          title="删除选中"
+          title="Delete selected"
         >
           <Trash2 size={14} />
         </Button>

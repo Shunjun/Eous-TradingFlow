@@ -41,6 +41,9 @@ interface ChartToolbarProps {
   onSearchChange?: (query: string) => void
   onProviderChange?: (providerId: string) => void
   symbolsLoading?: boolean
+  onLoadMore?: () => void
+  hasMore?: boolean
+  loadingMore?: boolean
 
   // Indicator add
   onAddIndicator?: (config: IndicatorConfig) => void
@@ -64,6 +67,9 @@ export function ChartToolbar({
   onSearchChange,
   onProviderChange,
   symbolsLoading,
+  onLoadMore,
+  hasMore,
+  loadingMore,
   onAddIndicator,
   containerRef,
 }: ChartToolbarProps) {
@@ -105,6 +111,9 @@ export function ChartToolbar({
             onSearchChange={onSearchChange}
             onProviderChange={onProviderChange ?? (() => {})}
             loading={symbolsLoading}
+            onLoadMore={onLoadMore}
+            hasMore={hasMore}
+            loadingMore={loadingMore}
             containerRef={containerRef}
           />
           {/* Divider */}

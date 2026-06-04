@@ -99,6 +99,25 @@ export const CCXTProvider: DataSourceProvider = {
     return { displayName: `CCXT - ${ex}`, key: ex }
   },
 
+  async getDefaultSymbols(offset, limit, config) {
+    try {
+      const ex = getExchange(config['exchange']!, resolveProxy(config))
+      const markets = await ex.fetchMarkets()
+      const total = markets.length
+      const sliced = markets.slice(offset, offset + limit)
+      return {
+        symbols: sliced.map((m): SymbolInfo => ({
+          symbol: m?.symbol ?? '',
+          name: m?.symbol ?? '',
+          type: 'crypto',
+        })),
+        total,
+      }
+    } catch {
+      return { symbols: [], total: 0 }
+    }
+  },
+
   async searchSymbols(query, config) {
     try {
       const ex = getExchange(config['exchange']!, resolveProxy(config))
@@ -107,7 +126,6 @@ export const CCXTProvider: DataSourceProvider = {
       const results: SymbolInfo[] = []
 
       for (const market of markets) {
-        if (results.length >= 20) break
         const symbol = market?.symbol ?? ''
         if (symbol.toUpperCase().includes(q)) {
           results.push({

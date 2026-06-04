@@ -134,6 +134,16 @@ async function decryptInstance(instance: { configEncrypted: string; configIv: st
   return { config, provider }
 }
 
+export async function getDefaultSymbols(userId: string, id: string, offset: number, limit: number) {
+  const instance = await dsRepo.findByIdAndUser(id, userId)
+  if (!instance) {
+    throw new AppError('Instance not found', 404)
+  }
+
+  const { config, provider } = await decryptInstance(instance)
+  return provider.getDefaultSymbols(offset, limit, config)
+}
+
 export async function searchSymbols(userId: string, id: string, query: string) {
   if (!query) {
     throw new AppError('Missing required field: query', 400)

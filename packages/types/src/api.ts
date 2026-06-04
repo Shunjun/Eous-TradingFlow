@@ -172,6 +172,10 @@ export interface ApiClient {
   deleteDataSourceInstance(id: string): Promise<void>
   testDataSourceInstance(id: string): Promise<{ ok: boolean; error?: string }>
   listDataSourceProviders(): Promise<{ providers: DataSourceProvider[] }>
+  getDefaultSymbols(
+    instanceId: string,
+    params: { offset?: number; limit?: number },
+  ): Promise<{ symbols: SymbolSearchResult[]; total: number }>
   searchDataSourceSymbols(
     instanceId: string,
     params: { query: string },

@@ -200,6 +200,8 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
     testDataSourceInstance: (id: string) =>
       post(`/data-source-instances/${encodeURIComponent(id)}/test`),
     listDataSourceProviders: () => get('/data-source-providers'),
+    getDefaultSymbols: (instanceId, params) =>
+      post(`/data-source-instances/${encodeURIComponent(instanceId)}/search`, params),
     searchDataSourceSymbols: (instanceId, params) =>
       post(`/data-source-instances/${encodeURIComponent(instanceId)}/search`, params),
     addDataSourceSymbol: (instanceId, params) =>

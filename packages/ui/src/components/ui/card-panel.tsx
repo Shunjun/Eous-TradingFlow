@@ -56,8 +56,6 @@ CardPanelHeader.displayName = 'CardPanelHeader'
 export interface CardPanelBodyProps extends React.HTMLAttributes<HTMLDivElement> {}
 
 export const CardPanelBody = React.forwardRef<HTMLDivElement, CardPanelBodyProps>(
-  ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('', className)} {...props} />
-  ),
+  ({ className, ...props }, ref) => <div ref={ref} className={cn('', className)} {...props} />,
 )
 CardPanelBody.displayName = 'CardPanelBody'

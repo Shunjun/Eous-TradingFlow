@@ -19,13 +19,9 @@ const SectionHeader = React.forwardRef<HTMLDivElement, SectionHeaderProps>(
       </div>
       <h2 className="font-mono text-2xl md:text-3xl font-bold mb-3">
         {heading}
-        {headingAccent && (
-          <span className="text-muted-foreground">{headingAccent}</span>
-        )}
+        {headingAccent && <span className="text-muted-foreground">{headingAccent}</span>}
       </h2>
-      {description && (
-        <p className="text-muted-foreground text-sm max-w-lg">{description}</p>
-      )}
+      {description && <p className="text-muted-foreground text-sm max-w-lg">{description}</p>}
     </div>
   ),
 )

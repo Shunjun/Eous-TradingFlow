@@ -8,7 +8,7 @@ export function createRSIDefinition(): IndicatorDefinition {
     label: 'RSI',
     category: 'oscillator',
     defaultParams: { period: 14 },
-    paramConfig: [{ key: 'period', label: '周期', min: 2, max: 100, step: 1 }],
+    paramConfig: [{ key: 'period', label: 'Period', min: 2, max: 100, step: 1 }],
     defaultMode: 'split',
     calculate: (closes, params) => calculateRSI(closes, params.period),
     seriesCount: 1,

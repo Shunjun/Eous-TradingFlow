@@ -8,7 +8,7 @@ export function createEMADefinition(): IndicatorDefinition {
     label: 'EMA',
     category: 'trend',
     defaultParams: { period: 12 },
-    paramConfig: [{ key: 'period', label: '周期', min: 2, max: 200, step: 1 }],
+    paramConfig: [{ key: 'period', label: 'Period', min: 2, max: 200, step: 1 }],
     defaultMode: 'overlay',
     calculate: (closes, params) => calculateEMA(closes, params.period),
     seriesCount: 1,

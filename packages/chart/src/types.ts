@@ -77,6 +77,12 @@ export interface KlineChartProps {
   onProviderChange?: (providerId: string) => void
   /** Whether symbol list is loading */
   symbolsLoading?: boolean
+  /** Called when user scrolls to the bottom of the symbol list (infinite scroll) */
+  onLoadMore?: () => void
+  /** Whether there are more symbols to load */
+  hasMore?: boolean
+  /** Whether more symbols are currently being loaded */
+  loadingMore?: boolean
 
   // ── Interval selector props ──────────────────────────────────────────────
   /** Interval values the provider does NOT support (hidden from toolbar but preserved in config) */

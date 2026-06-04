@@ -18,7 +18,7 @@ export function BollingerBandsSettings({ config, onUpdate, onRemove }: Indicator
   return (
     <div className="flex flex-col gap-3 p-3 font-mono text-xs">
       <div className="flex items-center justify-between">
-        <span className="text-muted-foreground">周期</span>
+        <span className="text-muted-foreground">Period</span>
         <div className="flex items-center gap-2">
           <input
             type="range"
@@ -34,7 +34,7 @@ export function BollingerBandsSettings({ config, onUpdate, onRemove }: Indicator
       </div>
 
       <div className="flex items-center justify-between">
-        <span className="text-muted-foreground">标准差</span>
+        <span className="text-muted-foreground">Std Dev</span>
         <div className="flex items-center gap-2">
           <input
             type="range"
@@ -67,7 +67,7 @@ export function BollingerBandsSettings({ config, onUpdate, onRemove }: Indicator
         onClick={onRemove}
         className="mt-1 px-2 py-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
       >
-        删除指标
+        Delete Indicator
       </button>
     </div>
   )

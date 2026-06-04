@@ -27,6 +27,14 @@ export default function WatchlistPage() {
   const [searchResults, setSearchResults] = useState<SymbolItem[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
 
+  // default list pagination state
+  const [defaultSymbols, setDefaultSymbols] = useState<SymbolItem[]>([])
+  const [defaultOffset, setDefaultOffset] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
+  const PAGE_SIZE = 50
+
   // selected symbol (for display in header)
   const [selectedSymbol, setSelectedSymbol] = useState<{
     symbol: string
@@ -44,6 +52,23 @@ export default function WatchlistPage() {
     const supported = new Set(intervals.map((iv) => iv.value))
     return ALL_INTERVAL_VALUES.filter((v) => !supported.has(v))
   }, [intervals])
+
+  // ── Load default symbols for a provider ──────────────────
+  const loadDefaultSymbols = useCallback(async (instanceId: string, offset: number) => {
+    try {
+      const data = await api.getDefaultSymbols(instanceId, { offset, limit: PAGE_SIZE })
+      const items: SymbolItem[] = data.symbols.map((r) => ({
+        symbol: r.symbol,
+        name: r.name,
+        exchange: r.exchange,
+        type: r.type,
+        providerId: instanceId,
+      }))
+      return { items, total: data.total }
+    } catch {
+      return { items: [] as SymbolItem[], total: 0 }
+    }
+  }, [])
 
   // ── Load instances on mount ──────────────────────────────
   useEffect(() => {
@@ -70,6 +95,28 @@ export default function WatchlistPage() {
       .catch(() => setIntervals([]))
   }, [selectedId])
 
+  // ── Load default symbols when provider changes ───────────
+  useEffect(() => {
+    if (!selectedId) {
+      setDefaultSymbols([])
+      setDefaultOffset(0)
+      setHasMore(true)
+      setIsSearching(false)
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      const { items, total } = await loadDefaultSymbols(selectedId, 0)
+      if (cancelled) return
+      setDefaultSymbols(items)
+      setDefaultOffset(items.length)
+      setHasMore(items.length < total)
+      setIsSearching(false)
+      setSearchResults([])
+    })()
+    return () => { cancelled = true }
+  }, [selectedId, loadDefaultSymbols])
+
   // ── Fetch klines function ───────────────────────────────
   const fetchKlinesFn = useMemo<FetchKlinesFn | undefined>(() => {
     if (!selectedId) return undefined
@@ -89,10 +136,14 @@ export default function WatchlistPage() {
   // ── Search symbols (called from SymbolSelector) ─────────
   const handleSearchChange = useCallback(
     async (query: string) => {
-      if (!selectedId || !query.trim()) {
+      if (!selectedId) return
+      if (!query.trim()) {
+        // Restore default list
+        setIsSearching(false)
         setSearchResults([])
         return
       }
+      setIsSearching(true)
       setSearchLoading(true)
       try {
         const data = await api.searchDataSourceSymbols(selectedId, { query: query.trim() })
@@ -115,10 +166,25 @@ export default function WatchlistPage() {
     [selectedId],
   )
 
+  // ── Load more default symbols (infinite scroll) ─────────
+  const handleLoadMore = useCallback(async () => {
+    if (!selectedId || !hasMore || loadingMore) return
+    setLoadingMore(true)
+    try {
+      const { items, total } = await loadDefaultSymbols(selectedId, defaultOffset)
+      setDefaultSymbols((prev) => [...prev, ...items])
+      setDefaultOffset((prev) => prev + items.length)
+      setHasMore(defaultOffset + items.length < total)
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [selectedId, hasMore, loadingMore, defaultOffset, loadDefaultSymbols])
+
   // ── Symbol select handler ───────────────────────────────
   const handleSymbolSelect = useCallback((item: SymbolItem) => {
     setSelectedSymbol({ symbol: item.symbol, name: item.name })
     setSelectedId(item.providerId)
+    setIsSearching(false)
     setSearchResults([])
   }, [])
 
@@ -126,8 +192,15 @@ export default function WatchlistPage() {
   const handleProviderChange = useCallback((providerId: string) => {
     setSelectedId(providerId)
     setSelectedSymbol(null)
+    setIsSearching(false)
     setSearchResults([])
+    setDefaultSymbols([])
+    setDefaultOffset(0)
+    setHasMore(true)
   }, [])
+
+  // ── Displayed symbols (search results or default list) ──
+  const displayedSymbols = isSearching ? searchResults : defaultSymbols
 
   // ── Render ──────────────────────────────────────────────
   return (
@@ -156,12 +229,15 @@ export default function WatchlistPage() {
           intervals={intervals}
           fetchKlines={fetchKlinesFn}
           providers={providers}
-          symbols={searchResults}
+          symbols={displayedSymbols}
           activeProviderId={selectedId}
           onSymbolSelect={handleSymbolSelect}
           onSearchChange={handleSearchChange}
           onProviderChange={handleProviderChange}
           symbolsLoading={searchLoading}
+          onLoadMore={handleLoadMore}
+          hasMore={!isSearching && hasMore}
+          loadingMore={loadingMore}
           unsupportedIntervals={unsupportedIntervals}
         />
       </div>

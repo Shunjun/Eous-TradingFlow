@@ -47,9 +47,15 @@ dataSourceInstanceRouter.delete('/data-source-instances/:id', async (c) => {
 // ── Instance operations ────────────────────────────────────────────────────
 
 dataSourceInstanceRouter.post('/data-source-instances/:id/search', async (c) => {
-  const { query } = await c.req.json<{ query: string }>()
-  const symbols = await dataSourceService.searchSymbols(c.get('userId'), c.req.param('id'), query)
-  return c.json({ symbols })
+  const body = await c.req.json<{ query?: string; offset?: number; limit?: number }>()
+  if (body.query) {
+    const symbols = await dataSourceService.searchSymbols(c.get('userId'), c.req.param('id'), body.query)
+    return c.json({ symbols })
+  }
+  const offset = body.offset ?? 0
+  const limit = body.limit ?? 50
+  const result = await dataSourceService.getDefaultSymbols(c.get('userId'), c.req.param('id'), offset, limit)
+  return c.json(result)
 })
 
 dataSourceInstanceRouter.post('/data-source-instances/:id/test', async (c) => {

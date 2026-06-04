@@ -8,7 +8,7 @@ export function createSMADefinition(): IndicatorDefinition {
     label: 'SMA',
     category: 'trend',
     defaultParams: { period: 20 },
-    paramConfig: [{ key: 'period', label: '周期', min: 2, max: 200, step: 1 }],
+    paramConfig: [{ key: 'period', label: 'Period', min: 2, max: 200, step: 1 }],
     defaultMode: 'overlay',
     calculate: (closes, params) => calculateSMA(closes, params.period),
     seriesCount: 1,

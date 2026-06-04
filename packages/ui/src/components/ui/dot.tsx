@@ -24,16 +24,11 @@ const dotVariants = cva('inline-block rounded-full bg-primary', {
 })
 
 export interface DotProps
-  extends React.HTMLAttributes<HTMLSpanElement>,
-    VariantProps<typeof dotVariants> {}
+  extends React.HTMLAttributes<HTMLSpanElement>, VariantProps<typeof dotVariants> {}
 
 const Dot = React.forwardRef<HTMLSpanElement, DotProps>(
   ({ className, size, variant, ...props }, ref) => (
-    <span
-      ref={ref}
-      className={cn(dotVariants({ size, variant }), className)}
-      {...props}
-    />
+    <span ref={ref} className={cn(dotVariants({ size, variant }), className)} {...props} />
   ),
 )
 Dot.displayName = 'Dot'

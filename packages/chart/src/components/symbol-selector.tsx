@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { cn, Dialog, DialogContent, DialogHeader, DialogTitle, Input } from '@eous/ui'
 import { Search, ChevronDown } from 'lucide-react'
 import type { ProviderOption, SymbolItem } from '../types'
@@ -16,6 +16,9 @@ interface SymbolSelectorProps {
   onSearchChange?: (query: string) => void
   onProviderChange: (providerId: string) => void
   loading?: boolean
+  onLoadMore?: () => void
+  hasMore?: boolean
+  loadingMore?: boolean
   containerRef?: React.RefObject<HTMLElement | null>
 }
 
@@ -30,6 +33,9 @@ export function SymbolSelector({
   onSearchChange,
   onProviderChange,
   loading,
+  onLoadMore,
+  hasMore,
+  loadingMore,
   containerRef,
 }: SymbolSelectorProps) {
   const [open, setOpen] = useState(false)
@@ -37,18 +43,7 @@ export function SymbolSelector({
   const [activeIndex, setActiveIndex] = useState(-1)
   const searchRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
-
-  // Filter symbols by search query
-  const filtered = useMemo(() => {
-    if (!query.trim()) return symbols
-    const q = query.toLowerCase()
-    return symbols.filter(
-      (s) =>
-        s.symbol.toLowerCase().includes(q) ||
-        s.name.toLowerCase().includes(q) ||
-        s.exchange?.toLowerCase().includes(q),
-    )
-  }, [symbols, query])
+  const sentinelRef = useRef<HTMLDivElement>(null)
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -60,10 +55,10 @@ export function SymbolSelector({
     }
   }, [open])
 
-  // Reset active index when filtered list changes
+  // Reset active index when symbol list changes
   useEffect(() => {
     setActiveIndex(-1)
-  }, [filtered.length])
+  }, [symbols.length])
 
   // Scroll active item into view
   useEffect(() => {
@@ -71,6 +66,24 @@ export function SymbolSelector({
     const items = listRef.current.querySelectorAll('[data-symbol-item]')
     items[activeIndex]?.scrollIntoView({ block: 'nearest' })
   }, [activeIndex])
+
+  // IntersectionObserver for infinite scroll
+  useEffect(() => {
+    if (!open || !hasMore || !onLoadMore || loadingMore) return
+    const sentinel = sentinelRef.current
+    if (!sentinel) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          onLoadMore()
+        }
+      },
+      { root: listRef.current, threshold: 0.1 },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [open, hasMore, onLoadMore, loadingMore])
 
   const handleSearchChange = useCallback(
     (value: string) => {
@@ -93,7 +106,7 @@ export function SymbolSelector({
       switch (e.key) {
         case 'ArrowDown':
           e.preventDefault()
-          setActiveIndex((prev) => Math.min(prev + 1, filtered.length - 1))
+          setActiveIndex((prev) => Math.min(prev + 1, symbols.length - 1))
           break
         case 'ArrowUp':
           e.preventDefault()
@@ -101,8 +114,8 @@ export function SymbolSelector({
           break
         case 'Enter':
           e.preventDefault()
-          if (activeIndex >= 0 && activeIndex < filtered.length) {
-            handleSelect(filtered[activeIndex])
+          if (activeIndex >= 0 && activeIndex < symbols.length) {
+            handleSelect(symbols[activeIndex])
           }
           break
         case 'Escape':
@@ -115,7 +128,7 @@ export function SymbolSelector({
           break
       }
     },
-    [filtered, activeIndex, query, handleSelect, handleSearchChange],
+    [symbols, activeIndex, query, handleSelect, handleSearchChange],
   )
 
   return (
@@ -141,7 +154,7 @@ export function SymbolSelector({
           onKeyDown={handleKeyDown}
         >
           <DialogHeader className="px-4 pt-4 pb-3">
-            <DialogTitle className="text-sm font-mono">标的搜索</DialogTitle>
+            <DialogTitle className="text-sm font-mono">Symbol Search</DialogTitle>
           </DialogHeader>
 
           {/* Search input */}
@@ -153,7 +166,7 @@ export function SymbolSelector({
               />
               <Input
                 ref={searchRef}
-                placeholder="输入代号、名称或交易所..."
+                placeholder="Search by symbol, name or exchange..."
                 value={query}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="h-8 pl-8 text-xs font-mono"
@@ -185,41 +198,48 @@ export function SymbolSelector({
           <div ref={listRef} className="max-h-72 overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center py-8 text-xs text-muted-foreground font-mono">
-                加载中...
+                Loading...
               </div>
-            ) : filtered.length === 0 ? (
+            ) : symbols.length === 0 ? (
               <div className="flex items-center justify-center py-8 text-xs text-muted-foreground font-mono">
-                无匹配标的
+                No symbols found
               </div>
             ) : (
-              filtered.map((item, index) => (
-                <button
-                  key={`${item.providerId}-${item.symbol}`}
-                  data-symbol-item
-                  onClick={() => handleSelect(item)}
-                  className={cn(
-                    'flex items-center w-full px-4 py-2 text-left transition-colors',
-                    index === activeIndex
-                      ? 'bg-primary/10'
-                      : 'hover:bg-muted/50',
-                  )}
-                >
-                  <span className="text-xs font-mono font-medium text-foreground min-w-[5rem]">
-                    {item.symbol}
-                  </span>
-                  {item.exchange && (
-                    <span className="text-[10px] font-mono text-muted-foreground ml-2 px-1 py-0.5 rounded bg-muted/50">
-                      {item.exchange}
+              <>
+                {symbols.map((item, index) => (
+                  <button
+                    key={`${item.providerId}-${item.symbol}`}
+                    data-symbol-item
+                    onClick={() => handleSelect(item)}
+                    className={cn(
+                      'flex items-center w-full px-4 py-2 text-left transition-colors',
+                      index === activeIndex ? 'bg-primary/10' : 'hover:bg-muted/50',
+                    )}
+                  >
+                    <span className="text-xs font-mono font-medium text-foreground min-w-[5rem]">
+                      {item.symbol}
                     </span>
-                  )}
-                  <span className="text-xs text-muted-foreground ml-3 truncate">
-                    {item.name}
-                  </span>
-                  <span className="text-[9px] font-mono text-muted-foreground ml-auto pl-3 shrink-0">
-                    {providers.find((p) => p.id === item.providerId)?.name ?? item.providerId}
-                  </span>
-                </button>
-              ))
+                    {item.exchange && (
+                      <span className="text-[10px] font-mono text-muted-foreground ml-2 px-1 py-0.5 rounded bg-muted/50">
+                        {item.exchange}
+                      </span>
+                    )}
+                    <span className="text-xs text-muted-foreground ml-3 truncate">{item.name}</span>
+                    <span className="text-[9px] font-mono text-muted-foreground ml-auto pl-3 shrink-0">
+                      {providers.find((p) => p.id === item.providerId)?.name ?? item.providerId}
+                    </span>
+                  </button>
+                ))}
+                {/* Infinite scroll sentinel */}
+                {hasMore && (
+                  <div
+                    ref={sentinelRef}
+                    className="flex items-center justify-center py-3 text-xs text-muted-foreground font-mono"
+                  >
+                    {loadingMore ? 'Loading more...' : ''}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </DialogContent>

@@ -70,6 +70,22 @@ interface YahooSearchResponse {
   }>
 }
 
+// ── 类型：screener 响应 ──
+interface YahooScreenerResponse {
+  finance: {
+    result: Array<{
+      quotes: Array<{
+        symbol: string
+        shortName?: string
+        longName?: string
+        exchange?: string
+        quoteType?: string
+      }>
+      total: number
+    }>
+  }
+}
+
 // ── 类型：chart 响应 ──
 interface YahooChartResponse {
   chart: {
@@ -143,6 +159,30 @@ export const YahooFinanceProvider: DataSourceProvider = {
 
   resolveIdentity(config) {
     return { displayName: 'Yahoo Finance', key: '' }
+  },
+
+  async getDefaultSymbols(offset, limit, config) {
+    const url = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?scrIds=most_actives&start=${offset}&count=${limit}`
+
+    try {
+      const data = await fetchJson<YahooScreenerResponse>(url)
+      const result = data.finance?.result?.[0]
+      if (!result) return { symbols: [], total: 0 }
+
+      return {
+        symbols: result.quotes.map(
+          (q): SymbolInfo => ({
+            symbol: q.symbol,
+            name: q.shortName || q.longName || q.symbol,
+            exchange: q.exchange,
+            type: mapQuoteType(q.quoteType),
+          }),
+        ),
+        total: result.total,
+      }
+    } catch {
+      return { symbols: [], total: 0 }
+    }
   },
 
   async searchSymbols(query, config) {
