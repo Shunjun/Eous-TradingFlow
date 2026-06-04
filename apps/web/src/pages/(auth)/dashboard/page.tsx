@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Mosaic, MosaicWindow, type MosaicNode } from 'react-mosaic-component'
 import 'react-mosaic-component/react-mosaic-component.css'
-import { Button, Skeleton, Tabs, TabsList, TabsTrigger } from '@eous/ui'
+import { Button, Skeleton, ToggleGroup, ToggleGroupItem } from '@eous/ui'
 import { Plus } from 'lucide-react'
 import { useWorkspaceStore } from '../../../stores/workspace.js'
 import WelcomeContent from '../../../components/dashboard/WelcomeContent.js'
@@ -77,16 +77,23 @@ export default function DashboardPage() {
       {/* Toolbar */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-border shrink-0">
         <div className="flex items-center gap-1">
-          <Tabs value={activeLayoutId ?? undefined} onValueChange={handleSwitch}>
-            <TabsList variant="line" className="h-7">
-              {layouts.map((l) => (
-                <TabsTrigger key={l.id} value={l.id} className="text-xs px-2 py-0.5 h-6">
-                  {l.name}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleNewLayout}>
+          <ToggleGroup
+            type="single"
+            value={activeLayoutId ?? undefined}
+            onValueChange={(id) => {
+              if (id) handleSwitch(id)
+            }}
+            variant="outline"
+            size="sm"
+            spacing={1}
+          >
+            {layouts.map((l) => (
+              <ToggleGroupItem key={l.id} value={l.id} className="h-7 px-2 text-xs">
+                {l.name}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+          <Button variant="ghost" onClick={handleNewLayout}>
             <Plus size={14} />
           </Button>
         </div>

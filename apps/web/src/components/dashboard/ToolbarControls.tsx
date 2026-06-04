@@ -37,8 +37,7 @@ export default function ToolbarControls({
         <TooltipTrigger asChild>
           <Button
             variant="ghost-icon"
-            size="icon"
-            className="h-7 w-7"
+            className="h-7 w-7 p-0"
             onClick={() => mosaicWindowActions.split('row')}
           >
             <SplitSquareVertical className="h-3.5 w-3.5" />
@@ -48,7 +47,7 @@ export default function ToolbarControls({
       </Tooltip>
       <Tooltip>
         <TooltipTrigger asChild>
-          <Button variant="ghost-icon" size="icon" className="h-7 w-7" onClick={handleExpand}>
+          <Button variant="ghost-icon" className="h-7 w-7 p-0" onClick={handleExpand}>
             {expanded ? (
               <Minimize2 className="h-3.5 w-3.5" />
             ) : (
@@ -62,8 +61,7 @@ export default function ToolbarControls({
         <TooltipTrigger asChild>
           <Button
             variant="ghost-icon"
-            size="icon"
-            className="h-7 w-7"
+            className="h-7 w-7 p-0"
             onClick={() => mosaicActions.remove(mosaicWindowActions.getPath())}
           >
             <X className="h-3.5 w-3.5" />

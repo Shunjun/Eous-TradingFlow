@@ -1,14 +1,25 @@
-import { Sidebar } from './sidebar.js'
+import type { CSSProperties, ReactNode } from 'react'
+import { SidebarProvider } from '@eous/ui'
+import { AppSidebar } from './sidebar.js'
 import { Header } from './header.js'
 
-export function ConsoleLayout({ children }: { children: React.ReactNode }) {
+export function ConsoleLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
-      <Sidebar />
+    <SidebarProvider
+      defaultOpen
+      className="h-screen bg-background overflow-hidden"
+      style={
+        {
+          '--sidebar-width': '14rem',
+          '--sidebar-width-icon': '3.5rem',
+        } as CSSProperties
+      }
+    >
+      <AppSidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header />
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
-    </div>
+    </SidebarProvider>
   )
 }

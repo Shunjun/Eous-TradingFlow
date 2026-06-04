@@ -434,10 +434,9 @@ function DataSourceCard({
           </Button>
           <Button
             variant="ghost"
-            size="icon"
             onClick={handleDelete}
             disabled={deleting}
-            className="h-7 w-7 text-muted-foreground hover:text-red-400"
+            className="text-muted-foreground hover:text-red-400"
           >
             {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
           </Button>
@@ -480,7 +479,7 @@ export default function DataSourcesPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-semibold">Data Sources</h1>
-          <p className="text-sm text-muted-foreground mt-0.5 font-mono text-xs">
+          <p className="mt-0.5 font-mono text-xs text-muted-foreground">
             Manage market data providers and tracked symbols
           </p>
         </div>

@@ -1,14 +1,15 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import type { ISeriesApi } from 'lightweight-charts'
 import { useIndicatorStore } from '@eous/stores'
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@eous/ui'
 import type { KlineChartProps, IndicatorConfig } from './types'
-import type { FetchKlinesFn } from './core/kline-data'
 import { useChart } from './hooks/use-chart'
 import { useResolvedTheme } from './hooks/use-resolved-theme'
 import { ChartToolbar } from './components/chart-toolbar'
+import { IndicatorConfigPanel } from './components/indicator-config-panel'
 import { IndicatorLegend } from './components/indicator-legend'
-import { ResizablePanel } from './components/resizable-panel'
 import { LineToolsSidebar } from './components/line-tools-sidebar'
+import { ResizablePanelHeader } from './components/resizable-panel-header'
 import { LINE_TOOL_DEFINITIONS } from './line-tools/registry'
 import { getIndicatorDefinition } from './indicators/registry'
 import type { LineToolType } from 'lightweight-charts-line-tools-core'
@@ -261,6 +262,19 @@ export function KlineChart({
     [symbol, engines],
   )
 
+  const selectedIndicatorConfig = selectedIndicatorId
+    ? (indicatorConfigs.find((c) => c.id === selectedIndicatorId) ?? null)
+    : null
+
+  const selectedIndicatorDefinition = selectedIndicatorConfig
+    ? getIndicatorDefinition(selectedIndicatorConfig.type)
+    : null
+
+  const panelTitle =
+    selectedIndicatorConfig && selectedIndicatorDefinition
+      ? `${selectedIndicatorDefinition.label} Settings`
+      : 'Settings'
+
   return (
     <div
       ref={wrapperRef}
@@ -298,59 +312,60 @@ export function KlineChart({
           hasSelected={hasSelectedDrawing}
         />
 
-        {/* Chart container */}
-        <div className="relative flex-1 min-h-0" data-chart-container>
-          <div ref={containerRef} className="h-full w-full" />
-          {!symbol && (
-            <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm font-mono pointer-events-none">
-              Select a symbol
-            </div>
-          )}
+        <ResizablePanelGroup orientation="horizontal" className="min-h-0 flex-1">
+          <ResizablePanel defaultSize={panelOpen ? 72 : 100} minSize={55} className="min-w-0">
+            <div className="relative flex-1 min-h-0 h-full" data-chart-container>
+              <div ref={containerRef} className="h-full w-full" />
+              {!symbol && (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center font-mono text-sm text-muted-foreground">
+                  Select a symbol
+                </div>
+              )}
 
-          {/* Indicator legend */}
-          {engines.chart.current?.chart && (
-            <IndicatorLegend
-              indicators={indicatorConfigs}
-              chartRef={engines.chart.current.chart}
-              seriesMapRef={seriesMapRef}
-              onDoubleClickIndicator={handleDoubleClickIndicator}
-            />
-          )}
-        </div>
-
-        {/* Right panel: settings */}
-        <ResizablePanel
-          title={
-            selectedIndicatorId
-              ? (() => {
-                  const config = indicatorConfigs.find((c) => c.id === selectedIndicatorId)
-                  if (!config) return 'Settings'
-                  const def = getIndicatorDefinition(config.type)
-                  return def ? `${def.label} Settings` : 'Settings'
-                })()
-              : 'Settings'
-          }
-          open={panelOpen}
-          onClose={handleClosePanel}
-        >
-          {selectedIndicatorId &&
-            (() => {
-              const config = indicatorConfigs.find((c) => c.id === selectedIndicatorId)
-              if (!config) return null
-              const def = getIndicatorDefinition(config.type)
-              if (!def) return null
-              return (
-                <def.SettingsComponent
-                  config={config}
-                  onUpdate={(updates) => handleUpdateIndicatorConfig(config.id, updates)}
-                  onRemove={() => {
-                    handleRemoveIndicator(config.id)
-                    handleClosePanel()
-                  }}
+              {/* Indicator legend */}
+              {engines.chart.current?.chart && (
+                <IndicatorLegend
+                  indicators={indicatorConfigs}
+                  chartRef={engines.chart.current.chart}
+                  seriesMapRef={seriesMapRef}
+                  onDoubleClickIndicator={handleDoubleClickIndicator}
                 />
-              )
-            })()}
-        </ResizablePanel>
+              )}
+            </div>
+          </ResizablePanel>
+
+          {panelOpen && (
+            <>
+              <ResizableHandle className="bg-transparent hover:bg-primary/50 active:bg-primary/60" />
+              <ResizablePanel
+                defaultSize={28}
+                minSize={250}
+                maxSize={380}
+                className="min-w-[240px] border-l border-border bg-background"
+              >
+                <div className="flex h-full w-full flex-col overflow-hidden">
+                  <ResizablePanelHeader title={panelTitle} onClose={handleClosePanel} />
+
+                  <div className="min-h-0 flex-1 overflow-y-auto">
+                    <IndicatorConfigPanel
+                      config={selectedIndicatorConfig}
+                      definition={selectedIndicatorDefinition ?? null}
+                      onUpdate={(updates) => {
+                        if (!selectedIndicatorConfig) return
+                        handleUpdateIndicatorConfig(selectedIndicatorConfig.id, updates)
+                      }}
+                      onRemove={() => {
+                        if (!selectedIndicatorConfig) return
+                        handleRemoveIndicator(selectedIndicatorConfig.id)
+                        handleClosePanel()
+                      }}
+                    />
+                  </div>
+                </div>
+              </ResizablePanel>
+            </>
+          )}
+        </ResizablePanelGroup>
       </div>
     </div>
   )

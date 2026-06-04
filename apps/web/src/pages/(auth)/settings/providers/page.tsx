@@ -498,7 +498,6 @@ function ProviderCard({ provider, onRefresh }: { provider: Provider; onRefresh: 
         <div className="flex items-center gap-3 min-w-0">
           <Button
             variant="ghost"
-            size="icon"
             onClick={() => setExpanded((v) => !v)}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
@@ -542,10 +541,9 @@ function ProviderCard({ provider, onRefresh }: { provider: Provider; onRefresh: 
           </Button>
           <Button
             variant="ghost"
-            size="icon"
             onClick={handleDelete}
             disabled={deleting}
-            className="h-7 w-7 text-muted-foreground hover:text-red-400"
+            className="text-muted-foreground hover:text-red-400"
           >
             {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
           </Button>
@@ -588,8 +586,8 @@ function ProviderCard({ provider, onRefresh }: { provider: Provider; onRefresh: 
                   trailing={
                     <Button
                       variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground"
+                      size="xs"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground"
                       onClick={() =>
                         setEditingModelId((prev) => (prev === model.id ? null : model.id))
                       }
@@ -713,7 +711,7 @@ export default function ProvidersPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-xl font-semibold">Providers</h1>
-          <p className="text-sm text-muted-foreground mt-0.5 font-mono text-xs">
+          <p className="mt-0.5 font-mono text-xs text-muted-foreground">
             Manage AI model providers and their models
           </p>
         </div>

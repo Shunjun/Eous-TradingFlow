@@ -45,8 +45,7 @@ export function LineToolsSidebar({
             <TooltipTrigger asChild>
               <Button
                 variant="ghost-icon"
-                size="icon"
-                className={cn('h-8 w-8', activeTool === tool.id && 'bg-primary/15 text-primary')}
+                className={cn(activeTool === tool.id && 'bg-primary/15 text-primary')}
                 onClick={() => onSelectTool(tool.id)}
               >
                 <Icon size={14} />
@@ -66,8 +65,7 @@ export function LineToolsSidebar({
           <TooltipTrigger asChild>
             <Button
               variant="ghost-icon"
-              size="icon"
-              className="h-8 w-8 text-red-400 hover:text-red-300"
+              className="text-red-400 hover:text-red-300"
               onClick={onDeleteSelected}
             >
               <Trash2 size={14} />

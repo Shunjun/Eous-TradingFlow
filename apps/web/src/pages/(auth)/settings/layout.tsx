@@ -1,6 +1,15 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import type { CSSProperties, ElementType } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Settings, Bot, Sliders, Database } from 'lucide-react'
-import { cn } from '@eous/ui'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  cn,
+} from '@eous/ui'
 
 const subNav = [
   { to: '/settings/general', label: 'General', icon: Sliders },
@@ -8,53 +17,81 @@ const subNav = [
   { to: '/settings/data-sources', label: 'Data Sources', icon: Database },
 ]
 
-export default function SettingsLayout() {
-  return (
-    <div className="flex h-full">
-      {/* Sub-nav */}
-      <aside className="w-52 border-r border-border shrink-0 py-4 px-3 space-y-1">
-        <div className="flex items-center gap-2 px-2 mb-3">
-          <Settings size={14} className="text-muted-foreground" />
-          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">
-            Settings
-          </span>
-        </div>
-        {subNav.map((item) => {
-          const Icon = item.icon
-          return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-all duration-200',
-                  isActive
-                    ? 'bg-primary/10 text-primary'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted',
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon
-                    size={16}
-                    className={cn(
-                      'shrink-0 transition-colors',
-                      isActive ? 'text-primary' : 'text-muted-foreground',
-                    )}
-                  />
-                  <span className="truncate">{item.label}</span>
-                </>
-              )}
-            </NavLink>
-          )
-        })}
-      </aside>
+function isSubNavActive(pathname: string, to: string) {
+  return pathname === to || pathname.startsWith(`${to}/`)
+}
 
-      {/* Content */}
+export default function SettingsLayout() {
+  const { pathname } = useLocation()
+
+  return (
+    <SidebarProvider
+      defaultOpen
+      className="h-full min-h-0"
+      style={
+        {
+          '--sidebar-width': '13rem',
+          '--sidebar-width-icon': '13rem',
+        } as CSSProperties
+      }
+    >
+      <Sidebar
+        collapsible="none"
+        className="shrink-0 border-r border-sidebar-border bg-transparent"
+      >
+        <SidebarContent className="px-3 py-4">
+          <div className="mb-3 flex items-center gap-2 px-2">
+            <Settings size={14} className="text-muted-foreground" />
+            <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">
+              Settings
+            </span>
+          </div>
+          <SidebarMenu className="gap-1">
+            {subNav.map((item) => (
+              <SettingsNavItem
+                key={item.to}
+                item={item}
+                isActive={isSubNavActive(pathname, item.to)}
+              />
+            ))}
+          </SidebarMenu>
+        </SidebarContent>
+      </Sidebar>
+
       <div className="flex-1 overflow-y-auto">
         <Outlet />
       </div>
-    </div>
+    </SidebarProvider>
+  )
+}
+
+function SettingsNavItem({
+  item,
+  isActive,
+}: {
+  item: { to: string; label: string; icon: ElementType }
+  isActive: boolean
+}) {
+  const Icon = item.icon
+
+  return (
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        asChild
+        isActive={isActive}
+        className="h-auto gap-2.5 px-2.5 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground data-[active=true]:bg-primary/10 data-[active=true]:font-normal data-[active=true]:text-primary"
+      >
+        <NavLink to={item.to}>
+          <Icon
+            size={16}
+            className={cn(
+              'shrink-0 transition-colors',
+              isActive ? 'text-primary' : 'text-muted-foreground',
+            )}
+          />
+          <span className="truncate">{item.label}</span>
+        </NavLink>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
   )
 }

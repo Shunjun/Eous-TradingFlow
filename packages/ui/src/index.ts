@@ -2,6 +2,14 @@
 export { Button, buttonVariants } from './components/ui/button'
 
 export { Input } from './components/ui/input'
+export {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupText,
+  InputGroupInput,
+  InputGroupTextarea,
+} from './components/ui/input-group'
 
 export {
   Dialog,
@@ -92,6 +100,8 @@ export { Skeleton } from './components/ui/skeleton'
 export { Checkbox } from './components/ui/checkbox'
 export { Slider } from './components/ui/slider'
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './components/ui/tabs'
+export { ToggleGroup, ToggleGroupItem } from './components/ui/toggle-group'
+export { ResizableHandle, ResizablePanel, ResizablePanelGroup } from './components/ui/resizable'
 export {
   Empty,
   EmptyHeader,
@@ -101,6 +111,32 @@ export {
   EmptyMedia,
 } from './components/ui/empty'
 export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from './components/ui/popover'
+export {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupAction,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInput,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuAction,
+  SidebarMenuBadge,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSkeleton,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarSeparator,
+  SidebarTrigger,
+  useSidebar,
+} from './components/ui/sidebar'
 
 // ── Utils ───────────────────────────────────────────────────
 export { cn } from './lib/utils'

@@ -1,14 +1,18 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { cn, Button, Popover, PopoverTrigger } from '@eous/ui'
+import { cn, Button, Popover, PopoverTrigger, ToggleGroup, ToggleGroupItem } from '@eous/ui'
 import { Pencil, Plus } from 'lucide-react'
-import type { IntervalItem, IntervalSelectorProps, IntervalSelectorState } from './types'
-import { useIntervalSettings, DEFAULT_INTERVAL_SETTINGS } from './use-interval-settings'
-import { IntervalPopup } from './interval-popup'
-import { IntervalEditor } from './interval-editor'
+import type {
+  IntervalItem,
+  IntervalSelectorProps,
+  IntervalSelectorState,
+} from './interval-selector/types'
+import { useIntervalSettings } from './interval-selector/use-interval-settings'
+import { IntervalPopup } from './interval-selector/interval-popup'
+import { IntervalEditor } from './interval-selector/interval-editor'
 
-export function IntervalSelector({
+export function IndicatorSelector({
   value,
   onChange,
   unsupportedValues = [],
@@ -75,21 +79,25 @@ export function IntervalSelector({
     <div className="relative">
       {/* Toolbar row */}
       <div className="flex items-center gap-1">
-        {visible.map((iv) => (
-          <Button
-            variant="ghost"
-            key={iv.value}
-            onClick={() => onChange(iv.value)}
-            className={cn(
-              'px-1.5 py-0.5 text-[10px] font-mono rounded transition-colors',
-              iv.value === value
-                ? 'bg-primary/15 text-primary'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
-            )}
-          >
-            {iv.label}
-          </Button>
-        ))}
+        <ToggleGroup
+          type="single"
+          value={value}
+          onValueChange={(next) => {
+            if (next) onChange(next)
+          }}
+          size="xs"
+          spacing={1}
+        >
+          {visible.map((iv) => (
+            <ToggleGroupItem
+              key={iv.value}
+              value={iv.value}
+              // className="rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+            >
+              {iv.label}
+            </ToggleGroupItem>
+          ))}
+        </ToggleGroup>
 
         {/* "+" button — opens popup of remaining intervals */}
         {hidden.length > 0 && (
@@ -97,15 +105,16 @@ export function IntervalSelector({
             <PopoverTrigger asChild>
               <Button
                 variant="ghost"
+                size="xs"
                 className={cn(
-                  'ml-0.5 p-0.5 rounded transition-colors',
+                  'ml-0.5 transition-colors',
                   popupOpen
                     ? 'text-primary bg-primary/10'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
                 )}
                 aria-label="More intervals"
               >
-                <Plus size={12} strokeWidth={2.5} />
+                <Plus strokeWidth={2.5} />
               </Button>
             </PopoverTrigger>
             <IntervalPopup items={hidden} onSelect={handlePopupSelect} />
@@ -116,15 +125,16 @@ export function IntervalSelector({
         <Button
           variant="ghost"
           onClick={() => setState(state === 'editing' ? 'idle' : 'editing')}
+          size="xs"
           className={cn(
-            'ml-0.5 p-0.5 rounded transition-colors',
+            'ml-0.5 transition-colors',
             state === 'editing'
               ? 'text-primary bg-primary/10'
               : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
           )}
           aria-label="Edit intervals"
         >
-          <Pencil size={11} strokeWidth={2.5} />
+          <Pencil strokeWidth={2.5} />
         </Button>
       </div>
 

@@ -106,7 +106,7 @@ export function ChartToolbar({
   const availableIndicators = getAllIndicatorDefinitions()
 
   return (
-    <div className="flex items-center px-3 py-1.5 border-b border-border shrink-0 gap-0">
+    <div className="flex items-center px-3 py-2 border-b border-border shrink-0 gap-0">
       {/* Left: Symbol selector */}
       {providers && providers.length > 0 && (
         <>
@@ -146,6 +146,7 @@ export function ChartToolbar({
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
+              size="xs"
               className={cn(
                 'flex items-center gap-1 px-2 py-1 rounded text-[10px] font-mono transition-colors',
                 'text-muted-foreground hover:text-foreground hover:bg-muted/50',

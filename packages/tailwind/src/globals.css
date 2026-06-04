@@ -1,5 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
+/*
+ ---break---
+ */
+@custom-variant dark (&:is(.dark *));
 
 /*
  * Scan UI package for Tailwind class usage.
@@ -42,6 +46,16 @@
 
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --font-sans: 'DM Sans', system-ui, sans-serif;
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-active-foreground: hsl(var(--sidebar-active-foreground));
+  --color-sidebar-active: hsl(var(--sidebar-active));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar: hsl(var(--sidebar));
 }
 
 /* ─── Light theme ─── */
@@ -68,6 +82,16 @@
   --radius: 0.5rem;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --font-sans: 'DM Sans', system-ui, sans-serif;
+  --sidebar: var(--card);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--muted);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-active: 25 95% 53% / 0.1;
+  --sidebar-active-foreground: 25 95% 53%;
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
 }
 
 /* ─── Dark theme ─── */
@@ -91,6 +115,16 @@
   --border: 20 8% 18%;
   --input: 20 8% 18%;
   --ring: 25 95% 53%;
+  --sidebar: 20 8% 10%;
+  --sidebar-foreground: 40 15% 90%;
+  --sidebar-primary: 25 95% 53%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 20 8% 14%;
+  --sidebar-accent-foreground: 40 15% 85%;
+  --sidebar-active: 25 95% 53% / 0.1;
+  --sidebar-active-foreground: 25 95% 53%;
+  --sidebar-border: 20 8% 18%;
+  --sidebar-ring: 25 95% 53%;
 }
 
 /* ─── Base text colors (inside @layer so utilities can override) ─── */
