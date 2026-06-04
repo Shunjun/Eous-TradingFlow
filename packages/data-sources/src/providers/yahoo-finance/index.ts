@@ -47,7 +47,7 @@ async function fetchJson<T>(url: string): Promise<T> {
       signal: controller.signal,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-        'Accept': 'application/json',
+        Accept: 'application/json',
       },
     })
     if (!res.ok) {
@@ -227,14 +227,12 @@ export const YahooFinanceProvider: DataSourceProvider = {
 
     const price = meta.regularMarketPrice ?? closes[closes.length - 1] ?? 0
     const previousClose =
-      meta.previousClose ??
-      (closes.length >= 2 ? closes[closes.length - 2] : undefined)
+      meta.previousClose ?? (closes.length >= 2 ? closes[closes.length - 2] : undefined)
 
     return {
       symbol,
       price,
-      change:
-        previousClose != null ? Number((price - previousClose).toFixed(4)) : undefined,
+      change: previousClose != null ? Number((price - previousClose).toFixed(4)) : undefined,
       changePercent:
         previousClose != null && previousClose !== 0
           ? Number((((price - previousClose) / previousClose) * 100).toFixed(2))

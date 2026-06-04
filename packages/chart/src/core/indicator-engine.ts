@@ -1,7 +1,4 @@
-import {
-  LineSeries,
-  HistogramSeries,
-} from 'lightweight-charts'
+import { LineSeries, HistogramSeries } from 'lightweight-charts'
 import type { IChartApi, ISeriesApi, Time } from 'lightweight-charts'
 import type { IndicatorConfig, IndicatorOutput } from '../types'
 import { INDICATOR_REGISTRY } from '../indicators/registry'
@@ -58,20 +55,28 @@ export class IndicatorEngine {
         const color = config.colors?.[i] ?? config.color ?? definition.defaultColors[i]
 
         if (seriesType === 'Line') {
-          const s = this.chart.addSeries(LineSeries, {
-            color,
-            lineWidth: 1,
-            lastValueVisible: false,
-            priceLineVisible: false,
-          }, 0)
+          const s = this.chart.addSeries(
+            LineSeries,
+            {
+              color,
+              lineWidth: 1,
+              lastValueVisible: false,
+              priceLineVisible: false,
+            },
+            0,
+          )
           s.setData(data[i] ?? [])
           seriesRefs.push(s)
         } else {
-          const s = this.chart.addSeries(HistogramSeries, {
-            color,
-            lastValueVisible: false,
-            priceLineVisible: false,
-          }, 0)
+          const s = this.chart.addSeries(
+            HistogramSeries,
+            {
+              color,
+              lastValueVisible: false,
+              priceLineVisible: false,
+            },
+            0,
+          )
           s.setData(data[i] ?? [])
           seriesRefs.push(s)
         }
@@ -88,22 +93,30 @@ export class IndicatorEngine {
         const color = config.colors?.[i] ?? config.color ?? definition.defaultColors[i]
 
         if (seriesType === 'Line') {
-          const s = this.chart.addSeries(LineSeries, {
-            color,
-            lineWidth: 1,
-            priceScaleId: `indicator-${config.id}-${i}`,
-            lastValueVisible: false,
-            priceLineVisible: false,
-          }, paneIdx)
+          const s = this.chart.addSeries(
+            LineSeries,
+            {
+              color,
+              lineWidth: 1,
+              priceScaleId: `indicator-${config.id}-${i}`,
+              lastValueVisible: false,
+              priceLineVisible: false,
+            },
+            paneIdx,
+          )
           s.setData(data[i] ?? [])
           seriesRefs.push(s)
         } else {
-          const s = this.chart.addSeries(HistogramSeries, {
-            color,
-            priceScaleId: `indicator-${config.id}-${i}`,
-            lastValueVisible: false,
-            priceLineVisible: false,
-          }, paneIdx)
+          const s = this.chart.addSeries(
+            HistogramSeries,
+            {
+              color,
+              priceScaleId: `indicator-${config.id}-${i}`,
+              lastValueVisible: false,
+              priceLineVisible: false,
+            },
+            paneIdx,
+          )
           s.setData(data[i] ?? [])
           seriesRefs.push(s)
         }

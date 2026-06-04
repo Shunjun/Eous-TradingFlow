@@ -102,13 +102,13 @@ React Component
 
 ```typescript
 class EventBus {
-  on<K>(event: K, handler: Handler<ChartEvents[K]>): () => void  // 返回取消订阅函数
+  on<K>(event: K, handler: Handler<ChartEvents[K]>): () => void // 返回取消订阅函数
   emit<K>(event: K, payload: ChartEvents[K]): void
   destroy(): void
 }
 
 interface ChartEvents {
-  'data:updated':  { klines: KlineDataPoint[]; fit: boolean }
+  'data:updated': { klines: KlineDataPoint[]; fit: boolean }
   'theme:changed': { theme: ChartTheme }
 }
 ```
@@ -117,13 +117,13 @@ interface ChartEvents {
 
 数据获取与管理。构造函数接收 `(eventBus, theme)`。
 
-| 方法 | 说明 |
-|------|------|
-| `loadInitial(fetchFn, symbol, interval)` | 首次加载，fitContent |
-| `switchInterval(fetchFn, symbol, interval)` | 切换周期，fitContent |
-| `loadEarlier(fetchFn, symbol, interval, oldestTimestamp)` | 无限滚动加载更早数据，保持视口 |
-| `getCloses()` | 返回 `{ time, close }[]`，供指标计算 |
-| `updateTheme(theme)` | 更新主题，emit theme:changed |
+| 方法                                                      | 说明                                 |
+| --------------------------------------------------------- | ------------------------------------ |
+| `loadInitial(fetchFn, symbol, interval)`                  | 首次加载，fitContent                 |
+| `switchInterval(fetchFn, symbol, interval)`               | 切换周期，fitContent                 |
+| `loadEarlier(fetchFn, symbol, interval, oldestTimestamp)` | 无限滚动加载更早数据，保持视口       |
+| `getCloses()`                                             | 返回 `{ time, close }[]`，供指标计算 |
+| `updateTheme(theme)`                                      | 更新主题，emit theme:changed         |
 
 数据加载完成后通过 `eventBus.emit('data:updated', { klines, fit })` 广播。
 
@@ -167,10 +167,10 @@ interface IndicatorDefinition {
   label: string
   category: 'trend' | 'oscillator'
   defaultParams: Record<string, number>
-  paramConfig: ParamConfig[]          // 参数元信息，驱动设置 UI
+  paramConfig: ParamConfig[] // 参数元信息，驱动设置 UI
   defaultMode: 'overlay' | 'split'
   calculate: (closes, params) => IndicatorOutput
-  seriesCount: number                 // 该指标需要几个 series
+  seriesCount: number // 该指标需要几个 series
   seriesTypes: ('Line' | 'Histogram')[]
   defaultColors: string[]
   seriesLabels?: string[]
@@ -194,9 +194,9 @@ interface IndicatorDefinition {
 
 ```typescript
 interface IndicatorSettingsProps {
-  config: IndicatorConfig       // 当前配置
-  onUpdate: (updates) => void   // 更新参数/颜色
-  onRemove: () => void          // 删除指标
+  config: IndicatorConfig // 当前配置
+  onUpdate: (updates) => void // 更新参数/颜色
+  onRemove: () => void // 删除指标
 }
 ```
 
@@ -215,12 +215,12 @@ interface LineToolDefinition {
 
 ### 5.2 已实现的工具
 
-| 工具 | 来源 |
-|------|------|
-| 趋势线 (TrendLine) | lightweight-charts-line-tools-lines |
-| 水平线 (HorizontalLine) | lightweight-charts-line-tools-lines |
-| 射线 (Ray) | lightweight-charts-line-tools-lines |
-| 矩形 (Rectangle) | lightweight-charts-line-tools-rectangle |
+| 工具                    | 来源                                    |
+| ----------------------- | --------------------------------------- |
+| 趋势线 (TrendLine)      | lightweight-charts-line-tools-lines     |
+| 水平线 (HorizontalLine) | lightweight-charts-line-tools-lines     |
+| 射线 (Ray)              | lightweight-charts-line-tools-lines     |
+| 矩形 (Rectangle)        | lightweight-charts-line-tools-rectangle |
 
 ## 6. UI 布局
 
@@ -259,22 +259,22 @@ interface LineToolDefinition {
 
 ## 7. 持久化
 
-| 数据 | 存储 | 说明 |
-|------|------|------|
+| 数据               | 存储                          | 说明                                          |
+| ------------------ | ----------------------------- | --------------------------------------------- |
 | 指标配置（按标的） | `useIndicatorStore` (Zustand) | `endpoint: /api/indicators`，按 `symbol` 分组 |
-| 工作台布局 | `useWorkspaceStore` (Zustand) | `endpoint: /api/workspace` |
-| 时间区间偏好 | 待实现 (Phase 4A) | 图表查看器级别，不随标的切换 |
+| 工作台布局         | `useWorkspaceStore` (Zustand) | `endpoint: /api/workspace`                    |
+| 时间区间偏好       | 待实现 (Phase 4A)             | 图表查看器级别，不随标的切换                  |
 
 ## 8. 依赖
 
-| 包 | 用途 |
-|---|------|
-| `lightweight-charts` ^5.0.0 | K 线图表渲染 |
-| `lightweight-charts-line-tools-core` | 画线工具插件核心 |
-| `lightweight-charts-line-tools-lines` | 趋势线/水平线/射线 |
-| `lightweight-charts-line-tools-rectangle` | 矩形工具 |
-| `technicalindicators` | 技术指标计算 |
-| `@eous/stores` | 指标配置持久化 |
-| `@eous/ui` | shadcn 组件 |
-| `lucide-react` | 图标 |
-| `zustand` ^5.0.0 | 状态管理 |
+| 包                                        | 用途               |
+| ----------------------------------------- | ------------------ |
+| `lightweight-charts` ^5.0.0               | K 线图表渲染       |
+| `lightweight-charts-line-tools-core`      | 画线工具插件核心   |
+| `lightweight-charts-line-tools-lines`     | 趋势线/水平线/射线 |
+| `lightweight-charts-line-tools-rectangle` | 矩形工具           |
+| `technicalindicators`                     | 技术指标计算       |
+| `@eous/stores`                            | 指标配置持久化     |
+| `@eous/ui`                                | shadcn 组件        |
+| `lucide-react`                            | 图标               |
+| `zustand` ^5.0.0                          | 状态管理           |

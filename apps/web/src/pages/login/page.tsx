@@ -1,12 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, redirect } from 'react-router-dom'
 import { GitBranch } from 'lucide-react'
-import {
-  IconBox,
-  Input,
-  Button,
-  Label,
-} from '@eous/ui'
+import { IconBox, Input, Button, Label } from '@eous/ui'
 import { api, ApiError } from '../../lib/api.js'
 
 /* ── Loader: redirect to / if already authenticated ─── */
@@ -67,7 +62,10 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground/60">
+              <Label
+                htmlFor="email"
+                className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground/60"
+              >
                 Email
               </Label>
               <Input
@@ -83,7 +81,10 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground/60">
+              <Label
+                htmlFor="password"
+                className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground/60"
+              >
                 Password
               </Label>
               <Input

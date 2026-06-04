@@ -34,18 +34,21 @@ export async function getProvider(userId: string, id: string) {
   }
 }
 
-export async function createProvider(userId: string, body: {
-  name: string
-  kind: string
-  baseUrl: string
-  apiKey: string
-}) {
+export async function createProvider(
+  userId: string,
+  body: {
+    name: string
+    kind: string
+    baseUrl: string
+    apiKey: string
+  },
+) {
   const { name, kind, baseUrl, apiKey } = body
 
   if (!name || !kind || !baseUrl) {
     throw new AppError('Missing required fields: name, kind, baseUrl', 400)
   }
-  if (!VALID_KINDS.includes(kind as typeof VALID_KINDS[number])) {
+  if (!VALID_KINDS.includes(kind as (typeof VALID_KINDS)[number])) {
     throw new AppError(`Invalid kind. Must be one of: ${VALID_KINDS.join(', ')}`, 400)
   }
 
@@ -79,11 +82,15 @@ export async function createProvider(userId: string, body: {
   return provider
 }
 
-export async function updateProvider(userId: string, id: string, body: {
-  name?: string
-  baseUrl?: string
-  apiKey?: string
-}) {
+export async function updateProvider(
+  userId: string,
+  id: string,
+  body: {
+    name?: string
+    baseUrl?: string
+    apiKey?: string
+  },
+) {
   const { name, baseUrl, apiKey } = body
 
   if (!name && !baseUrl && !apiKey) {
@@ -176,15 +183,25 @@ export async function testConnection(userId: string, id: string) {
   throw new AppError('Connection failed', 400)
 }
 
-export async function updateModel(userId: string, providerId: string, modelId: string, body: {
-  enabled?: boolean
-  displayName?: string
-  maxTokens?: number
-  capabilities?: string[]
-}) {
+export async function updateModel(
+  userId: string,
+  providerId: string,
+  modelId: string,
+  body: {
+    enabled?: boolean
+    displayName?: string
+    maxTokens?: number
+    capabilities?: string[]
+  },
+) {
   const { enabled, displayName, maxTokens, capabilities } = body
 
-  if (enabled === undefined && displayName === undefined && maxTokens === undefined && capabilities === undefined) {
+  if (
+    enabled === undefined &&
+    displayName === undefined &&
+    maxTokens === undefined &&
+    capabilities === undefined
+  ) {
     throw new AppError('At least one field must be provided', 400)
   }
 
@@ -214,12 +231,16 @@ export async function updateModel(userId: string, providerId: string, modelId: s
   }
 }
 
-export async function createModel(userId: string, providerId: string, body: {
-  modelId: string
-  displayName?: string
-  maxTokens?: number
-  capabilities?: string[]
-}) {
+export async function createModel(
+  userId: string,
+  providerId: string,
+  body: {
+    modelId: string
+    displayName?: string
+    maxTokens?: number
+    capabilities?: string[]
+  },
+) {
   const { modelId, displayName, maxTokens, capabilities } = body
 
   if (!modelId) {

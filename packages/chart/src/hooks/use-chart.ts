@@ -8,10 +8,7 @@ import { ChartEngine } from '../core/chart-engine'
 import { IndicatorEngine } from '../core/indicator-engine'
 import { LineToolsEngine } from '../core/line-tools-engine'
 
-export function useChart(
-  containerRef: React.RefObject<HTMLDivElement | null>,
-  theme: ChartTheme,
-) {
+export function useChart(containerRef: React.RefObject<HTMLDivElement | null>, theme: ChartTheme) {
   const eventBusRef = useRef<EventBus | null>(null)
   const klineDataRef = useRef<KLineData | null>(null)
   const chartEngineRef = useRef<ChartEngine | null>(null)
@@ -29,7 +26,12 @@ export function useChart(
     const eventBus = new EventBus()
     const klineData = new KLineData(eventBus, themeRef.current)
     const chartEngine = new ChartEngine(container, eventBus, klineData, themeRef.current)
-    const indicatorEngine = new IndicatorEngine(eventBus, klineData, chartEngine.chart, chartEngine.candleSeries)
+    const indicatorEngine = new IndicatorEngine(
+      eventBus,
+      klineData,
+      chartEngine.chart,
+      chartEngine.candleSeries,
+    )
     const lineToolsEngine = new LineToolsEngine(chartEngine.chart, chartEngine.candleSeries)
 
     eventBusRef.current = eventBus
@@ -94,9 +96,12 @@ export function useChart(
     klineDataRef.current?.switchInterval(fetchFn, symbol, interval)
   }, [])
 
-  const loadEarlier = useCallback((fetchFn: FetchKlinesFn, symbol: string, interval: string, oldestTimestamp: number) => {
-    klineDataRef.current?.loadEarlier(fetchFn, symbol, interval, oldestTimestamp)
-  }, [])
+  const loadEarlier = useCallback(
+    (fetchFn: FetchKlinesFn, symbol: string, interval: string, oldestTimestamp: number) => {
+      klineDataRef.current?.loadEarlier(fetchFn, symbol, interval, oldestTimestamp)
+    },
+    [],
+  )
 
   const getKlineData = useCallback(() => klineDataRef.current, [])
 
@@ -116,41 +121,44 @@ export function useChart(
     return lineToolsEngineRef.current?.activeTool ?? 'none'
   }, [])
 
-  return useMemo(() => ({
-    engines: {
-      chart: chartEngineRef,
-      klineData: klineDataRef,
-      indicator: indicatorEngineRef,
-      lineTools: lineToolsEngineRef,
-    },
-    addIndicator,
-    removeIndicator,
-    switchMode,
-    moveUp,
-    moveDown,
-    updateIndicator,
-    loadKlines,
-    switchInterval,
-    loadEarlier,
-    getKlineData,
-    setActiveDrawingTool,
-    toggleDrawingTool,
-    deleteSelectedDrawing,
-    getActiveDrawingTool,
-  }), [
-    addIndicator,
-    removeIndicator,
-    switchMode,
-    moveUp,
-    moveDown,
-    updateIndicator,
-    loadKlines,
-    switchInterval,
-    loadEarlier,
-    getKlineData,
-    setActiveDrawingTool,
-    toggleDrawingTool,
-    deleteSelectedDrawing,
-    getActiveDrawingTool,
-  ])
+  return useMemo(
+    () => ({
+      engines: {
+        chart: chartEngineRef,
+        klineData: klineDataRef,
+        indicator: indicatorEngineRef,
+        lineTools: lineToolsEngineRef,
+      },
+      addIndicator,
+      removeIndicator,
+      switchMode,
+      moveUp,
+      moveDown,
+      updateIndicator,
+      loadKlines,
+      switchInterval,
+      loadEarlier,
+      getKlineData,
+      setActiveDrawingTool,
+      toggleDrawingTool,
+      deleteSelectedDrawing,
+      getActiveDrawingTool,
+    }),
+    [
+      addIndicator,
+      removeIndicator,
+      switchMode,
+      moveUp,
+      moveDown,
+      updateIndicator,
+      loadKlines,
+      switchInterval,
+      loadEarlier,
+      getKlineData,
+      setActiveDrawingTool,
+      toggleDrawingTool,
+      deleteSelectedDrawing,
+      getActiveDrawingTool,
+    ],
+  )
 }

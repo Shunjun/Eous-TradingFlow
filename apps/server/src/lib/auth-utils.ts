@@ -44,9 +44,7 @@ export async function destroySession(token: string): Promise<void> {
   await prisma.session.deleteMany({ where: { token } })
 }
 
-export async function validateSession(
-  token: string,
-): Promise<{ userId: string } | null> {
+export async function validateSession(token: string): Promise<{ userId: string } | null> {
   const session = await prisma.session.findUnique({ where: { token } })
   if (!session) return null
   if (session.expiresAt < new Date()) {

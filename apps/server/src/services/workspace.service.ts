@@ -19,7 +19,11 @@ export function createLayout(
   })
 }
 
-export function updateLayout(userId: string, layoutId: string, data: { schemaJson?: string; name?: string }): Promise<void> {
+export function updateLayout(
+  userId: string,
+  layoutId: string,
+  data: { schemaJson?: string; name?: string },
+): Promise<void> {
   return workspaceRepo.updateLayout(userId, layoutId, data)
 }
 

@@ -211,13 +211,10 @@ export function KlineChart({
 
   // ── Handlers ────────────────────────────────────────────
 
-  const handleDoubleClickIndicator = useCallback(
-    (id: string) => {
-      setSelectedIndicatorId(id)
-      setPanelOpen(true)
-    },
-    [],
-  )
+  const handleDoubleClickIndicator = useCallback((id: string) => {
+    setSelectedIndicatorId(id)
+    setPanelOpen(true)
+  }, [])
 
   const handleClosePanel = useCallback(() => {
     setPanelOpen(false)
@@ -265,7 +262,10 @@ export function KlineChart({
   )
 
   return (
-    <div ref={wrapperRef} className="flex flex-col h-full w-full min-h-0 border border-border rounded-lg overflow-hidden">
+    <div
+      ref={wrapperRef}
+      className="flex flex-col h-full w-full min-h-0 border border-border rounded-lg overflow-hidden"
+    >
       {/* Toolbar — always visible */}
       <ChartToolbar
         interval={interval}

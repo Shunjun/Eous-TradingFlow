@@ -168,11 +168,8 @@ export function IndicatorLegend({
           style={{ padding: '2px 8px' }}
           onDoubleClick={() => handleDoubleClick(indicator.id)}
         >
-          <span className="font-mono text-[11px] text-foreground shrink-0">
-            {indicator.label}
-          </span>
-          <span className="font-mono text-[11px] text-muted-foreground indicator-values truncate">
-          </span>
+          <span className="font-mono text-[11px] text-foreground shrink-0">{indicator.label}</span>
+          <span className="font-mono text-[11px] text-muted-foreground indicator-values truncate"></span>
         </div>
       ))}
     </div>

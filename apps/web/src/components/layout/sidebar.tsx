@@ -12,7 +12,7 @@ import {
   ChevronRight,
   Wallet,
 } from 'lucide-react'
-import { cn, IconBox } from '@eous/ui'
+import { cn, Button, IconBox, Badge } from '@eous/ui'
 
 interface NavItem {
   id: string
@@ -68,11 +68,7 @@ export function Sidebar() {
     >
       {/* Logo */}
       <div className="h-14 flex items-center gap-2.5 px-4 border-b border-border shrink-0">
-        <IconBox
-          size="sm"
-          className="border-primary bg-primary/10"
-          interactive={false}
-        >
+        <IconBox size="sm" className="border-primary bg-primary/10" interactive={false}>
           <GitBranch size={14} className="text-primary" />
         </IconBox>
         {!collapsed && (
@@ -123,12 +119,9 @@ export function Sidebar() {
                           <>
                             <span className="text-sm truncate flex-1 text-left">{item.label}</span>
                             {item.badge && (
-                              <span
-                                className="font-mono text-[10px] bg-primary/15
-                                               text-primary rounded px-1.5 py-0.5 leading-none"
-                              >
+                              <Badge className="font-mono text-[10px] px-1.5 py-0.5 leading-none bg-primary/15 text-primary border-0">
                                 {item.badge}
-                              </span>
+                              </Badge>
                             )}
                           </>
                         )}
@@ -148,14 +141,15 @@ export function Sidebar() {
 
       {/* Collapse toggle */}
       <div className="border-t border-border p-2 shrink-0">
-        <button
+        <Button
+          variant="ghost"
           onClick={() => setCollapsed(!collapsed)}
           className="w-full flex items-center justify-center gap-2 px-2 py-2 rounded-md
                      text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
           {!collapsed && <span className="text-xs">Collapse</span>}
-        </button>
+        </Button>
       </div>
     </aside>
   )

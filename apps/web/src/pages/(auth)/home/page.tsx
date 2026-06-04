@@ -52,9 +52,7 @@ function WorkflowRow({
           )}
         </IconBox>
       }
-      trailing={
-        <StatusBadge status={status} label={statusLabel[status]} />
-      }
+      trailing={<StatusBadge status={status} label={statusLabel[status]} />}
     >
       <p className="text-sm font-medium truncate">{name}</p>
       <p className="font-mono text-[10px] text-muted-foreground mt-0.5">
@@ -152,23 +150,75 @@ export default function HomePage() {
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <MetricCard label="Workflows" value="12" change="+2 this week" icon={GitBranch} trend="up" />
+        <MetricCard
+          label="Workflows"
+          value="12"
+          change="+2 this week"
+          icon={GitBranch}
+          trend="up"
+        />
         <MetricCard label="Executions" value="847" change="+56 today" icon={Play} trend="up" />
-        <MetricCard label="Success Rate" value="94.2%" change="-0.3%" icon={CheckCircle2} trend="down" />
-        <MetricCard label="Active Agents" value="3" change="2 running" icon={BrainCircuit} trend="neutral" />
+        <MetricCard
+          label="Success Rate"
+          value="94.2%"
+          change="-0.3%"
+          icon={CheckCircle2}
+          trend="down"
+        />
+        <MetricCard
+          label="Active Agents"
+          value="3"
+          change="2 running"
+          icon={BrainCircuit}
+          trend="neutral"
+        />
       </div>
 
       {/* Two-column layout */}
       <div className="grid lg:grid-cols-3 gap-4">
         {/* Recent Workflows — takes 2 columns */}
         <CardPanel className="lg:col-span-2">
-          <CardPanelHeader icon={Workflow} title="Recent Workflows" action={{ label: 'View all' }} />
+          <CardPanelHeader
+            icon={Workflow}
+            title="Recent Workflows"
+            action={{ label: 'View all' }}
+          />
           <CardPanelBody>
-            <WorkflowRow name="AAPL Daily Analysis" status="running" lastRun="2 min ago" nodes={8} type="workflow" />
-            <WorkflowRow name="Crypto Sentiment Scanner" status="completed" lastRun="15 min ago" nodes={12} type="workflow" />
-            <WorkflowRow name="Macro News Digest" status="completed" lastRun="1 hour ago" nodes={6} type="agent" />
-            <WorkflowRow name="Sector Rotation Alert" status="failed" lastRun="3 hours ago" nodes={10} type="workflow" />
-            <WorkflowRow name="Earnings Whisper" status="idle" lastRun="yesterday" nodes={5} type="agent" />
+            <WorkflowRow
+              name="AAPL Daily Analysis"
+              status="running"
+              lastRun="2 min ago"
+              nodes={8}
+              type="workflow"
+            />
+            <WorkflowRow
+              name="Crypto Sentiment Scanner"
+              status="completed"
+              lastRun="15 min ago"
+              nodes={12}
+              type="workflow"
+            />
+            <WorkflowRow
+              name="Macro News Digest"
+              status="completed"
+              lastRun="1 hour ago"
+              nodes={6}
+              type="agent"
+            />
+            <WorkflowRow
+              name="Sector Rotation Alert"
+              status="failed"
+              lastRun="3 hours ago"
+              nodes={10}
+              type="workflow"
+            />
+            <WorkflowRow
+              name="Earnings Whisper"
+              status="idle"
+              lastRun="yesterday"
+              nodes={5}
+              type="agent"
+            />
           </CardPanelBody>
         </CardPanel>
 
@@ -205,10 +255,30 @@ export default function HomePage() {
         />
         <CardPanelBody>
           <ExecutionLog workflow="AAPL Daily Analysis" status="running" time="now" duration="—" />
-          <ExecutionLog workflow="Crypto Sentiment Scanner" status="success" time="15m ago" duration="4.2s" />
-          <ExecutionLog workflow="Macro News Digest" status="success" time="1h ago" duration="8.7s" />
-          <ExecutionLog workflow="Sector Rotation Alert" status="error" time="3h ago" duration="2.1s" />
-          <ExecutionLog workflow="Earnings Whisper" status="success" time="yesterday" duration="12.3s" />
+          <ExecutionLog
+            workflow="Crypto Sentiment Scanner"
+            status="success"
+            time="15m ago"
+            duration="4.2s"
+          />
+          <ExecutionLog
+            workflow="Macro News Digest"
+            status="success"
+            time="1h ago"
+            duration="8.7s"
+          />
+          <ExecutionLog
+            workflow="Sector Rotation Alert"
+            status="error"
+            time="3h ago"
+            duration="2.1s"
+          />
+          <ExecutionLog
+            workflow="Earnings Whisper"
+            status="success"
+            time="yesterday"
+            duration="12.3s"
+          />
         </CardPanelBody>
       </CardPanel>
 
@@ -229,21 +299,24 @@ export default function HomePage() {
           { icon: BrainCircuit, label: 'New Agent', desc: 'AI analysis agent' },
           { icon: ArrowUpRight, label: 'Quick Analysis', desc: 'One-off symbol scan' },
         ].map(({ icon: Icon, label, desc }) => (
-          <button
+          <Button
+            variant="outline"
             key={label}
             className="flex items-center gap-3 p-4 rounded-lg border border-border
                        hover:border-primary/30 hover:bg-primary/5
                        transition-all duration-300 group text-left"
           >
             <IconBox size="lg">
-              <Icon size={16}
-                    className="text-muted-foreground group-hover:text-primary transition-colors" />
+              <Icon
+                size={16}
+                className="text-muted-foreground group-hover:text-primary transition-colors"
+              />
             </IconBox>
             <div>
               <p className="text-sm font-medium">{label}</p>
               <p className="text-[11px] text-muted-foreground">{desc}</p>
             </div>
-          </button>
+          </Button>
         ))}
       </div>
     </div>

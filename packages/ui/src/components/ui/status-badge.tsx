@@ -1,31 +1,20 @@
 import * as React from 'react'
-import { cva, type VariantProps } from 'class-variance-authority'
-import { cn } from '../../lib/utils'
+import { Badge } from './badge'
 import { Dot } from './dot'
-
-const statusBadgeVariants = cva(
-  'inline-flex items-center gap-1 font-mono text-[10px] px-2 py-0.5 rounded',
-  {
-    variants: {
-      status: {
-        running: 'text-primary bg-primary/10',
-        completed: 'text-emerald-500 bg-emerald-500/10',
-        success: 'text-emerald-500 bg-emerald-500/10',
-        failed: 'text-red-400 bg-red-400/10',
-        error: 'text-red-400 bg-red-400/10',
-        idle: 'text-muted-foreground bg-muted',
-      },
-    },
-    defaultVariants: {
-      status: 'idle',
-    },
-  },
-)
+import { cn } from '../../lib/utils'
 
 type BadgeStatus = 'running' | 'completed' | 'failed' | 'idle' | 'success' | 'error'
 
-export interface StatusBadgeProps
-  extends React.HTMLAttributes<HTMLSpanElement>, VariantProps<typeof statusBadgeVariants> {
+const statusStyles: Record<BadgeStatus, string> = {
+  running: 'text-primary bg-primary/10',
+  completed: 'text-emerald-500 bg-emerald-500/10',
+  success: 'text-emerald-500 bg-emerald-500/10',
+  failed: 'text-red-400 bg-red-400/10',
+  error: 'text-red-400 bg-red-400/10',
+  idle: 'text-muted-foreground bg-muted',
+}
+
+export interface StatusBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   status: BadgeStatus
   label: string
   showDot?: boolean
@@ -36,15 +25,20 @@ const StatusBadge = React.forwardRef<HTMLSpanElement, StatusBadgeProps>(
     const dotVariant = status === 'running' ? 'pulse' : undefined
 
     return (
-      <span ref={ref} className={cn(statusBadgeVariants({ status }), className)} {...props}>
+      <Badge
+        ref={ref}
+        variant="secondary"
+        className={cn('font-mono text-[10px] px-2 py-0.5 rounded', statusStyles[status], className)}
+        {...props}
+      >
         {showDot && status === 'running' && (
           <Dot size="xs" variant={dotVariant} className="inline-block align-middle" />
         )}
         {label}
-      </span>
+      </Badge>
     )
   },
 )
 StatusBadge.displayName = 'StatusBadge'
 
-export { StatusBadge, statusBadgeVariants }
+export { StatusBadge }

@@ -18,7 +18,11 @@ authRouter.post('/register', async (c) => {
   if (process.env.ALLOW_SELF_REGISTRATION !== 'true') {
     throw new AppError('Registration is disabled', 403)
   }
-  const { email, password, name } = await c.req.json<{ email: string; password: string; name?: string }>()
+  const { email, password, name } = await c.req.json<{
+    email: string
+    password: string
+    name?: string
+  }>()
   const { user, token } = await authService.register(email, password, name)
   setCookie(c, SESSION_COOKIE, token, COOKIE_OPTIONS)
   return c.json({ user })

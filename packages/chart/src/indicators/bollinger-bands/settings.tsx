@@ -1,5 +1,6 @@
 import type { IndicatorSettingsProps } from '../../types'
 import { toHex } from '../../utils/color'
+import { Button, Slider } from '@eous/ui'
 
 const DEFAULT_COLORS = ['hsl(160, 84%, 39%)', 'hsl(160, 84%, 39%)', 'hsl(160, 84%, 39%)']
 const COLOR_LABELS = ['Upper', 'Middle', 'Lower']
@@ -20,14 +21,13 @@ export function BollingerBandsSettings({ config, onUpdate, onRemove }: Indicator
       <div className="flex items-center justify-between">
         <span className="text-muted-foreground">Period</span>
         <div className="flex items-center gap-2">
-          <input
-            type="range"
+          <Slider
             min={5}
             max={100}
             step={1}
-            value={period}
-            onChange={(e) => onUpdate({ params: { ...config.params, period: Number(e.target.value) } })}
-            className="w-24 accent-primary"
+            value={[period]}
+            onValueChange={([v]) => onUpdate({ params: { ...config.params, period: v } })}
+            className="w-24"
           />
           <span className="w-8 text-right tabular-nums">{period}</span>
         </div>
@@ -36,14 +36,13 @@ export function BollingerBandsSettings({ config, onUpdate, onRemove }: Indicator
       <div className="flex items-center justify-between">
         <span className="text-muted-foreground">Std Dev</span>
         <div className="flex items-center gap-2">
-          <input
-            type="range"
+          <Slider
             min={0.5}
             max={5}
             step={0.5}
-            value={stdDev}
-            onChange={(e) => onUpdate({ params: { ...config.params, stdDev: Number(e.target.value) } })}
-            className="w-24 accent-primary"
+            value={[stdDev]}
+            onValueChange={([v]) => onUpdate({ params: { ...config.params, stdDev: v } })}
+            className="w-24"
           />
           <span className="w-8 text-right tabular-nums">{stdDev}</span>
         </div>
@@ -63,12 +62,13 @@ export function BollingerBandsSettings({ config, onUpdate, onRemove }: Indicator
         ))}
       </div>
 
-      <button
+      <Button
+        variant="destructive"
         onClick={onRemove}
         className="mt-1 px-2 py-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
       >
         Delete Indicator
-      </button>
+      </Button>
     </div>
   )
 }

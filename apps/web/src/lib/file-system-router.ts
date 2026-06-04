@@ -23,10 +23,7 @@ export class FileSystemRouter {
   private glob: Record<string, () => Promise<unknown>>
   private prefix: string
 
-  constructor(
-    glob: Record<string, () => Promise<unknown>>,
-    prefix = './pages/',
-  ) {
+  constructor(glob: Record<string, () => Promise<unknown>>, prefix = './pages/') {
     this.glob = glob
     this.prefix = prefix
   }
@@ -42,9 +39,7 @@ export class FileSystemRouter {
     if (tree.page) {
       routes.push({
         index: true,
-        element: createElement(
-          this.createLazyComponent(tree.page.globKey),
-        ),
+        element: createElement(this.createLazyComponent(tree.page.globKey)),
       })
     }
 
@@ -57,9 +52,7 @@ export class FileSystemRouter {
     if (tree.notFound) {
       routes.push({
         path: '*',
-        element: createElement(
-          this.createLazyComponent(tree.notFound.globKey),
-        ),
+        element: createElement(this.createLazyComponent(tree.notFound.globKey)),
       })
     }
 
@@ -68,10 +61,7 @@ export class FileSystemRouter {
 
   // ── Private helpers ─────────────────────────────────
 
-  private parseGlobKeys(
-    glob: Record<string, () => Promise<unknown>>,
-    prefix: string,
-  ): FileEntry[] {
+  private parseGlobKeys(glob: Record<string, () => Promise<unknown>>, prefix: string): FileEntry[] {
     const entries: FileEntry[] = []
 
     for (const key of Object.keys(glob)) {
@@ -141,9 +131,7 @@ export class FileSystemRouter {
       children.push(...childRoutes)
       return [
         {
-          element: createElement(
-            this.createLazyComponent(node.layout.globKey),
-          ),
+          element: createElement(this.createLazyComponent(node.layout.globKey)),
           ...(children.length > 0 ? { children } : {}),
         },
       ]
@@ -173,9 +161,7 @@ export class FileSystemRouter {
       }
       children.push(...childRoutes)
       const route: RouteObject = {
-        element: createElement(
-          this.createLazyComponent(node.layout.globKey),
-        ),
+        element: createElement(this.createLazyComponent(node.layout.globKey)),
       }
       if (path) route.path = path
       if (children.length > 0) route.children = children

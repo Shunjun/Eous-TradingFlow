@@ -9,6 +9,7 @@
     "format": "prettier --write ."
   },
   "devDependencies": {
+    "lefthook": "^2.1.9",
     "prettier": "^3.5.0",
     "turbo": "^2.4.0",
     "typescript": "^5.7.0"

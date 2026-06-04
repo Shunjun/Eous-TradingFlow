@@ -38,9 +38,9 @@ const INTERVAL_MAP: Record<string, string> = {
 const TIMEOUT_MS = 15_000
 
 function getExchange(exchangeId: string, proxyUrl?: string): Exchange {
-  const ExClass = (ccxt as unknown as Record<string, unknown>)[
-    exchangeId
-  ] as new (opts?: Record<string, unknown>) => Exchange
+  const ExClass = (ccxt as unknown as Record<string, unknown>)[exchangeId] as new (
+    opts?: Record<string, unknown>,
+  ) => Exchange
   if (!ExClass) {
     throw new Error(`Unsupported exchange: ${exchangeId}`)
   }
@@ -62,9 +62,12 @@ function estimateLimit(request: KlinesRequest, timeframe: string): number {
 function resolveProxy(config: Record<string, string>): string | undefined {
   return (
     config['proxy'] ||
-    process.env.HTTPS_PROXY || process.env.https_proxy ||
-    process.env.HTTP_PROXY || process.env.http_proxy ||
-    process.env.ALL_PROXY || process.env.all_proxy ||
+    process.env.HTTPS_PROXY ||
+    process.env.https_proxy ||
+    process.env.HTTP_PROXY ||
+    process.env.http_proxy ||
+    process.env.ALL_PROXY ||
+    process.env.all_proxy ||
     undefined
   )
 }
@@ -106,11 +109,13 @@ export const CCXTProvider: DataSourceProvider = {
       const total = markets.length
       const sliced = markets.slice(offset, offset + limit)
       return {
-        symbols: sliced.map((m): SymbolInfo => ({
-          symbol: m?.symbol ?? '',
-          name: m?.symbol ?? '',
-          type: 'crypto',
-        })),
+        symbols: sliced.map(
+          (m): SymbolInfo => ({
+            symbol: m?.symbol ?? '',
+            name: m?.symbol ?? '',
+            type: 'crypto',
+          }),
+        ),
         total,
       }
     } catch {
@@ -166,12 +171,7 @@ export const CCXTProvider: DataSourceProvider = {
       const since = request.from
       const limit = estimateLimit(request, timeframe)
 
-      const ohlcv = await ex.fetchOHLCV(
-        request.symbol,
-        timeframe,
-        since,
-        limit,
-      )
+      const ohlcv = await ex.fetchOHLCV(request.symbol, timeframe, since, limit)
 
       return ohlcv.map(
         (bar: OHLCV): Kline => ({

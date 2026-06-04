@@ -13,14 +13,20 @@ export function findByIdAndUser(id: string, userId: string): Promise<DataSourceI
   return prisma.dataSourceInstance.findFirst({ where: { id, userId } })
 }
 
-export function findByIdWithSymbols(id: string, userId: string): Promise<(DataSourceInstance & { trackedSymbols: TrackedSymbol[] }) | null> {
+export function findByIdWithSymbols(
+  id: string,
+  userId: string,
+): Promise<(DataSourceInstance & { trackedSymbols: TrackedSymbol[] }) | null> {
   return prisma.dataSourceInstance.findFirst({
     where: { id, userId },
     include: { trackedSymbols: true },
   })
 }
 
-export function findByNameAndUser(name: string, userId: string): Promise<DataSourceInstance | null> {
+export function findByNameAndUser(
+  name: string,
+  userId: string,
+): Promise<DataSourceInstance | null> {
   return prisma.dataSourceInstance.findFirst({ where: { userId, name } })
 }
 
@@ -64,6 +70,9 @@ export function deleteSymbol(symbolId: string): Promise<TrackedSymbol> {
   return prisma.trackedSymbol.delete({ where: { id: symbolId } })
 }
 
-export function findSymbolByIdAndInstance(id: string, instanceId: string): Promise<TrackedSymbol | null> {
+export function findSymbolByIdAndInstance(
+  id: string,
+  instanceId: string,
+): Promise<TrackedSymbol | null> {
   return prisma.trackedSymbol.findFirst({ where: { id, instanceId } })
 }

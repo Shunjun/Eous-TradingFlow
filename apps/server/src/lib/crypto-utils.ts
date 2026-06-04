@@ -10,10 +10,7 @@ const TAG_LENGTH = 16 // 128 bits for GCM tag
  * @param keyHex - Encryption key in hex (64 characters for 256-bit key)
  * @returns Object with ciphertext and IV in hex
  */
-export function encrypt(
-  plaintext: string,
-  keyHex: string
-): { ciphertext: string; iv: string } {
+export function encrypt(plaintext: string, keyHex: string): { ciphertext: string; iv: string } {
   const key = Buffer.from(keyHex, 'hex')
   const iv = randomBytes(IV_LENGTH)
   const cipher = createCipheriv(ALGORITHM, key, iv)
@@ -38,11 +35,7 @@ export function encrypt(
  * @param keyHex - Encryption key in hex
  * @returns Decrypted plaintext
  */
-export function decrypt(
-  ciphertext: string,
-  iv: string,
-  keyHex: string
-): string {
+export function decrypt(ciphertext: string, iv: string, keyHex: string): string {
   const key = Buffer.from(keyHex, 'hex')
   const ivBuffer = Buffer.from(iv, 'hex')
 
@@ -68,13 +61,11 @@ export function getEncryptionKey(): string {
   if (!keyHex) {
     throw new Error(
       'ENCRYPTION_KEY is not set. Generate one with: openssl rand -hex 32\n' +
-        'Then add it to your .env file as ENCRYPTION_KEY=<key>'
+        'Then add it to your .env file as ENCRYPTION_KEY=<key>',
     )
   }
   if (keyHex.length !== 64) {
-    throw new Error(
-      `ENCRYPTION_KEY must be 64 hex characters (32 bytes), got ${keyHex.length}`
-    )
+    throw new Error(`ENCRYPTION_KEY must be 64 hex characters (32 bytes), got ${keyHex.length}`)
   }
   return keyHex
 }

@@ -10,9 +10,7 @@ export default function WorkflowEditorPage() {
       <CardPanel>
         <CardPanelHeader icon={GitBranch} title={`Workflow Editor — ${id}`} />
         <CardPanelBody className="p-6">
-          <p className="text-sm text-muted-foreground font-mono">
-            Workflow editor coming soon…
-          </p>
+          <p className="text-sm text-muted-foreground font-mono">Workflow editor coming soon…</p>
         </CardPanelBody>
       </CardPanel>
     </div>

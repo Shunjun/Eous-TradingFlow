@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { cn } from '@eous/ui'
+import { cn, Button } from '@eous/ui'
 import { X } from 'lucide-react'
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -110,12 +110,14 @@ export function ResizablePanel({
           <div className="flex items-center justify-between px-3 py-2 border-b border-border shrink-0">
             <span className="text-xs font-mono font-medium truncate">{title ?? 'Settings'}</span>
             {onClose && (
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={onClose}
                 className="text-muted-foreground hover:text-foreground p-0.5 rounded hover:bg-muted/50"
               >
                 <X size={14} />
-              </button>
+              </Button>
             )}
           </div>
 

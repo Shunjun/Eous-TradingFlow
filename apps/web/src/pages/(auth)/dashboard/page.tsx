@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Mosaic, MosaicWindow, type MosaicNode } from 'react-mosaic-component'
 import 'react-mosaic-component/react-mosaic-component.css'
-import { Button } from '@eous/ui'
+import { Button, Skeleton, Tabs, TabsList, TabsTrigger } from '@eous/ui'
 import { Plus } from 'lucide-react'
 import { useWorkspaceStore } from '../../../stores/workspace.js'
 import WelcomeContent from '../../../components/dashboard/WelcomeContent.js'
@@ -62,8 +62,12 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-sm text-muted-foreground">Loading workspace…</p>
+      <div className="flex h-full items-center justify-center p-8">
+        <div className="w-full max-w-md space-y-3">
+          <Skeleton className="h-5 w-1/3" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
       </div>
     )
   }
@@ -73,19 +77,15 @@ export default function DashboardPage() {
       {/* Toolbar */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-border shrink-0">
         <div className="flex items-center gap-1">
-          {layouts.map((l) => (
-            <button
-              key={l.id}
-              onClick={() => handleSwitch(l.id)}
-              className={
-                l.id === activeLayoutId
-                  ? 'px-2.5 py-1 text-xs font-medium rounded bg-accent text-accent-foreground'
-                  : 'px-2.5 py-1 text-xs font-medium rounded hover:bg-muted text-muted-foreground'
-              }
-            >
-              {l.name}
-            </button>
-          ))}
+          <Tabs value={activeLayoutId ?? undefined} onValueChange={handleSwitch}>
+            <TabsList variant="line" className="h-7">
+              {layouts.map((l) => (
+                <TabsTrigger key={l.id} value={l.id} className="text-xs px-2 py-0.5 h-6">
+                  {l.name}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleNewLayout}>
             <Plus size={14} />
           </Button>
@@ -118,11 +118,7 @@ export default function DashboardPage() {
               title={id === 'welcome' ? 'Welcome' : id}
               createNode={() => `panel-${crypto.randomUUID().slice(0, 8)}`}
               toolbarControls={
-                <ToolbarControls
-                  tileId={id}
-                  currentLayout={layout}
-                  onLayoutChange={setLayout}
-                />
+                <ToolbarControls tileId={id} currentLayout={layout} onLayoutChange={setLayout} />
               }
             >
               {id === 'welcome' ? <WelcomeContent /> : <PlaceholderPanel title={id} />}

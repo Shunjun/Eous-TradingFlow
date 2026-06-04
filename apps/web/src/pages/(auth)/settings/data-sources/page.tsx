@@ -9,6 +9,12 @@ import {
   Label,
   IconBox,
   StatusBadge,
+  Badge,
+  Checkbox,
+  Skeleton,
+  Empty,
+  EmptyMedia,
+  EmptyTitle,
   cn,
   Select,
   SelectTrigger,
@@ -65,12 +71,10 @@ function ConfigField({
         </Select>
       ) : field.type === 'boolean' ? (
         <label className="flex items-center gap-2 cursor-pointer">
-          <input
+          <Checkbox
             id={id}
-            type="checkbox"
             checked={!!value}
-            onChange={(e) => onChange(field.key, e.target.checked)}
-            className="h-4 w-4 rounded border-border accent-primary"
+            onCheckedChange={(checked) => onChange(field.key, checked)}
           />
           <span className="font-mono text-xs text-muted-foreground">Enabled</span>
         </label>
@@ -340,14 +344,20 @@ function SymbolSearchForm({ instanceId, onAdded }: { instanceId: string; onAdded
                   </span>
                 )}
                 {r.exchange && (
-                  <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
+                  <Badge
+                    variant="secondary"
+                    className="font-mono text-[9px] px-1.5 py-0.5 shrink-0"
+                  >
                     {r.exchange}
-                  </span>
+                  </Badge>
                 )}
                 {r.type && (
-                  <span className="font-mono text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
+                  <Badge
+                    variant="secondary"
+                    className="font-mono text-[9px] px-1.5 py-0.5 shrink-0"
+                  >
                     {r.type}
-                  </span>
+                  </Badge>
                 )}
               </div>
             </DataRow>
@@ -401,9 +411,9 @@ function DataSourceCard({
         <div className="flex items-center gap-3 min-w-0">
           <Database size={14} className="text-muted-foreground shrink-0" />
           <span className="text-sm font-medium truncate">{instance.name}</span>
-          <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase tracking-wider">
+          <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wider">
             {instance.identityLabel || instance.providerKind}
-          </span>
+          </Badge>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {testResult && (
@@ -500,16 +510,19 @@ export default function DataSourcesPage() {
       {/* Content */}
       {loading ? (
         <CardPanel>
-          <CardPanelBody className="p-12 text-center">
-            <Loader2 size={20} className="animate-spin mx-auto text-muted-foreground" />
+          <CardPanelBody className="p-12 space-y-3">
+            <Skeleton className="h-5 w-1/3 mx-auto" />
+            <Skeleton className="h-4 w-1/2 mx-auto" />
           </CardPanelBody>
         </CardPanel>
       ) : instances.length === 0 ? (
         <CardPanel>
-          <CardPanelBody className="p-12 text-center">
-            <Database size={32} className="mx-auto text-muted-foreground/40 mb-3" />
-            <p className="text-sm text-muted-foreground font-mono">No data sources configured.</p>
-          </CardPanelBody>
+          <Empty className="border-0 p-12">
+            <EmptyMedia variant="icon">
+              <Database size={20} />
+            </EmptyMedia>
+            <EmptyTitle className="text-sm font-mono">No data sources configured</EmptyTitle>
+          </Empty>
         </CardPanel>
       ) : (
         instances.map((inst) => (

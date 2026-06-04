@@ -18,8 +18,10 @@ const buttonVariants = cva(
         ghost: 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
         link: 'text-primary underline-offset-4 hover:underline',
         glow: 'bg-primary hover:bg-primary/90 text-white font-mono shadow-[0_0_20px] shadow-primary/20 hover:shadow-[0_0_30px] hover:shadow-primary/30 transition-all duration-300',
-        'accent-outline': 'border border-border bg-transparent hover:border-primary/50 hover:bg-primary/5 transition-all',
-        'ghost-icon': 'text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors',
+        'accent-outline':
+          'border border-border bg-transparent hover:border-primary/50 hover:bg-primary/5 transition-all',
+        'ghost-icon':
+          'text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors',
       },
       size: {
         default: 'h-9 px-4 py-2 has-[>svg]:px-3',

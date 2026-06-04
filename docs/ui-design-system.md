@@ -18,11 +18,11 @@ Eous TradingFlow 的视觉设计规范与组件库指南。
 
 禁止在任何组件中硬编码颜色值（如 `hsl(25,95%,53%)`、`#ff6600`）。所有颜色必须使用 Tailwind 的 CSS 变量 utility：
 
-| 用途 | 正确写法 |
-|------|----------|
-| 主色填充 | `bg-primary` |
-| 主色文字 | `text-primary` |
-| 主色边框 | `border-primary` |
+| 用途       | 正确写法                             |
+| ---------- | ------------------------------------ |
+| 主色填充   | `bg-primary`                         |
+| 主色文字   | `text-primary`                       |
+| 主色边框   | `border-primary`                     |
 | 主色透明度 | `bg-primary/10`、`border-primary/40` |
 
 语义状态色（`emerald-500`、`red-400`、`purple-400`）保留不变。
@@ -32,6 +32,7 @@ Eous TradingFlow 的视觉设计规范与组件库指南。
 优先使用 Tailwind 内置尺寸（`w-4`、`h-5`、`p-2`）。禁止无必要的任意值（`w-[37px]`）。
 
 以下情况允许任意值：
+
 - `text-[9px]` / `text-[10px]` / `text-[11px]`：mono 微文字，超出 Tailwind scale
 - `max-w-[1400px]`：固定布局宽度
 - `tracking-[0.2em]`：设计规范要求的特殊字间距
@@ -44,24 +45,24 @@ Eous TradingFlow 的视觉设计规范与组件库指南。
 
 ### Dark Theme (default)
 
-| Token | HSL | 用途 |
-|---|---|---|
-| `--background` | `20 10% 6%` | 页面背景，温暖深色 |
-| `--foreground` | `40 15% 90%` | 主要文字 |
-| `--card` | `20 10% 8%` | 卡片/Sidebar 背景 |
-| `--muted` | `20 8% 12%` | 次要背景、hover 状态 |
-| `--muted-foreground` | `40 10% 55%` | 次要文字、标签 |
-| `--border` | `20 8% 18%` | 边框、分割线 |
-| `--primary` | `25 95% 53%` | 主色橙色，交互反馈 |
-| `--ring` | `25 95% 53%` | Focus ring |
+| Token                | HSL          | 用途                 |
+| -------------------- | ------------ | -------------------- |
+| `--background`       | `20 10% 6%`  | 页面背景，温暖深色   |
+| `--foreground`       | `40 15% 90%` | 主要文字             |
+| `--card`             | `20 10% 8%`  | 卡片/Sidebar 背景    |
+| `--muted`            | `20 8% 12%`  | 次要背景、hover 状态 |
+| `--muted-foreground` | `40 10% 55%` | 次要文字、标签       |
+| `--border`           | `20 8% 18%`  | 边框、分割线         |
+| `--primary`          | `25 95% 53%` | 主色橙色，交互反馈   |
+| `--ring`             | `25 95% 53%` | Focus ring           |
 
 ### Light Theme
 
-| Token | HSL | 用途 |
-|---|---|---|
-| `--background` | `40 20% 98%` | 页面背景，温暖米色 |
-| `--foreground` | `20 15% 8%` | 主要文字 |
-| `--muted-foreground` | `20 10% 45%` | 次要文字 |
+| Token                | HSL          | 用途               |
+| -------------------- | ------------ | ------------------ |
+| `--background`       | `40 20% 98%` | 页面背景，温暖米色 |
+| `--foreground`       | `20 15% 8%`  | 主要文字           |
+| `--muted-foreground` | `20 10% 45%` | 次要文字           |
 
 ### 语义色
 
@@ -78,13 +79,13 @@ Eous TradingFlow 的视觉设计规范与组件库指南。
 
 ```css
 /* globals.css */
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=DM+Sans:wght@400;500;600;700&display=swap')
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=DM+Sans:wght@400;500;600;700&display=swap');
 ```
 
-| 场景 | 字体 | class |
-|---|---|---|
-| 标签、数据、代码、状态 | JetBrains Mono | `font-mono` |
-| 正文、标题、描述 | DM Sans | `font-sans`（默认） |
+| 场景                   | 字体           | class               |
+| ---------------------- | -------------- | ------------------- |
+| 标签、数据、代码、状态 | JetBrains Mono | `font-mono`         |
+| 正文、标题、描述       | DM Sans        | `font-sans`（默认） |
 
 ---
 
@@ -110,9 +111,9 @@ import { Dot } from '@eous/ui'
 <Dot size="lg" variant="static" />       // 大号静态
 ```
 
-| Prop | Values | Default |
-|---|---|---|
-| `size` | `xs` `sm` `md` `lg` | `sm` |
+| Prop      | Values                           | Default |
+| --------- | -------------------------------- | ------- |
+| `size`    | `xs` `sm` `md` `lg`              | `sm`    |
 | `variant` | `static` `pulse` `breath` `glow` | `pulse` |
 
 **使用场景**：Sidebar 当前页指示、通知铃铛、Workflow 运行状态、Execution log running。
@@ -135,10 +136,10 @@ import { IconBox } from '@eous/ui'
 </IconBox>
 ```
 
-| Prop | Values | Default |
-|---|---|---|
-| `size` | `sm` `md` `lg` | `md` |
-| `interactive` | `boolean` | `true` |
+| Prop          | Values         | Default |
+| ------------- | -------------- | ------- |
+| `size`        | `sm` `md` `lg` | `md`    |
+| `interactive` | `boolean`      | `true`  |
 
 **替换**：所有 `div` + `rounded border` + `hover:border-[hsl(...)]` 模式。
 
@@ -155,11 +156,11 @@ import { StatusBadge } from '@eous/ui'
 <StatusBadge status="idle" label="Idle" />
 ```
 
-| Prop | Values |
-|---|---|
-| `status` | `running` `completed` `success` `failed` `error` `idle` |
-| `label` | `string` |
-| `showDot` | `boolean` (default `true`) |
+| Prop      | Values                                                  |
+| --------- | ------------------------------------------------------- |
+| `status`  | `running` `completed` `success` `failed` `error` `idle` |
+| `label`   | `string`                                                |
+| `showDot` | `boolean` (default `true`)                              |
 
 ### CardPanel
 
@@ -167,20 +168,17 @@ import { StatusBadge } from '@eous/ui'
 
 ```tsx
 import { CardPanel, CardPanelHeader, CardPanelBody } from '@eous/ui'
-
-<CardPanel>
+;<CardPanel>
   <CardPanelHeader icon={Workflow} title="Recent Workflows" action={{ label: 'View all' }} />
-  <CardPanelBody>
-    {/* rows */}
-  </CardPanelBody>
+  <CardPanelBody>{/* rows */}</CardPanelBody>
 </CardPanel>
 ```
 
-| Component | Props |
-|---|---|
-| `CardPanel` | `className` |
+| Component         | Props                                                       |
+| ----------------- | ----------------------------------------------------------- |
+| `CardPanel`       | `className`                                                 |
 | `CardPanelHeader` | `icon?`, `title`, `action?: { label: ReactNode, onClick? }` |
-| `CardPanelBody` | `className` |
+| `CardPanelBody`   | `className`                                                 |
 
 ### DataRow
 
@@ -188,9 +186,12 @@ import { CardPanel, CardPanelHeader, CardPanelBody } from '@eous/ui'
 
 ```tsx
 import { DataRow } from '@eous/ui'
-
-<DataRow
-  leading={<IconBox size="md"><GitBranch size={14} /></IconBox>}
+;<DataRow
+  leading={
+    <IconBox size="md">
+      <GitBranch size={14} />
+    </IconBox>
+  }
   trailing={<StatusBadge status="running" label="Running" />}
 >
   <p className="text-sm font-medium">Workflow Name</p>
@@ -207,17 +208,21 @@ import { DataRow } from '@eous/ui'
 ```tsx
 import { MetricCard } from '@eous/ui'
 
-{/* Dashboard 样式 */}
-<MetricCard label="Workflows" value="12" change="+2 this week" icon={GitBranch} trend="up" />
+{
+  /* Dashboard 样式 */
+}
+;<MetricCard label="Workflows" value="12" change="+2 this week" icon={GitBranch} trend="up" />
 
-{/* Compact pill 样式 */}
-<MetricCard label="Node Types" value="8+" variant="compact" />
+{
+  /* Compact pill 样式 */
+}
+;<MetricCard label="Node Types" value="8+" variant="compact" />
 ```
 
-| Prop | Values | Default |
-|---|---|---|
-| `variant` | `default` `compact` | `default` |
-| `trend` | `up` `down` `neutral` | — |
+| Prop      | Values                | Default   |
+| --------- | --------------------- | --------- |
+| `variant` | `default` `compact`   | `default` |
+| `trend`   | `up` `down` `neutral` | —         |
 
 ### SectionHeader
 
@@ -225,8 +230,7 @@ import { MetricCard } from '@eous/ui'
 
 ```tsx
 import { SectionHeader } from '@eous/ui'
-
-<SectionHeader
+;<SectionHeader
   label="Capabilities"
   heading="Everything you need."
   headingAccent=" Nothing you don't."
@@ -234,12 +238,12 @@ import { SectionHeader } from '@eous/ui'
 />
 ```
 
-| Prop | Required |
-|---|---|
-| `label` | yes |
-| `heading` | yes |
+| Prop            | Required                       |
+| --------------- | ------------------------------ |
+| `label`         | yes                            |
+| `heading`       | yes                            |
 | `headingAccent` | no — 次要文字追加到 heading 后 |
-| `description` | no |
+| `description`   | no                             |
 
 ### Button
 
@@ -255,8 +259,8 @@ import { Button } from '@eous/ui'
 </Button>                    // 透明背景方形图标按钮，hover 切换为橙色
 ```
 
-| 变体 | 说明 | 典型场景 |
-|------|------|----------|
+| 变体         | 说明                                   | 典型场景        |
+| ------------ | -------------------------------------- | --------------- |
 | `ghost-icon` | 透明背景方形图标按钮，hover 切换为橙色 | Header 图标按钮 |
 
 ---
@@ -295,6 +299,7 @@ export type { MyComponentProps } from './components/ui/my-component'
 ### 测试
 
 新增组件后确保：
+
 1. `pnpm --filter @eous/ui build` 通过
 2. `pnpm turbo run build` 全量构建通过
 3. 在 web 或 docs 中实际使用验证渲染正确

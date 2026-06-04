@@ -9,6 +9,12 @@ import {
   Label,
   IconBox,
   StatusBadge,
+  Badge,
+  Skeleton,
+  Empty,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
   cn,
   Select,
   SelectTrigger,
@@ -169,9 +175,7 @@ function AddProviderForm({
                 </div>
               )}
 
-              {error && (
-                <p className="text-xs font-mono text-red-400">{error}</p>
-              )}
+              {error && <p className="text-xs font-mono text-red-400">{error}</p>}
 
               <div className="flex items-center gap-2 pt-1">
                 <Button
@@ -181,11 +185,7 @@ function AddProviderForm({
                   disabled={loading}
                   className="font-mono gap-1.5"
                 >
-                  {loading ? (
-                    <Loader2 size={12} className="animate-spin" />
-                  ) : (
-                    <Check size={12} />
-                  )}
+                  {loading ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
                   Create
                 </Button>
                 <Button
@@ -280,9 +280,7 @@ function AddModelForm({
           />
         </div>
         <div className="space-y-1">
-          <Label className="text-[10px] font-mono text-muted-foreground">
-            Capabilities
-          </Label>
+          <Label className="text-[10px] font-mono text-muted-foreground">Capabilities</Label>
           <Input
             value={capsInput}
             onChange={(e) => setCapsInput(e.target.value)}
@@ -300,11 +298,7 @@ function AddModelForm({
           disabled={loading}
           className="font-mono gap-1.5 h-7 text-[11px]"
         >
-          {loading ? (
-            <Loader2 size={10} className="animate-spin" />
-          ) : (
-            <Check size={10} />
-          )}
+          {loading ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
           Add Model
         </Button>
         <Button
@@ -424,13 +418,7 @@ function EditModelForm({
 
 /* ── Provider Card ─────────────────────────────────────── */
 
-function ProviderCard({
-  provider,
-  onRefresh,
-}: {
-  provider: Provider
-  onRefresh: () => void
-}) {
+function ProviderCard({ provider, onRefresh }: { provider: Provider; onRefresh: () => void }) {
   const [models, setModels] = useState<ProviderModel[]>([])
   const [loaded, setLoaded] = useState(false)
   const [expanded, setExpanded] = useState(true)
@@ -495,9 +483,7 @@ function ProviderCard({
   async function handleToggleModel(model: ProviderModel) {
     try {
       await api.updateProviderModel(provider.id, model.modelId, { enabled: !model.enabled })
-      setModels((prev) =>
-        prev.map((m) => (m.id === model.id ? { ...m, enabled: !m.enabled } : m)),
-      )
+      setModels((prev) => prev.map((m) => (m.id === model.id ? { ...m, enabled: !m.enabled } : m)))
     } catch {
       // silent
     }
@@ -510,17 +496,19 @@ function ProviderCard({
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-3 min-w-0">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setExpanded((v) => !v)}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
+          </Button>
           <Bot size={14} className="text-muted-foreground shrink-0" />
           <span className="text-sm font-medium truncate">{provider.name}</span>
-          <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground uppercase tracking-wider">
+          <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wider">
             {provider.kind}
-          </span>
+          </Badge>
           <span className="font-mono text-[11px] text-muted-foreground truncate hidden sm:inline">
             {provider.baseUrl}
           </span>
@@ -538,7 +526,7 @@ function ProviderCard({
               label={
                 testResult.ok
                   ? `Connected (${testResult.modelCount} models)`
-                  : testResult.error ?? 'Failed'
+                  : (testResult.error ?? 'Failed')
               }
             />
           )}
@@ -559,11 +547,7 @@ function ProviderCard({
             disabled={deleting}
             className="h-7 w-7 text-muted-foreground hover:text-red-400"
           >
-            {deleting ? (
-              <Loader2 size={12} className="animate-spin" />
-            ) : (
-              <Trash2 size={12} />
-            )}
+            {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
           </Button>
         </div>
       </div>
@@ -572,15 +556,17 @@ function ProviderCard({
       {expanded && (
         <CardPanelBody>
           {!loaded ? (
-            <div className="px-4 py-8 text-center">
-              <Loader2 size={16} className="animate-spin mx-auto text-muted-foreground" />
+            <div className="px-4 py-8 space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
             </div>
           ) : models.length === 0 ? (
-            <div className="px-4 py-6 text-center">
-              <p className="text-sm text-muted-foreground font-mono">
-                No models yet. Click Sync or add manually.
-              </p>
-            </div>
+            <Empty className="py-6 border-0">
+              <EmptyMedia variant="icon">
+                <Bot size={20} />
+              </EmptyMedia>
+              <EmptyTitle className="text-sm font-mono">No models yet</EmptyTitle>
+            </Empty>
           ) : (
             models.map((model) => (
               <div key={model.id}>
@@ -627,15 +613,16 @@ function ProviderCard({
                       </span>
                     )}
                     {model.capabilities.map((cap) => (
-                      <span
+                      <Badge
                         key={cap}
+                        variant="secondary"
                         className={cn(
                           'font-mono text-[9px] px-1.5 py-0.5 rounded shrink-0',
                           CAP_COLORS[cap] ?? 'text-muted-foreground bg-muted',
                         )}
                       >
                         {cap}
-                      </span>
+                      </Badge>
                     ))}
                   </div>
                 </DataRow>
@@ -672,11 +659,7 @@ function ProviderCard({
               onClick={handleSync}
               disabled={syncing}
             >
-              {syncing ? (
-                <Loader2 size={10} className="animate-spin" />
-              ) : (
-                <RefreshCw size={10} />
-              )}
+              {syncing ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
               Sync from API
             </Button>
           </div>
@@ -718,7 +701,8 @@ export default function ProvidersPage() {
 
   useEffect(() => {
     loadProviders()
-    api.listProviderTemplates()
+    api
+      .listProviderTemplates()
       .then((d: { templates: ProviderTemplate[] }) => setTemplates(d.templates))
       .catch(() => {})
   }, [loadProviders])
@@ -759,23 +743,25 @@ export default function ProvidersPage() {
       {/* Content */}
       {loading ? (
         <CardPanel>
-          <CardPanelBody className="p-12 text-center">
-            <Loader2 size={20} className="animate-spin mx-auto text-muted-foreground" />
+          <CardPanelBody className="p-12 space-y-3">
+            <Skeleton className="h-5 w-1/3 mx-auto" />
+            <Skeleton className="h-4 w-1/2 mx-auto" />
           </CardPanelBody>
         </CardPanel>
       ) : providers.length === 0 ? (
         <CardPanel>
-          <CardPanelBody className="p-12 text-center">
-            <Bot size={32} className="mx-auto text-muted-foreground/40 mb-3" />
-            <p className="text-sm text-muted-foreground font-mono">
-              No providers configured. Add your first provider to enable AI features.
-            </p>
-          </CardPanelBody>
+          <Empty className="border-0 p-12">
+            <EmptyMedia variant="icon">
+              <Bot size={20} />
+            </EmptyMedia>
+            <EmptyTitle className="text-sm font-mono">No providers configured</EmptyTitle>
+            <EmptyDescription className="font-mono text-xs">
+              Add your first provider to enable AI features.
+            </EmptyDescription>
+          </Empty>
         </CardPanel>
       ) : (
-        providers.map((p) => (
-          <ProviderCard key={p.id} provider={p} onRefresh={loadProviders} />
-        ))
+        providers.map((p) => <ProviderCard key={p.id} provider={p} onRefresh={loadProviders} />)
       )}
     </div>
   )

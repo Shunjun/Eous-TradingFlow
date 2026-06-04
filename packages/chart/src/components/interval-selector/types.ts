@@ -31,4 +31,4 @@ export interface IntervalSelectorProps {
 
 // ── State machine ───────────────────────────────────────────────────────────
 
-export type IntervalSelectorState = 'idle' | 'popup' | 'editing'
+export type IntervalSelectorState = 'idle' | 'editing'

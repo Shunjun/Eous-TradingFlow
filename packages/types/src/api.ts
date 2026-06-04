@@ -189,7 +189,9 @@ export interface ApiClient {
       type?: string
     },
   ): Promise<void>
-  getDataSourceIntervals(instanceId: string): Promise<{ intervals: { value: string; label: string }[] }>
+  getDataSourceIntervals(
+    instanceId: string,
+  ): Promise<{ intervals: { value: string; label: string }[] }>
   getDataSourceKlines(
     instanceId: string,
     params: {
@@ -201,9 +203,18 @@ export interface ApiClient {
   ): Promise<{ klines: unknown[] }>
 
   // ── Workspace APIs ──
-  listWorkspaceLayouts(): Promise<{ layouts: WorkspaceLayoutSummary[]; activeLayoutId: string | null }>
-  getWorkspaceLayout(id: string): Promise<{ layout: { id: string; name: string; schemaJson: unknown; updatedAt: string } }>
-  createWorkspaceLayout(params: { name: string; setActive?: boolean; copyFromId?: string }): Promise<{ id: string; name: string }>
+  listWorkspaceLayouts(): Promise<{
+    layouts: WorkspaceLayoutSummary[]
+    activeLayoutId: string | null
+  }>
+  getWorkspaceLayout(
+    id: string,
+  ): Promise<{ layout: { id: string; name: string; schemaJson: unknown; updatedAt: string } }>
+  createWorkspaceLayout(params: {
+    name: string
+    setActive?: boolean
+    copyFromId?: string
+  }): Promise<{ id: string; name: string }>
   saveWorkspaceLayout(id: string, params: { schemaJson: unknown; name?: string }): Promise<void>
   deleteWorkspaceLayout(id: string): Promise<{ newActiveLayoutId?: string }>
   activateWorkspaceLayout(id: string): Promise<{ activeLayoutId: string }>

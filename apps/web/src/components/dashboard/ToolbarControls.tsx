@@ -1,7 +1,7 @@
 import { useCallback, useContext, useRef, useState } from 'react'
 import { MosaicContext, MosaicWindowContext } from 'react-mosaic-component'
 import type { MosaicNode } from 'react-mosaic-component'
-import { Button } from '@eous/ui'
+import { Button, Tooltip, TooltipTrigger, TooltipContent } from '@eous/ui'
 import { SplitSquareVertical, Maximize2, Minimize2, X } from 'lucide-react'
 
 interface ToolbarControlsProps {
@@ -33,37 +33,44 @@ export default function ToolbarControls({
 
   return (
     <div className="flex items-center gap-0.5">
-      <Button
-        variant="ghost-icon"
-        size="icon"
-        className="h-7 w-7"
-        onClick={() => mosaicWindowActions.split('row')}
-        title="Split right"
-      >
-        <SplitSquareVertical className="h-3.5 w-3.5" />
-      </Button>
-      <Button
-        variant="ghost-icon"
-        size="icon"
-        className="h-7 w-7"
-        onClick={handleExpand}
-        title={expanded ? 'Restore' : 'Expand'}
-      >
-        {expanded ? (
-          <Minimize2 className="h-3.5 w-3.5" />
-        ) : (
-          <Maximize2 className="h-3.5 w-3.5" />
-        )}
-      </Button>
-      <Button
-        variant="ghost-icon"
-        size="icon"
-        className="h-7 w-7"
-        onClick={() => mosaicActions.remove(mosaicWindowActions.getPath())}
-        title="Close"
-      >
-        <X className="h-3.5 w-3.5" />
-      </Button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost-icon"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => mosaicWindowActions.split('row')}
+          >
+            <SplitSquareVertical className="h-3.5 w-3.5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Split right</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost-icon" size="icon" className="h-7 w-7" onClick={handleExpand}>
+            {expanded ? (
+              <Minimize2 className="h-3.5 w-3.5" />
+            ) : (
+              <Maximize2 className="h-3.5 w-3.5" />
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{expanded ? 'Restore' : 'Expand'}</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="ghost-icon"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => mosaicActions.remove(mosaicWindowActions.getPath())}
+          >
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Close</TooltipContent>
+      </Tooltip>
     </div>
   )
 }

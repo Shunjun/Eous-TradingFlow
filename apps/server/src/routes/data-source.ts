@@ -18,7 +18,11 @@ dataSourceRouter.get('/data-source-providers', (c) => {
 // ── Instance CRUD ──────────────────────────────────────────────────────────
 
 dataSourceInstanceRouter.post('/data-source-instances', async (c) => {
-  const body = await c.req.json<{ name: string; providerKind: string; config: Record<string, string> }>()
+  const body = await c.req.json<{
+    name: string
+    providerKind: string
+    config: Record<string, string>
+  }>()
   const instance = await dataSourceService.createInstance(c.get('userId'), body)
   return c.json({ instance }, 201)
 })
@@ -49,12 +53,21 @@ dataSourceInstanceRouter.delete('/data-source-instances/:id', async (c) => {
 dataSourceInstanceRouter.post('/data-source-instances/:id/search', async (c) => {
   const body = await c.req.json<{ query?: string; offset?: number; limit?: number }>()
   if (body.query) {
-    const symbols = await dataSourceService.searchSymbols(c.get('userId'), c.req.param('id'), body.query)
+    const symbols = await dataSourceService.searchSymbols(
+      c.get('userId'),
+      c.req.param('id'),
+      body.query,
+    )
     return c.json({ symbols })
   }
   const offset = body.offset ?? 0
   const limit = body.limit ?? 50
-  const result = await dataSourceService.getDefaultSymbols(c.get('userId'), c.req.param('id'), offset, limit)
+  const result = await dataSourceService.getDefaultSymbols(
+    c.get('userId'),
+    c.req.param('id'),
+    offset,
+    limit,
+  )
   return c.json(result)
 })
 
@@ -82,7 +95,12 @@ dataSourceInstanceRouter.get('/data-source-instances/:id/intervals', async (c) =
 // ── Tracked symbols ────────────────────────────────────────────────────────
 
 dataSourceInstanceRouter.post('/data-source-instances/:id/symbols', async (c) => {
-  const body = await c.req.json<{ symbol: string; name: string; exchange?: string; type?: string }>()
+  const body = await c.req.json<{
+    symbol: string
+    name: string
+    exchange?: string
+    type?: string
+  }>()
   const symbol = await dataSourceService.addSymbol(c.get('userId'), c.req.param('id'), body)
   return c.json({ symbol }, 201)
 })

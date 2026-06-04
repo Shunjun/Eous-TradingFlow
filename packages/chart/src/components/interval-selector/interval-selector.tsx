@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { cn } from '@eous/ui'
+import { cn, Button, Popover, PopoverTrigger } from '@eous/ui'
 import { Pencil, Plus } from 'lucide-react'
 import type { IntervalItem, IntervalSelectorProps, IntervalSelectorState } from './types'
 import { useIntervalSettings, DEFAULT_INTERVAL_SETTINGS } from './use-interval-settings'
@@ -33,46 +33,12 @@ export function IntervalSelector({
   )
 
   // ── Split into visible and hidden ───────────────────────────────────────
-  const visible = useMemo(
-    () => supportedIntervals.filter((iv) => iv.visible),
-    [supportedIntervals],
-  )
-  const hidden = useMemo(
-    () => supportedIntervals.filter((iv) => !iv.visible),
-    [supportedIntervals],
-  )
+  const visible = useMemo(() => supportedIntervals.filter((iv) => iv.visible), [supportedIntervals])
+  const hidden = useMemo(() => supportedIntervals.filter((iv) => !iv.visible), [supportedIntervals])
 
   // ── State machine ───────────────────────────────────────────────────────
   const [state, setState] = useState<IntervalSelectorState>('idle')
-  const toolbarRef = useRef<HTMLDivElement>(null)
-  const popupRef = useRef<HTMLDivElement>(null)
-
-  // Close popup on outside click
-  useEffect(() => {
-    if (state !== 'popup') return
-
-    function handleOutside(e: MouseEvent) {
-      const target = e.target as Node
-      if (
-        popupRef.current &&
-        !popupRef.current.contains(target) &&
-        toolbarRef.current &&
-        !toolbarRef.current.contains(target)
-      ) {
-        setState('idle')
-      }
-    }
-
-    // Delay to avoid the click that opened the popup from immediately closing it
-    const timer = setTimeout(() => {
-      document.addEventListener('mousedown', handleOutside)
-    }, 0)
-
-    return () => {
-      clearTimeout(timer)
-      document.removeEventListener('mousedown', handleOutside)
-    }
-  }, [state])
+  const [popupOpen, setPopupOpen] = useState(false)
 
   // Close editor on Escape
   useEffect(() => {
@@ -90,7 +56,7 @@ export function IntervalSelector({
   const handlePopupSelect = useCallback(
     (iv: string) => {
       onChange(iv)
-      setState('idle')
+      setPopupOpen(false)
     },
     [onChange],
   )
@@ -108,12 +74,10 @@ export function IntervalSelector({
   return (
     <div className="relative">
       {/* Toolbar row */}
-      <div
-        ref={toolbarRef}
-        className="flex items-center gap-1"
-      >
+      <div className="flex items-center gap-1">
         {visible.map((iv) => (
-          <button
+          <Button
+            variant="ghost"
             key={iv.value}
             onClick={() => onChange(iv.value)}
             className={cn(
@@ -124,27 +88,33 @@ export function IntervalSelector({
             )}
           >
             {iv.label}
-          </button>
+          </Button>
         ))}
 
         {/* "+" button — opens popup of remaining intervals */}
         {hidden.length > 0 && (
-          <button
-            onClick={() => setState(state === 'popup' ? 'idle' : 'popup')}
-            className={cn(
-              'ml-0.5 p-0.5 rounded transition-colors',
-              state === 'popup'
-                ? 'text-primary bg-primary/10'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
-            )}
-            aria-label="More intervals"
-          >
-            <Plus size={12} strokeWidth={2.5} />
-          </button>
+          <Popover open={popupOpen} onOpenChange={setPopupOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost"
+                className={cn(
+                  'ml-0.5 p-0.5 rounded transition-colors',
+                  popupOpen
+                    ? 'text-primary bg-primary/10'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                )}
+                aria-label="More intervals"
+              >
+                <Plus size={12} strokeWidth={2.5} />
+              </Button>
+            </PopoverTrigger>
+            <IntervalPopup items={hidden} onSelect={handlePopupSelect} />
+          </Popover>
         )}
 
         {/* ✎ edit button */}
-        <button
+        <Button
+          variant="ghost"
           onClick={() => setState(state === 'editing' ? 'idle' : 'editing')}
           className={cn(
             'ml-0.5 p-0.5 rounded transition-colors',
@@ -155,17 +125,8 @@ export function IntervalSelector({
           aria-label="Edit intervals"
         >
           <Pencil size={11} strokeWidth={2.5} />
-        </button>
+        </Button>
       </div>
-
-      {/* "+" popup */}
-      {state === 'popup' && (
-        <IntervalPopup
-          ref={popupRef}
-          items={hidden}
-          onSelect={handlePopupSelect}
-        />
-      )}
 
       {/* Editor overlay */}
       {state === 'editing' && (
@@ -206,8 +167,16 @@ function useMemoEffectedIntervals(
 
     // Build base from overrides
     const base: IntervalItem[] = [
-      ...(defaultVisible?.map((iv) => ({ ...iv, visible: true, supported: iv.supported ?? true })) ?? []),
-      ...(defaultHidden?.map((iv) => ({ ...iv, visible: false, supported: iv.supported ?? true })) ?? []),
+      ...(defaultVisible?.map((iv) => ({
+        ...iv,
+        visible: true,
+        supported: iv.supported ?? true,
+      })) ?? []),
+      ...(defaultHidden?.map((iv) => ({
+        ...iv,
+        visible: false,
+        supported: iv.supported ?? true,
+      })) ?? []),
     ]
 
     // Merge persisted visibility flags onto base

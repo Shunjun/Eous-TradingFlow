@@ -7,9 +7,7 @@ export default function GeneralSettingsPage() {
       <CardPanel>
         <CardPanelHeader icon={Sliders} title="General Settings" />
         <CardPanelBody className="p-6">
-          <p className="text-sm text-muted-foreground font-mono">
-            General settings coming soon…
-          </p>
+          <p className="text-sm text-muted-foreground font-mono">General settings coming soon…</p>
         </CardPanelBody>
       </CardPanel>
     </div>

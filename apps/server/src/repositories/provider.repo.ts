@@ -49,12 +49,15 @@ export function findModel(providerId: string, modelId: string): Promise<Provider
   })
 }
 
-export function upsertModel(providerId: string, model: {
-  modelId: string
-  displayName?: string | null
-  maxTokens?: number | null
-  capabilities: string[]
-}): Promise<ProviderModel> {
+export function upsertModel(
+  providerId: string,
+  model: {
+    modelId: string
+    displayName?: string | null
+    maxTokens?: number | null
+    capabilities: string[]
+  },
+): Promise<ProviderModel> {
   return prisma.providerModel.upsert({
     where: { providerId_modelId: { providerId, modelId: model.modelId } },
     create: {
@@ -72,12 +75,15 @@ export function updateModel(id: string, data: Record<string, unknown>): Promise<
   return prisma.providerModel.update({ where: { id }, data })
 }
 
-export function createModel(providerId: string, data: {
-  modelId: string
-  displayName?: string | null
-  maxTokens?: number | null
-  capabilities?: string[]
-}): Promise<ProviderModel> {
+export function createModel(
+  providerId: string,
+  data: {
+    modelId: string
+    displayName?: string | null
+    maxTokens?: number | null
+    capabilities?: string[]
+  },
+): Promise<ProviderModel> {
   return prisma.providerModel.create({
     data: {
       providerId,

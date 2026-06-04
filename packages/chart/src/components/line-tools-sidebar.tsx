@@ -1,4 +1,4 @@
-import { Button, cn } from '@eous/ui'
+import { Button, cn, Tooltip, TooltipTrigger, TooltipContent } from '@eous/ui'
 import { MousePointer2, Trash2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { LineToolDefinition } from '../line-tools/types'
@@ -41,19 +41,19 @@ export function LineToolsSidebar({
       {allTools.map((tool) => {
         const Icon = tool.icon
         return (
-          <Button
-            key={tool.id}
-            variant="ghost-icon"
-            size="icon"
-            className={cn(
-              'h-8 w-8',
-              activeTool === tool.id && 'bg-primary/15 text-primary',
-            )}
-            onClick={() => onSelectTool(tool.id)}
-            title={tool.label}
-          >
-            <Icon size={14} />
-          </Button>
+          <Tooltip key={tool.id}>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost-icon"
+                size="icon"
+                className={cn('h-8 w-8', activeTool === tool.id && 'bg-primary/15 text-primary')}
+                onClick={() => onSelectTool(tool.id)}
+              >
+                <Icon size={14} />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{tool.label}</TooltipContent>
+          </Tooltip>
         )
       })}
 
@@ -62,15 +62,19 @@ export function LineToolsSidebar({
 
       {/* Delete selected */}
       {hasSelected && (
-        <Button
-          variant="ghost-icon"
-          size="icon"
-          className="h-8 w-8 text-red-400 hover:text-red-300"
-          onClick={onDeleteSelected}
-          title="Delete selected"
-        >
-          <Trash2 size={14} />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost-icon"
+              size="icon"
+              className="h-8 w-8 text-red-400 hover:text-red-300"
+              onClick={onDeleteSelected}
+            >
+              <Trash2 size={14} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Delete selected</TooltipContent>
+        </Tooltip>
       )}
     </div>
   )

@@ -69,9 +69,7 @@ export interface DataSourceProvider {
    * 例：CCXT exchange=binance → { displayName: "CCXT - Binance", key: "binance" }
    * 无需区分的 provider 返回 key="" 即可。
    */
-  resolveIdentity(
-    config: Record<string, string>,
-  ): { displayName: string; key: string }
+  resolveIdentity(config: Record<string, string>): { displayName: string; key: string }
 
   getDefaultSymbols(
     offset: number,
@@ -79,16 +77,7 @@ export interface DataSourceProvider {
     config: Record<string, string>,
   ): Promise<{ symbols: SymbolInfo[]; total: number }>
 
-  searchSymbols(
-    query: string,
-    config: Record<string, string>,
-  ): Promise<SymbolInfo[]>
-  getQuote(
-    symbol: string,
-    config: Record<string, string>,
-  ): Promise<Quote>
-  getKlines(
-    request: KlinesRequest,
-    config: Record<string, string>,
-  ): Promise<Kline[]>
+  searchSymbols(query: string, config: Record<string, string>): Promise<SymbolInfo[]>
+  getQuote(symbol: string, config: Record<string, string>): Promise<Quote>
+  getKlines(request: KlinesRequest, config: Record<string, string>): Promise<Kline[]>
 }

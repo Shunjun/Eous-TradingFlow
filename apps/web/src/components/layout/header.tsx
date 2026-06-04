@@ -2,6 +2,7 @@ import { Search, Bell, Moon, Sun, LogOut } from 'lucide-react'
 import {
   Button,
   Dot,
+  Input,
   useTheme,
   DropdownMenu,
   DropdownMenuTrigger,
@@ -21,17 +22,15 @@ export function Header() {
       <div className="flex items-center gap-3 flex-1 max-w-md">
         <div
           className={`flex items-center gap-2 flex-1 rounded-md border px-3 py-1.5 transition-all duration-200 ${
-            searchFocused
-              ? 'border-primary/40 bg-primary/5'
-              : 'border-border bg-muted/50'
+            searchFocused ? 'border-primary/40 bg-primary/5' : 'border-border bg-muted/50'
           }`}
         >
           <Search size={14} className="text-muted-foreground shrink-0" />
-          <input
+          <Input
             type="text"
             placeholder="Search workflows, assets..."
             className="bg-transparent text-sm outline-none w-full placeholder:text-muted-foreground/50
-                       font-mono text-xs"
+                       font-mono text-xs border-0 shadow-none focus-visible:ring-0"
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setSearchFocused(false)}
           />

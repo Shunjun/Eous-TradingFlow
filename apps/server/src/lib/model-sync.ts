@@ -27,16 +27,19 @@ function parseCapabilities(features?: string[], capabilities?: string[]): string
   for (const f of src) {
     const lower = f.toLowerCase()
     if (lower.includes('vision')) tags.add('vision')
-    if (lower.includes('function_calling') || lower.includes('function-calling')) tags.add('function_calling')
-    if (lower.includes('reasoning') || lower.includes('extended_thinking') || lower.includes('extended-thinking')) tags.add('reasoning')
+    if (lower.includes('function_calling') || lower.includes('function-calling'))
+      tags.add('function_calling')
+    if (
+      lower.includes('reasoning') ||
+      lower.includes('extended_thinking') ||
+      lower.includes('extended-thinking')
+    )
+      tags.add('reasoning')
   }
   return [...tags]
 }
 
-async function fetchOpenAICompatible(
-  baseUrl: string,
-  apiKey: string,
-): Promise<SyncModel[]> {
+async function fetchOpenAICompatible(baseUrl: string, apiKey: string): Promise<SyncModel[]> {
   const url = `${baseUrl.replace(/\/+$/, '')}/models`
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
@@ -73,10 +76,7 @@ interface AnthropicModelsResponse {
   data: AnthropicModel[]
 }
 
-async function fetchAnthropic(
-  baseUrl: string,
-  apiKey: string,
-): Promise<SyncModel[]> {
+async function fetchAnthropic(baseUrl: string, apiKey: string): Promise<SyncModel[]> {
   const url = `${baseUrl.replace(/\/+$/, '')}/models`
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)

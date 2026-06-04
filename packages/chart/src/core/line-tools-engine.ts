@@ -11,10 +11,7 @@ export class LineToolsEngine {
   private selectionListeners = new Set<SelectionChangeHandler>()
   private selectionHandler: (() => void) | null = null
 
-  constructor(
-    chart: IChartApi,
-    candleSeries: ISeriesApi<'Candlestick'>,
-  ) {
+  constructor(chart: IChartApi, candleSeries: ISeriesApi<'Candlestick'>) {
     this.plugin = createLineToolsPlugin(chart, candleSeries)
     registerAllLineTools(this.plugin)
 

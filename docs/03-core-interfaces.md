@@ -497,9 +497,9 @@ interface ProviderKeyService {
 
 ```typescript
 interface DataSourceProvider {
-  id: string            // 唯一标识，如 "yahoo-finance"
-  name: string          // 显示名
-  configSchema: ConfigField[]    // 前端据此动态渲染配置表单
+  id: string // 唯一标识，如 "yahoo-finance"
+  name: string // 显示名
+  configSchema: ConfigField[] // 前端据此动态渲染配置表单
 
   searchSymbols(query: string, config: Record<string, string>): Promise<SymbolInfo[]>
   getQuote(symbol: string, config: Record<string, string>): Promise<Quote>
@@ -518,10 +518,10 @@ interface ConfigField {
 }
 
 interface SymbolInfo {
-  symbol: string        // provider 原生格式，如 "AAPL"、"0700.HK"
+  symbol: string // provider 原生格式，如 "AAPL"、"0700.HK"
   name: string
   exchange?: string
-  type?: string         // "stock" | "crypto" | "forex" | "index" | "etf"
+  type?: string // "stock" | "crypto" | "forex" | "index" | "etf"
 }
 
 interface Quote {
@@ -533,11 +533,11 @@ interface Quote {
   low?: number
   open?: number
   volume?: number
-  timestamp: number     // unix ms
+  timestamp: number // unix ms
 }
 
 interface Kline {
-  timestamp: number     // unix ms
+  timestamp: number // unix ms
   open: number
   high: number
   low: number
@@ -548,8 +548,11 @@ interface Kline {
 interface KlinesRequest {
   symbol: string
   interval: '1m' | '5m' | '15m' | '30m' | '1h' | '4h' | '1d' | '1w'
-  from: number          // unix ms
+  from: number // unix ms
   to: number
 }
 ```
+
+```
+
 ```

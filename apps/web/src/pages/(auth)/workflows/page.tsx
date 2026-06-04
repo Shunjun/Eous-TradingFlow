@@ -7,9 +7,7 @@ export default function WorkflowsPage() {
       <CardPanel>
         <CardPanelHeader icon={GitBranch} title="Workflows" />
         <CardPanelBody className="p-6">
-          <p className="text-sm text-muted-foreground font-mono">
-            coming soon
-          </p>
+          <p className="text-sm text-muted-foreground font-mono">coming soon</p>
         </CardPanelBody>
       </CardPanel>
     </div>

@@ -23,7 +23,10 @@ export async function getInstance(userId: string, id: string) {
   }
 
   const keyHex = getEncryptionKey()
-  const config = JSON.parse(decrypt(instance.configEncrypted, instance.configIv, keyHex)) as Record<string, string>
+  const config = JSON.parse(decrypt(instance.configEncrypted, instance.configIv, keyHex)) as Record<
+    string,
+    string
+  >
 
   return {
     id: instance.id,
@@ -35,11 +38,14 @@ export async function getInstance(userId: string, id: string) {
   }
 }
 
-export async function createInstance(userId: string, body: {
-  name: string
-  providerKind: string
-  config: Record<string, string>
-}) {
+export async function createInstance(
+  userId: string,
+  body: {
+    name: string
+    providerKind: string
+    config: Record<string, string>
+  },
+) {
   const { name, providerKind, config } = body
 
   if (!name || !providerKind || !config) {
@@ -72,10 +78,14 @@ export async function createInstance(userId: string, body: {
   })
 }
 
-export async function updateInstance(userId: string, id: string, body: {
-  name?: string
-  config?: Record<string, string>
-}) {
+export async function updateInstance(
+  userId: string,
+  id: string,
+  body: {
+    name?: string
+    config?: Record<string, string>
+  },
+) {
   const { name, config } = body
 
   if (!name && !config) {
@@ -122,9 +132,16 @@ export async function deleteInstance(userId: string, id: string) {
   await dsRepo.remove(id)
 }
 
-async function decryptInstance(instance: { configEncrypted: string; configIv: string; providerKind: string }) {
+async function decryptInstance(instance: {
+  configEncrypted: string
+  configIv: string
+  providerKind: string
+}) {
   const keyHex = getEncryptionKey()
-  const config = JSON.parse(decrypt(instance.configEncrypted, instance.configIv, keyHex)) as Record<string, string>
+  const config = JSON.parse(decrypt(instance.configEncrypted, instance.configIv, keyHex)) as Record<
+    string,
+    string
+  >
 
   const provider = getDataSourceProvider(instance.providerKind)
   if (!provider) {
@@ -172,12 +189,16 @@ export async function testConnection(userId: string, id: string) {
 
 const DEFAULT_BAR_COUNT = 365
 
-export async function getKlines(userId: string, id: string, body: {
-  symbol: string
-  interval: string
-  from?: number
-  to?: number
-}) {
+export async function getKlines(
+  userId: string,
+  id: string,
+  body: {
+    symbol: string
+    interval: string
+    from?: number
+    to?: number
+  },
+) {
   const { symbol, interval, from, to } = body
 
   if (!symbol || !interval) {
@@ -195,10 +216,7 @@ export async function getKlines(userId: string, id: string, body: {
   const intervalMs = parseIntervalMs(interval)
   const defaultFrom = now - DEFAULT_BAR_COUNT * intervalMs
 
-  return provider.getKlines(
-    { symbol, interval, from: from ?? defaultFrom, to: to ?? now },
-    config,
-  )
+  return provider.getKlines({ symbol, interval, from: from ?? defaultFrom, to: to ?? now }, config)
 }
 
 export async function getIntervals(userId: string, id: string) {
@@ -215,12 +233,16 @@ export async function getIntervals(userId: string, id: string) {
   return provider.getSupportedIntervals()
 }
 
-export async function addSymbol(userId: string, id: string, body: {
-  symbol: string
-  name: string
-  exchange?: string
-  type?: string
-}) {
+export async function addSymbol(
+  userId: string,
+  id: string,
+  body: {
+    symbol: string
+    name: string
+    exchange?: string
+    type?: string
+  },
+) {
   const { symbol, name, exchange, type } = body
 
   if (!symbol || !name) {

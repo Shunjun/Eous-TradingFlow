@@ -73,9 +73,7 @@ function save(key: string, settings: IntervalSettings): void {
  *   - New default intervals are appended at the end (visible if default says so)
  */
 function mergeWithDefaults(persisted: IntervalSettings): IntervalSettings {
-  const persistedByValue = new Map(
-    persisted.intervals.map((iv) => [iv.value, iv]),
-  )
+  const persistedByValue = new Map(persisted.intervals.map((iv) => [iv.value, iv]))
   const seen = new Set<string>()
   const merged: IntervalItem[] = []
 

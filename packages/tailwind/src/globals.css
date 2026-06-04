@@ -105,7 +105,6 @@
   }
 }
 
-
 /* ─── Line-art aesthetic utilities ─── */
 
 /* Subtle grid background */
@@ -154,7 +153,7 @@
 
 /* Animated gradient border */
 @property --angle {
-  syntax: "<angle>";
+  syntax: '<angle>';
   initial-value: 0deg;
   inherits: false;
 }
@@ -169,8 +168,15 @@
   inset: -1px;
   border-radius: inherit;
   padding: 1px;
-  background: conic-gradient(from var(--angle), transparent 25%, hsl(var(--primary)) 50%, transparent 75%);
-  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  background: conic-gradient(
+    from var(--angle),
+    transparent 25%,
+    hsl(var(--primary)) 50%,
+    transparent 75%
+  );
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
   mask-composite: exclude;
   animation: rotate-gradient 4s linear infinite;
   opacity: 0;
@@ -182,13 +188,22 @@
 }
 
 @keyframes rotate-gradient {
-  to { --angle: 360deg; }
+  to {
+    --angle: 360deg;
+  }
 }
 
 /* Pulse dot animation */
 @keyframes pulse-dot {
-  0%, 100% { opacity: 0.3; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.5); }
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.5);
+  }
 }
 
 .pulse-dot {
@@ -197,18 +212,41 @@
 
 /* Dot motif animations */
 @keyframes dot-pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.7); }
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.7);
+  }
 }
 
 @keyframes dot-breath {
-  0%, 100% { opacity: 0.5; box-shadow: 0 0 0 0 hsl(25, 95%, 53%, 0); }
-  50% { opacity: 1; box-shadow: 0 0 0 3px hsl(25, 95%, 53%, 0.15); }
+  0%,
+  100% {
+    opacity: 0.5;
+    box-shadow: 0 0 0 0 hsl(25, 95%, 53%, 0);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 0 3px hsl(25, 95%, 53%, 0.15);
+  }
 }
 
 @keyframes dot-glow {
-  0%, 100% { opacity: 0.8; box-shadow: 0 0 4px hsl(25, 95%, 53%, 0.4); }
-  50% { opacity: 1; box-shadow: 0 0 8px hsl(25, 95%, 53%, 0.6), 0 0 16px hsl(25, 95%, 53%, 0.2); }
+  0%,
+  100% {
+    opacity: 0.8;
+    box-shadow: 0 0 4px hsl(25, 95%, 53%, 0.4);
+  }
+  50% {
+    opacity: 1;
+    box-shadow:
+      0 0 8px hsl(25, 95%, 53%, 0.6),
+      0 0 16px hsl(25, 95%, 53%, 0.2);
+  }
 }
 
 .animate-dot-pulse {
@@ -225,8 +263,9 @@
 
 /* Subtle glow */
 .glow-orange {
-  box-shadow: 0 0 20px hsl(var(--primary) / 0.15),
-              0 0 60px hsl(var(--primary) / 0.05);
+  box-shadow:
+    0 0 20px hsl(var(--primary) / 0.15),
+    0 0 60px hsl(var(--primary) / 0.05);
 }
 
 /* Scan line effect */
@@ -246,8 +285,12 @@
 
 /* Flowing line animation for architecture diagram */
 @keyframes flow-line {
-  0% { stroke-dashoffset: 20; }
-  100% { stroke-dashoffset: 0; }
+  0% {
+    stroke-dashoffset: 20;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
 }
 
 .flow-line {
@@ -408,4 +451,3 @@
   background: hsl(var(--primary) / 0.2) !important;
   color: hsl(var(--primary)) !important;
 }
-

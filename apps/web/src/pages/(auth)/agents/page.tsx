@@ -7,9 +7,7 @@ export default function AgentsPage() {
       <CardPanel>
         <CardPanelHeader icon={BrainCircuit} title="Agents" />
         <CardPanelBody className="p-6">
-          <p className="text-sm text-muted-foreground font-mono">
-            coming soon
-          </p>
+          <p className="text-sm text-muted-foreground font-mono">coming soon</p>
         </CardPanelBody>
       </CardPanel>
     </div>

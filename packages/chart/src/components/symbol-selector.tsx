@@ -1,7 +1,20 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { cn, Dialog, DialogContent, DialogHeader, DialogTitle, Input } from '@eous/ui'
+import {
+  cn,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  Input,
+  Button,
+  Badge,
+  Skeleton,
+  Empty,
+  EmptyMedia,
+  EmptyTitle,
+} from '@eous/ui'
 import { Search, ChevronDown } from 'lucide-react'
 import type { ProviderOption, SymbolItem } from '../types'
 
@@ -43,7 +56,6 @@ export function SymbolSelector({
   const [activeIndex, setActiveIndex] = useState(-1)
   const searchRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
-  const sentinelRef = useRef<HTMLDivElement>(null)
 
   // Reset state when dialog opens
   useEffect(() => {
@@ -67,23 +79,15 @@ export function SymbolSelector({
     items[activeIndex]?.scrollIntoView({ block: 'nearest' })
   }, [activeIndex])
 
-  // IntersectionObserver for infinite scroll
-  useEffect(() => {
-    if (!open || !hasMore || !onLoadMore || loadingMore) return
-    const sentinel = sentinelRef.current
-    if (!sentinel) return
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) {
-          onLoadMore()
-        }
-      },
-      { root: listRef.current, threshold: 0.1 },
-    )
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [open, hasMore, onLoadMore, loadingMore])
+  // Scroll-based infinite scroll
+  const handleScroll = useCallback(() => {
+    if (!hasMore || !onLoadMore || loadingMore) return
+    const el = listRef.current
+    if (!el) return
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
+      onLoadMore()
+    }
+  }, [hasMore, onLoadMore, loadingMore])
 
   const handleSearchChange = useCallback(
     (value: string) => {
@@ -134,7 +138,8 @@ export function SymbolSelector({
   return (
     <>
       {/* Trigger button */}
-      <button
+      <Button
+        variant="ghost"
         onClick={() => setOpen(true)}
         className={cn(
           'flex items-center gap-1.5 px-2 py-1 rounded text-[11px] font-mono transition-colors',
@@ -143,7 +148,7 @@ export function SymbolSelector({
       >
         <span className="font-medium">{symbol ?? '—'}</span>
         <ChevronDown size={12} className="text-muted-foreground" />
-      </button>
+      </Button>
 
       {/* Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
@@ -178,8 +183,9 @@ export function SymbolSelector({
           {providers.length > 1 && (
             <div className="flex items-center gap-1 px-4 pb-2 border-b border-border">
               {providers.map((p) => (
-                <button
+                <Button
                   key={p.id}
+                  variant="ghost"
                   onClick={() => onProviderChange(p.id)}
                   className={cn(
                     'px-2 py-1 text-[10px] font-mono rounded transition-colors',
@@ -189,21 +195,23 @@ export function SymbolSelector({
                   )}
                 >
                   {p.name}
-                </button>
+                </Button>
               ))}
             </div>
           )}
 
           {/* Symbol list */}
-          <div ref={listRef} className="max-h-72 overflow-y-auto">
+          <div ref={listRef} onScroll={handleScroll} className="max-h-72 overflow-y-auto">
             {loading ? (
-              <div className="flex items-center justify-center py-8 text-xs text-muted-foreground font-mono">
-                Loading...
+              <div className="px-4 py-8 space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-5/6" />
               </div>
             ) : symbols.length === 0 ? (
-              <div className="flex items-center justify-center py-8 text-xs text-muted-foreground font-mono">
-                No symbols found
-              </div>
+              <Empty className="py-8 border-0">
+                <EmptyTitle className="text-xs font-mono">No symbols found</EmptyTitle>
+              </Empty>
             ) : (
               <>
                 {symbols.map((item, index) => (
@@ -220,9 +228,9 @@ export function SymbolSelector({
                       {item.symbol}
                     </span>
                     {item.exchange && (
-                      <span className="text-[10px] font-mono text-muted-foreground ml-2 px-1 py-0.5 rounded bg-muted/50">
+                      <Badge variant="secondary" className="text-[10px] font-mono ml-2 px-1 py-0.5">
                         {item.exchange}
-                      </span>
+                      </Badge>
                     )}
                     <span className="text-xs text-muted-foreground ml-3 truncate">{item.name}</span>
                     <span className="text-[9px] font-mono text-muted-foreground ml-auto pl-3 shrink-0">
@@ -230,13 +238,10 @@ export function SymbolSelector({
                     </span>
                   </button>
                 ))}
-                {/* Infinite scroll sentinel */}
-                {hasMore && (
-                  <div
-                    ref={sentinelRef}
-                    className="flex items-center justify-center py-3 text-xs text-muted-foreground font-mono"
-                  >
-                    {loadingMore ? 'Loading more...' : ''}
+                {hasMore && loadingMore && (
+                  <div className="px-4 py-3 space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-2/3" />
                   </div>
                 )}
               </>

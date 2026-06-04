@@ -10,14 +10,7 @@ import {
   Zap,
   ChevronRight,
 } from 'lucide-react'
-import {
-  Button,
-  IconBox,
-  StatusBadge,
-  SectionHeader,
-  MetricCard,
-  Dot,
-} from '@eous/ui'
+import { Button, IconBox, StatusBadge, SectionHeader, MetricCard, Dot } from '@eous/ui'
 
 /* ─── Animated node background for hero ─── */
 function HeroNodeGraph() {
@@ -121,11 +114,7 @@ function HeroNodeGraph() {
   }, [])
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 w-full h-full"
-      style={{ opacity: 0.6 }}
-    />
+    <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" style={{ opacity: 0.6 }} />
   )
 }
 
@@ -235,9 +224,7 @@ function ArchitectureDiagram() {
                   {node.label}
                 </span>
               </div>
-              {i < nodeTypes.length - 1 && (
-                <ChevronRight size={14} className="text-border" />
-              )}
+              {i < nodeTypes.length - 1 && <ChevronRight size={14} className="text-border" />}
             </div>
           )
         })}
@@ -262,12 +249,17 @@ function FeatureCard({
     <div className="line-card rounded-lg p-6 group cursor-default">
       <div className="flex items-center gap-3 mb-4">
         <IconBox size="lg" className="group-hover:border-primary/40 group-hover:bg-primary/5">
-          <Icon size={18} className="text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+          <Icon
+            size={18}
+            className="text-muted-foreground group-hover:text-primary transition-colors duration-300"
+          />
         </IconBox>
-        <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground
+        <span
+          className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground
                          border border-border rounded px-1.5 py-0.5
                          group-hover:border-primary/30 group-hover:text-primary
-                         transition-all duration-300">
+                         transition-all duration-300"
+        >
           {tag}
         </span>
       </div>
@@ -291,8 +283,10 @@ export function HomePage() {
       <div className="fixed inset-0 grid-bg pointer-events-none" />
 
       {/* ─── Navigation ─── */}
-      <nav className="relative z-10 flex items-center justify-between px-6 md:px-12 py-5
-                      border-b border-border/50">
+      <nav
+        className="relative z-10 flex items-center justify-between px-6 md:px-12 py-5
+                      border-b border-border/50"
+      >
         <div className="flex items-center gap-2.5">
           <IconBox size="sm" className="border-primary bg-primary/10" interactive={false}>
             <GitBranch size={14} className="text-primary" />
@@ -300,13 +294,22 @@ export function HomePage() {
           <span className="font-mono font-bold text-sm tracking-wide">EOUS</span>
         </div>
         <div className="hidden md:flex items-center gap-8">
-          <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <a
+            href="#features"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
             Features
           </a>
-          <a href="#architecture" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <a
+            href="#architecture"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
             Architecture
           </a>
-          <a href="#docs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <a
+            href="#docs"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
             Docs
           </a>
         </div>
@@ -356,8 +359,7 @@ export function HomePage() {
             className={`text-sm text-muted-foreground/70 mb-10 max-w-md mx-auto font-mono
                         transition-all duration-700 delay-300 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
           >
-            Connect data sources, compute, and LLM agents into a visual DAG.
-            Run it. See every step.
+            Connect data sources, compute, and LLM agents into a visual DAG. Run it. See every step.
           </p>
 
           {/* CTA buttons */}
@@ -433,7 +435,10 @@ export function HomePage() {
                            transition-all duration-300 group cursor-default"
               >
                 <IconBox size="sm" interactive>
-                  <Icon size={15} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                  <Icon
+                    size={15}
+                    className="text-muted-foreground group-hover:text-primary transition-colors"
+                  />
                 </IconBox>
                 <span className="font-mono text-[11px] text-muted-foreground group-hover:text-foreground transition-colors">
                   {label}
@@ -485,9 +490,7 @@ export function HomePage() {
                   <p className="font-mono text-[11px] font-medium" style={{ color }}>
                     {label}
                   </p>
-                  <p className="font-mono text-[10px] text-muted-foreground mt-0.5">
-                    {desc}
-                  </p>
+                  <p className="font-mono text-[10px] text-muted-foreground mt-0.5">{desc}</p>
                 </div>
               ))}
             </div>
@@ -524,9 +527,7 @@ export function HomePage() {
               <div className="w-px h-8 bg-primary/40" />
             </div>
 
-            <h2 className="font-mono text-2xl md:text-3xl font-bold mb-4">
-              Ready to build?
-            </h2>
+            <h2 className="font-mono text-2xl md:text-3xl font-bold mb-4">Ready to build?</h2>
             <p className="text-muted-foreground text-sm mb-8 max-w-md mx-auto">
               P0 architecture is complete. Start defining your first workflow today.
             </p>
@@ -548,21 +549,26 @@ export function HomePage() {
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <GitBranch size={14} className="text-primary" />
-            <span className="font-mono text-xs text-muted-foreground">
-              Eous TradingFlow
-            </span>
-            <span className="font-mono text-[10px] text-muted-foreground/50 ml-2">
-              v0.0.0
-            </span>
+            <span className="font-mono text-xs text-muted-foreground">Eous TradingFlow</span>
+            <span className="font-mono text-[10px] text-muted-foreground/50 ml-2">v0.0.0</span>
           </div>
           <div className="flex items-center gap-6">
-            <a href="#" className="font-mono text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+            <a
+              href="#"
+              className="font-mono text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            >
               GitHub
             </a>
-            <a href="#" className="font-mono text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+            <a
+              href="#"
+              className="font-mono text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            >
               Docs
             </a>
-            <a href="#" className="font-mono text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+            <a
+              href="#"
+              className="font-mono text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+            >
               Changelog
             </a>
           </div>

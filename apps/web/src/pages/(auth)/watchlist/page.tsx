@@ -1,16 +1,37 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { BarChart3 } from 'lucide-react'
 import { KlineChart } from '@eous/chart'
-import type { FetchKlinesFn, KlineDataPoint, IntervalOption, ProviderOption, SymbolItem } from '@eous/chart'
+import type {
+  FetchKlinesFn,
+  KlineDataPoint,
+  IntervalOption,
+  ProviderOption,
+  SymbolItem,
+} from '@eous/chart'
 import type { DataSourceInstance, SymbolSearchResult } from '@eous/types'
 import { api } from '../../../lib/api.js'
 
 /** All known interval values — used to compute unsupported intervals per provider */
 const ALL_INTERVAL_VALUES = [
-  '1m', '3m', '5m', '15m', '30m',
-  '1h', '2h', '4h', '6h', '12h',
-  '1d', '3d', '7d', '1w', '2w',
-  '1M', '3M', '6M', '1y',
+  '1m',
+  '3m',
+  '5m',
+  '15m',
+  '30m',
+  '1h',
+  '2h',
+  '4h',
+  '6h',
+  '12h',
+  '1d',
+  '3d',
+  '7d',
+  '1w',
+  '2w',
+  '1M',
+  '3M',
+  '6M',
+  '1y',
 ]
 
 /* ── Page ──────────────────────────────────────────────── */
@@ -114,7 +135,9 @@ export default function WatchlistPage() {
       setIsSearching(false)
       setSearchResults([])
     })()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [selectedId, loadDefaultSymbols])
 
   // ── Fetch klines function ───────────────────────────────

@@ -1,5 +1,6 @@
 import type { IndicatorSettingsProps } from '../../types'
 import { toHex } from '../../utils/color'
+import { Button, Slider } from '@eous/ui'
 
 const DEFAULT_COLORS = ['hsl(217, 91%, 60%)', 'hsl(25, 95%, 53%)', 'hsl(220, 9%, 46%)']
 const COLOR_LABELS = ['MACD', 'Signal', 'Histogram']
@@ -30,14 +31,13 @@ export function MACDSettings({ config, onUpdate, onRemove }: IndicatorSettingsPr
         <div key={p.key} className="flex items-center justify-between">
           <span className="text-muted-foreground">{p.label}</span>
           <div className="flex items-center gap-2">
-            <input
-              type="range"
+            <Slider
               min={p.min}
               max={p.max}
               step={1}
-              value={p.value}
-              onChange={(e) => updateParam(p.key, Number(e.target.value))}
-              className="w-24 accent-primary"
+              value={[p.value]}
+              onValueChange={([v]) => updateParam(p.key, v)}
+              className="w-24"
             />
             <span className="w-8 text-right tabular-nums">{p.value}</span>
           </div>
@@ -58,12 +58,13 @@ export function MACDSettings({ config, onUpdate, onRemove }: IndicatorSettingsPr
         ))}
       </div>
 
-      <button
+      <Button
+        variant="destructive"
         onClick={onRemove}
         className="mt-1 px-2 py-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded transition-colors"
       >
         Delete Indicator
-      </button>
+      </Button>
     </div>
   )
 }

@@ -1,5 +1,13 @@
 import { useState, useCallback } from 'react'
-import { cn, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@eous/ui'
+import {
+  cn,
+  Button,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  Separator,
+} from '@eous/ui'
 import { Plus } from 'lucide-react'
 import type { IntervalOption, ProviderOption, SymbolItem } from '../types'
 import { SymbolSelector } from './symbol-selector'
@@ -117,7 +125,7 @@ export function ChartToolbar({
             containerRef={containerRef}
           />
           {/* Divider */}
-          <div className="w-px h-4 bg-border mx-2 shrink-0" />
+          <Separator orientation="vertical" className="h-4 mx-2" />
         </>
       )}
 
@@ -131,14 +139,13 @@ export function ChartToolbar({
       {/* Right spacer + indicator add */}
       <div className="flex-1" />
 
-      {onAddIndicator && (
-        <div className="w-px h-4 bg-border mx-2 shrink-0" />
-      )}
+      {onAddIndicator && <Separator orientation="vertical" className="h-4 mx-2" />}
 
       {onAddIndicator && (
         <DropdownMenu open={indicatorOpen} onOpenChange={setIndicatorOpen}>
           <DropdownMenuTrigger asChild>
-            <button
+            <Button
+              variant="ghost"
               className={cn(
                 'flex items-center gap-1 px-2 py-1 rounded text-[10px] font-mono transition-colors',
                 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
@@ -146,7 +153,7 @@ export function ChartToolbar({
             >
               <Plus size={11} strokeWidth={2.5} />
               <span>Indicator</span>
-            </button>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-[160px]">
             {availableIndicators.map((def) => (
