@@ -22,6 +22,8 @@ export type FetchKlinesFn = (params: {
   interval: string
   from?: number
   to?: number
+  /** Active data provider ID — passed by the chart to identify which provider to query */
+  providerId?: string
 }) => Promise<KlineDataPoint[]>
 
 /* ── KLineData ─────────────────────────────────────────── */

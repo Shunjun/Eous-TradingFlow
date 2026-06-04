@@ -9,10 +9,10 @@ import {
   Separator,
 } from '@eous/ui'
 import { Plus } from 'lucide-react'
-import type { IntervalOption, ProviderOption, SymbolItem } from '../types'
 import { SymbolSelector } from './symbol-selector'
 import { IntervalSelector } from './interval-selector'
 import { getAllIndicatorDefinitions, getIndicatorDefinition } from '../indicators/registry'
+import { useChartStore } from '../hooks/use-chart-store'
 import type { IndicatorConfig } from '../types'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -34,54 +34,18 @@ function formatIndicatorLabel(type: string, params: Record<string, number>): str
 // ── Props ───────────────────────────────────────────────────────────────────
 
 interface ChartToolbarProps {
-  // Interval
-  interval: string
-  intervals: IntervalOption[]
-  onIntervalChange: (interval: string) => void
-  unsupportedIntervals?: string[]
-
-  // Symbol selector
-  symbol?: string
-  providers?: ProviderOption[]
-  symbols?: SymbolItem[]
-  activeProviderId?: string
-  onSymbolSelect?: (item: SymbolItem) => void
-  onSearchChange?: (query: string) => void
-  onProviderChange?: (providerId: string) => void
-  symbolsLoading?: boolean
-  onLoadMore?: () => void
-  hasMore?: boolean
-  loadingMore?: boolean
-
-  // Indicator add
   onAddIndicator?: (config: IndicatorConfig) => void
-
-  // Container ref for Dialog portal
   containerRef?: React.RefObject<HTMLElement | null>
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-export function ChartToolbar({
-  interval,
-  intervals,
-  onIntervalChange,
-  unsupportedIntervals,
-  symbol,
-  providers,
-  symbols,
-  activeProviderId,
-  onSymbolSelect,
-  onSearchChange,
-  onProviderChange,
-  symbolsLoading,
-  onLoadMore,
-  hasMore,
-  loadingMore,
-  onAddIndicator,
-  containerRef,
-}: ChartToolbarProps) {
+export function ChartToolbar({ onAddIndicator, containerRef }: ChartToolbarProps) {
   const [indicatorOpen, setIndicatorOpen] = useState(false)
+
+  const interval = useChartStore((s) => s.interval)
+  const unsupportedIntervals = useChartStore((s) => s.unsupportedIntervals)
+  const setIntervalAction = useChartStore((s) => s.setInterval)
 
   const handleAddIndicator = useCallback(
     (type: string) => {
@@ -108,31 +72,13 @@ export function ChartToolbar({
   return (
     <div className="flex items-center px-3 py-2 border-b border-border shrink-0 gap-0">
       {/* Left: Symbol selector */}
-      {providers && providers.length > 0 && (
-        <>
-          <SymbolSelector
-            symbol={symbol || undefined}
-            providers={providers}
-            symbols={symbols ?? []}
-            activeProviderId={activeProviderId ?? ''}
-            onSymbolSelect={onSymbolSelect ?? (() => {})}
-            onSearchChange={onSearchChange}
-            onProviderChange={onProviderChange ?? (() => {})}
-            loading={symbolsLoading}
-            onLoadMore={onLoadMore}
-            hasMore={hasMore}
-            loadingMore={loadingMore}
-            containerRef={containerRef}
-          />
-          {/* Divider */}
-          <Separator orientation="vertical" className="h-4 mx-2" />
-        </>
-      )}
+      <SymbolSelector containerRef={containerRef} />
+      <Separator orientation="vertical" className="h-4 mx-2" />
 
       {/* Center: Interval selector */}
       <IntervalSelector
         value={interval}
-        onChange={onIntervalChange}
+        onChange={setIntervalAction}
         unsupportedValues={unsupportedIntervals}
       />
 

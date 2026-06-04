@@ -1,0 +1,165 @@
+import { createContext, useEffect, useRef } from 'react'
+import type { ReactNode } from 'react'
+import type { ChartStore, ChartFetchFns } from './chart-store'
+import { ALL_INTERVAL_VALUES } from './chart-store'
+
+// ── Context ────────────────────────────────────────────────────────────────
+
+export const ChartStoreContext = createContext<ChartStore | null>(null)
+
+ChartStoreContext.displayName = 'ChartStoreContext'
+
+// ── Provider props ─────────────────────────────────────────────────────────
+
+interface ChartStoreProviderProps {
+  store: ChartStore
+  fetchFns: ChartFetchFns
+  defaultSymbol?: string
+  onSymbolChange?: (symbol: string | null) => void
+  onIntervalChange?: (interval: string) => void
+  children: ReactNode
+}
+
+// ── Provider component ─────────────────────────────────────────────────────
+
+export function ChartStoreProvider({
+  store,
+  fetchFns,
+  defaultSymbol,
+  onSymbolChange,
+  onIntervalChange,
+  children,
+}: ChartStoreProviderProps) {
+  const onSymbolChangeRef = useRef(onSymbolChange)
+  onSymbolChangeRef.current = onSymbolChange
+
+  const onIntervalChangeRef = useRef(onIntervalChange)
+  onIntervalChangeRef.current = onIntervalChange
+
+  // ── Inject fetch functions into store ───────────────────────────────────
+  useEffect(() => {
+    store.getState().fetchFnsRef.current = fetchFns
+  }, [store, fetchFns])
+
+  // ── Load providers on mount ─────────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false
+    store
+      .getState()
+      .fetchFnsRef.current?.getProviders()
+      .then((providers) => {
+        if (cancelled) return
+        store.setState({ providers })
+        const firstId = providers[0]?.id ?? ''
+        store.setState({ activeProviderId: firstId })
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [store])
+
+  // ── Load intervals + default symbols when active provider changes ──────
+  useEffect(() => {
+    const unsub = store.subscribe((state, prev) => {
+      if (state.activeProviderId === prev.activeProviderId) return
+      const providerId = state.activeProviderId
+      const fns = store.getState().fetchFnsRef.current
+      if (!providerId || !fns) {
+        store.setState({
+          intervals: [],
+          symbols: [],
+          symbol: null,
+          offset: 0,
+          hasMore: true,
+          isSearching: false,
+        })
+        return
+      }
+
+      // Load intervals
+      fns
+        .getIntervals(providerId)
+        .then((intervals) => {
+          if (store.getState().activeProviderId !== providerId) return
+          const supported = new Set(intervals.map((iv) => iv.value))
+          const filtered = intervals.filter((iv) => supported.has(iv.value))
+          const unsupportedIntervals = ALL_INTERVAL_VALUES.filter((v) => !supported.has(v))
+          store.setState({ intervals: filtered, unsupportedIntervals })
+
+          // Reset to default interval if current is unsupported
+          const currentInterval = store.getState().interval
+          const unsupported = ALL_INTERVAL_VALUES.filter((v) => !supported.has(v))
+          if (unsupported.includes(currentInterval)) {
+            const fallback = filtered[0]?.value ?? currentInterval
+            store.setState({ interval: fallback })
+            onIntervalChangeRef.current?.(fallback)
+          }
+        })
+        .catch(() => {
+          store.setState({ intervals: [] })
+        })
+
+      // Load default symbols
+      store.setState({
+        symbols: [],
+        symbolsLoading: true,
+        offset: 0,
+        hasMore: true,
+        isSearching: false,
+      })
+      fns
+        .getSymbols({ providerId, offset: 0, limit: 50 })
+        .then(({ items, total }) => {
+          if (store.getState().activeProviderId !== providerId) return
+          store.setState({
+            symbols: items,
+            symbolsLoading: false,
+            offset: items.length,
+            hasMore: items.length < total,
+          })
+        })
+        .catch(() => {
+          store.setState({ symbolsLoading: false })
+        })
+    })
+    return unsub
+  }, [store])
+
+  // ── Set initial symbol ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (defaultSymbol) {
+      store.setState({ symbol: defaultSymbol })
+    }
+  }, [store, defaultSymbol])
+
+  // ── Notify external onSymbolChange ─────────────────────────────────────
+  useEffect(() => {
+    let isFirst = true
+    const unsub = store.subscribe((state, prev) => {
+      if (state.symbol === prev.symbol) return
+      if (isFirst) {
+        isFirst = false
+        return
+      }
+      onSymbolChangeRef.current?.(state.symbol)
+    })
+    return unsub
+  }, [store])
+
+  // ── Notify external onIntervalChange ───────────────────────────────────
+  useEffect(() => {
+    let isFirst = true
+    const unsub = store.subscribe((state, prev) => {
+      if (state.interval === prev.interval) return
+      if (isFirst) {
+        isFirst = false
+        return
+      }
+      onIntervalChangeRef.current?.(state.interval)
+    })
+    return unsub
+  }, [store])
+
+  return <ChartStoreContext.Provider value={store}>{children}</ChartStoreContext.Provider>
+}

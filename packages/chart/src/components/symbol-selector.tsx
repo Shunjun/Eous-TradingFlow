@@ -12,59 +12,50 @@ import {
   Badge,
   Skeleton,
   Empty,
-  EmptyMedia,
   EmptyTitle,
   ToggleGroup,
   ToggleGroupItem,
 } from '@eous/ui'
 import { Search, ChevronDown } from 'lucide-react'
-import type { ProviderOption, SymbolItem } from '../types'
+import { useChartStore } from '../hooks/use-chart-store'
+import type { SymbolItem } from '../types'
 
 // ── Props ───────────────────────────────────────────────────────────────────
 
 interface SymbolSelectorProps {
-  symbol?: string
-  providers: ProviderOption[]
-  symbols: SymbolItem[]
-  activeProviderId: string
-  onSymbolSelect: (item: SymbolItem) => void
-  onSearchChange?: (query: string) => void
-  onProviderChange: (providerId: string) => void
-  loading?: boolean
-  onLoadMore?: () => void
-  hasMore?: boolean
-  loadingMore?: boolean
   containerRef?: React.RefObject<HTMLElement | null>
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-export function SymbolSelector({
-  symbol,
-  providers,
-  symbols,
-  activeProviderId,
-  onSymbolSelect,
-  onSearchChange,
-  onProviderChange,
-  loading,
-  onLoadMore,
-  hasMore,
-  loadingMore,
-  containerRef,
-}: SymbolSelectorProps) {
+export function SymbolSelector({ containerRef }: SymbolSelectorProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(-1)
   const searchRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
+  // Read from store
+  const symbol = useChartStore((s) => s.symbol)
+  const providers = useChartStore((s) => s.providers)
+  const symbols = useChartStore((s) => s.symbols)
+  const activeProviderId = useChartStore((s) => s.activeProviderId)
+  const symbolsLoading = useChartStore((s) => s.symbolsLoading)
+  const hasMore = useChartStore((s) => s.hasMore)
+  const loadingMore = useChartStore((s) => s.loadingMore)
+  const isSearching = useChartStore((s) => s.isSearching)
+
+  // Actions from store
+  const setSymbol = useChartStore((s) => s.setSymbol)
+  const setActiveProviderId = useChartStore((s) => s.setActiveProviderId)
+  const search = useChartStore((s) => s.search)
+  const loadMore = useChartStore((s) => s.loadMore)
+
   // Reset state when dialog opens
   useEffect(() => {
     if (open) {
       setQuery('')
       setActiveIndex(-1)
-      // Auto-focus search input
       requestAnimationFrame(() => searchRef.current?.focus())
     }
   }, [open])
@@ -83,28 +74,37 @@ export function SymbolSelector({
 
   // Scroll-based infinite scroll
   const handleScroll = useCallback(() => {
-    if (!hasMore || !onLoadMore || loadingMore) return
+    if (!hasMore || loadingMore || isSearching) return
     const el = listRef.current
     if (!el) return
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
-      onLoadMore()
+      loadMore()
     }
-  }, [hasMore, onLoadMore, loadingMore])
+  }, [hasMore, loadingMore, isSearching, loadMore])
 
   const handleSearchChange = useCallback(
     (value: string) => {
       setQuery(value)
-      onSearchChange?.(value)
+      search(value)
     },
-    [onSearchChange],
+    [search],
   )
 
   const handleSelect = useCallback(
     (item: SymbolItem) => {
-      onSymbolSelect(item)
+      setSymbol(item.symbol)
+      setActiveProviderId(item.providerId)
       setOpen(false)
     },
-    [onSymbolSelect],
+    [setSymbol, setActiveProviderId],
+  )
+
+  const handleProviderChange = useCallback(
+    (providerId: string) => {
+      setActiveProviderId(providerId)
+      setQuery('')
+    },
+    [setActiveProviderId],
   )
 
   const handleKeyDown = useCallback(
@@ -189,7 +189,7 @@ export function SymbolSelector({
                 type="single"
                 value={activeProviderId}
                 onValueChange={(next) => {
-                  if (next) onProviderChange(next)
+                  if (next) handleProviderChange(next)
                 }}
                 variant="default"
                 size="sm"
@@ -210,7 +210,7 @@ export function SymbolSelector({
 
           {/* Symbol list */}
           <div ref={listRef} onScroll={handleScroll} className="max-h-72 overflow-y-auto">
-            {loading ? (
+            {symbolsLoading ? (
               <div className="px-4 py-8 space-y-2">
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-3/4" />

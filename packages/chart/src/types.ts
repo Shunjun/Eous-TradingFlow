@@ -1,5 +1,6 @@
 import type { Time } from 'lightweight-charts'
 import type { FetchKlinesFn } from './core/kline-data'
+import type { GetSymbolsFn, GetIntervalsFn, GetProvidersFn } from './stores/chart-store'
 
 // ── Data ────────────────────────────────────────────────────────────────────
 
@@ -51,42 +52,24 @@ export interface IntervalOption {
 // ── Component Props ─────────────────────────────────────────────────────────
 
 export interface KlineChartProps {
-  /** Symbol to display (e.g. "BTC/USDT") */
-  symbol?: string
-  /** Initial interval (e.g. "1m", "5m", "15m", "1h", "4h", "1d", "1w"). Component manages state internally. */
-  interval?: string
-  /** Available intervals from the data provider. If empty, no interval buttons shown. */
-  intervals?: IntervalOption[]
-  /** Called when user changes interval via toolbar */
+  /** Data fetching function for kline data */
+  fetchKlines: FetchKlinesFn
+  /** Fetch available symbols for a provider (with optional search/pagination) */
+  getSymbols: GetSymbolsFn
+  /** Fetch available intervals for a provider */
+  getIntervals: GetIntervalsFn
+  /** Fetch available data providers */
+  getProviders: GetProvidersFn
+
+  /** Default symbol to display on mount */
+  defaultSymbol?: string
+  /** Default interval (e.g. "1m", "5m", "15m", "1h", "4h", "1d", "1w") */
+  defaultInterval?: string
+
+  /** Called when the selected symbol changes */
+  onSymbolChange?: (symbol: string | null) => void
+  /** Called when the selected interval changes */
   onIntervalChange?: (interval: string) => void
-  /** Data fetching function provided by the app layer */
-  fetchKlines?: FetchKlinesFn
-
-  // ── Symbol selector props ────────────────────────────────────────────────
-  /** Available data providers */
-  providers?: ProviderOption[]
-  /** Symbols for the current provider */
-  symbols?: SymbolItem[]
-  /** Active provider ID */
-  activeProviderId?: string
-  /** Called when user selects a symbol */
-  onSymbolSelect?: (item: SymbolItem) => void
-  /** Called when search text changes (for async search) */
-  onSearchChange?: (query: string) => void
-  /** Called when user switches provider */
-  onProviderChange?: (providerId: string) => void
-  /** Whether symbol list is loading */
-  symbolsLoading?: boolean
-  /** Called when user scrolls to the bottom of the symbol list (infinite scroll) */
-  onLoadMore?: () => void
-  /** Whether there are more symbols to load */
-  hasMore?: boolean
-  /** Whether more symbols are currently being loaded */
-  loadingMore?: boolean
-
-  // ── Interval selector props ──────────────────────────────────────────────
-  /** Interval values the provider does NOT support (hidden from toolbar but preserved in config) */
-  unsupportedIntervals?: string[]
 }
 
 // ── Indicators ──────────────────────────────────────────────────────────────

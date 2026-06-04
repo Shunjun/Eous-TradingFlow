@@ -1,8 +1,12 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback, useRef, useMemo, useContext } from 'react'
 import type { ISeriesApi } from 'lightweight-charts'
 import { useIndicatorStore } from '@eous/stores'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@eous/ui'
 import type { KlineChartProps, IndicatorConfig } from './types'
+import type { FetchKlinesFn } from './core/kline-data'
+import { createChartStore } from './stores/chart-store'
+import { ChartStoreProvider, ChartStoreContext } from './stores/chart-provider'
+import { useChartStore } from './hooks/use-chart-store'
 import { useChart } from './hooks/use-chart'
 import { useResolvedTheme } from './hooks/use-resolved-theme'
 import { ChartToolbar } from './components/chart-toolbar'
@@ -19,39 +23,51 @@ const EMPTY_CONFIGS: IndicatorConfig[] = []
 // ── Component ───────────────────────────────────────────────────────────────
 
 export function KlineChart({
-  symbol,
-  interval: initialInterval = '1d',
-  intervals = [],
-  onIntervalChange,
   fetchKlines,
-  // Symbol selector
-  providers,
-  symbols,
-  activeProviderId,
-  onSymbolSelect,
-  onSearchChange,
-  onProviderChange,
-  symbolsLoading,
-  onLoadMore,
-  hasMore,
-  loadingMore,
-  // Interval selector
-  unsupportedIntervals,
+  getSymbols,
+  getIntervals,
+  getProviders,
+  defaultSymbol,
+  defaultInterval = '1d',
+  onSymbolChange,
+  onIntervalChange,
 }: KlineChartProps) {
-  // ── Internal interval state ──────────────────────────────
-  const [currentInterval, setCurrentInterval] = useState(initialInterval)
-  const interval = currentInterval
+  const store = useMemo(() => createChartStore(defaultInterval), [defaultInterval])
 
-  const handleIntervalChange = useCallback(
-    (iv: string) => {
-      setCurrentInterval(iv)
-      onIntervalChange?.(iv)
-    },
-    [onIntervalChange],
+  const fetchFns = useMemo(
+    () => ({ fetchKlines, getSymbols, getIntervals, getProviders }),
+    [fetchKlines, getSymbols, getIntervals, getProviders],
   )
+
+  return (
+    <ChartStoreProvider
+      store={store}
+      fetchFns={fetchFns}
+      defaultSymbol={defaultSymbol}
+      onSymbolChange={onSymbolChange}
+      onIntervalChange={onIntervalChange}
+    >
+      <KlineChartInner fetchKlines={fetchKlines} />
+    </ChartStoreProvider>
+  )
+}
+
+// ── Inner component (accesses store) ────────────────────────────────────────
+
+function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
   const chartTheme = useResolvedTheme()
   const containerRef = useRef<HTMLDivElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
+
+  const store = useContext(ChartStoreContext)
+  if (!store) throw new Error('KlineChartInner must be used within ChartStoreProvider')
+
+  // Set chart container ref in store for Dialog portal
+  const chartContainerRef = useChartStore((s) => s.chartContainerRef)
+  useEffect(() => {
+    chartContainerRef.current = wrapperRef.current
+  }, [chartContainerRef])
+
   const {
     engines,
     addIndicator,
@@ -64,7 +80,27 @@ export function KlineChart({
     deleteSelectedDrawing,
   } = useChart(containerRef, chartTheme)
 
-  // ── Resizable panel state ────────────────────────────────
+  // ── ProviderId ref (synced from store subscription, not reactive) ────
+  const providerIdRef = useRef(store.getState().activeProviderId)
+  useEffect(() => {
+    return store.subscribe((state) => {
+      providerIdRef.current = state.activeProviderId
+    })
+  }, [store])
+
+  // ── Wrapped fetchKlines that injects providerId ──────────────────────
+  const fetchKlinesRef = useRef(fetchKlines)
+  fetchKlinesRef.current = fetchKlines
+  const wrappedFetchKlinesRef = useRef<FetchKlinesFn>((params) =>
+    fetchKlinesRef.current({ ...params, providerId: providerIdRef.current }),
+  )
+
+  // ── Read state from store ─────────────────────────────────────────────
+  const symbol = useChartStore((s) => s.symbol)
+  const interval = useChartStore((s) => s.interval)
+  const setIntervalAction = useChartStore((s) => s.setInterval)
+
+  // ── Resizable panel state ─────────────────────────────────────────────
   const [panelOpen, setPanelOpen] = useState(false)
   const [selectedIndicatorId, setSelectedIndicatorId] = useState<string | null>(null)
 
@@ -85,18 +121,13 @@ export function KlineChart({
       seriesMapRef.current = newMap
     }
 
-    // Initial update
     updateSeriesMap()
-
-    // We'll call updateSeriesMap after addIndicator/removeIndicator
     return () => {}
   }, [engines.indicator])
 
   const lineToolsEngine = engines.lineTools.current
 
-  // ── Infinite scroll ─────────────────────────────────────
-  const fetchKlinesRef = useRef(fetchKlines)
-  fetchKlinesRef.current = fetchKlines
+  // ── Infinite scroll ───────────────────────────────────────────────────
   const symbolRef = useRef(symbol)
   symbolRef.current = symbol
   const intervalRef = useRef(interval)
@@ -128,13 +159,12 @@ export function KlineChart({
         const oldestBar = data[0] as { time: number }
 
         loadEarlier(
-          fetchKlinesRef.current!,
+          wrappedFetchKlinesRef.current,
           symbolRef.current!,
           intervalRef.current,
           oldestBar.time,
         )
 
-        // Cooldown to prevent rapid re-triggers
         if (cooldownTimer) clearTimeout(cooldownTimer)
         cooldownTimer = setTimeout(() => {}, 1000)
       }, 300)
@@ -146,28 +176,28 @@ export function KlineChart({
       if (timer) clearTimeout(timer)
       if (cooldownTimer) clearTimeout(cooldownTimer)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [engines, getKlineData, loadEarlier])
 
-  // ── Load data on symbol/interval change ───────────────────
+  // ── Load data on symbol/interval change ───────────────────────────────
   const lastFetchedRef = useRef<{ symbol: string; interval: string } | null>(null)
 
   useEffect(() => {
-    if (!fetchKlines || !symbol) return
+    if (!symbol) return
 
     const prev = lastFetchedRef.current
     const symbolChanged = prev?.symbol !== symbol
     const intervalChanged = prev?.interval !== interval
     lastFetchedRef.current = { symbol, interval }
 
+    const wrappedFetch = wrappedFetchKlinesRef.current
     if (symbolChanged || !prev) {
-      loadKlines(fetchKlines, symbol, interval)
+      loadKlines(wrappedFetch, symbol, interval)
     } else if (intervalChanged) {
-      switchInterval(fetchKlines, symbol, interval)
+      switchInterval(wrappedFetch, symbol, interval)
     }
-  }, [symbol, interval, fetchKlines, loadKlines, switchInterval])
+  }, [symbol, interval, loadKlines, switchInterval])
 
-  // ── Indicator configs (persisted per symbol via Zustand store) ──────
+  // ── Indicator configs (persisted per symbol via Zustand store) ────────
   const indicatorConfigs = useIndicatorStore((s) =>
     symbol ? (s.configsBySymbol[symbol] ?? EMPTY_CONFIGS) : EMPTY_CONFIGS,
   )
@@ -180,22 +210,19 @@ export function KlineChart({
     for (const config of configs) {
       if (config.enabled) addIndicator(config)
     }
-    return () => {
-      // cleanup handled by useChart destroy
-    }
+    return () => {}
   }, [symbol, addIndicator])
 
-  // ── Drawing tools state ─────────────────────────────────
+  // ── Drawing tools state ───────────────────────────────────────────────
   const [activeDrawingTool, setActiveDrawingTool] = useState<LineToolType | 'none'>('none')
   const [hasSelectedDrawing, setHasSelectedDrawing] = useState(false)
 
-  // Subscribe to selection changes from the engine
   useEffect(() => {
     if (!lineToolsEngine) return
     return lineToolsEngine.onSelectionChange(setHasSelectedDrawing)
   }, [lineToolsEngine])
 
-  // ── Keyboard shortcuts ──────────────────────────────────
+  // ── Keyboard shortcuts ────────────────────────────────────────────────
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
@@ -210,7 +237,14 @@ export function KlineChart({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [hasSelectedDrawing, deleteSelectedDrawing, lineToolsEngine])
 
-  // ── Handlers ────────────────────────────────────────────
+  // ── Handlers ──────────────────────────────────────────────────────────
+
+  const handleIntervalChange = useCallback(
+    (iv: string) => {
+      setIntervalAction(iv)
+    },
+    [setIntervalAction],
+  )
 
   const handleDoubleClickIndicator = useCallback((id: string) => {
     setSelectedIndicatorId(id)
@@ -254,10 +288,8 @@ export function KlineChart({
 
   const handleUpdateIndicatorConfig = useCallback(
     (id: string, updates: Partial<IndicatorConfig>) => {
-      if (symbol)
-        useIndicatorStore.getState().updateConfigForSymbol(symbol, id, updates)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ;(engines.indicator.current as any)?.updateConfig(id, updates)
+      if (symbol) useIndicatorStore.getState().updateConfigForSymbol(symbol, id, updates)
+      engines.indicator.current?.updateConfig(id, updates)
     },
     [symbol, engines],
   )
@@ -281,25 +313,7 @@ export function KlineChart({
       className="flex flex-col h-full w-full min-h-0 border border-border rounded-lg overflow-hidden"
     >
       {/* Toolbar — always visible */}
-      <ChartToolbar
-        interval={interval}
-        intervals={intervals}
-        onIntervalChange={handleIntervalChange}
-        unsupportedIntervals={unsupportedIntervals}
-        symbol={symbol}
-        providers={providers}
-        symbols={symbols}
-        activeProviderId={activeProviderId}
-        onSymbolSelect={onSymbolSelect}
-        onSearchChange={onSearchChange}
-        onProviderChange={onProviderChange}
-        symbolsLoading={symbolsLoading}
-        onLoadMore={onLoadMore}
-        hasMore={hasMore}
-        loadingMore={loadingMore}
-        onAddIndicator={handleAddIndicator}
-        containerRef={wrapperRef}
-      />
+      <ChartToolbar onAddIndicator={handleAddIndicator} containerRef={wrapperRef} />
 
       {/* Chart area with sidebar */}
       <div className="relative flex-1 flex min-h-0">

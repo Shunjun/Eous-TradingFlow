@@ -1,16 +1,19 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { cn, Button, Popover, PopoverTrigger, ToggleGroup, ToggleGroupItem } from '@eous/ui'
-import { Pencil, Plus } from 'lucide-react'
-import type {
-  IntervalItem,
-  IntervalSelectorProps,
-  IntervalSelectorState,
-} from './interval-selector/types'
-import { useIntervalSettings } from './interval-selector/use-interval-settings'
-import { IntervalPopup } from './interval-selector/interval-popup'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import {
+  cn,
+  Button,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  ToggleGroup,
+  ToggleGroupItem,
+} from '@eous/ui'
+import { Plus, Pencil } from 'lucide-react'
+import type { IntervalItem, IntervalSelectorProps } from './interval-selector/types'
 import { IntervalEditor } from './interval-selector/interval-editor'
+import { useIntervalSettings } from '../hooks/use-interval-settings'
 
 export function IndicatorSelector({
   value,
@@ -30,7 +33,6 @@ export function IndicatorSelector({
   )
 
   // ── Filter by provider support ──────────────────────────────────────────
-  //   Unsupported intervals are hidden from UI but preserved in config
   const supportedIntervals = useMemo(
     () => effectiveIntervals.filter((iv) => !unsupportedValues.includes(iv.value)),
     [effectiveIntervals, unsupportedValues],
@@ -41,20 +43,31 @@ export function IndicatorSelector({
   const hidden = useMemo(() => supportedIntervals.filter((iv) => !iv.visible), [supportedIntervals])
 
   // ── State machine ───────────────────────────────────────────────────────
-  const [state, setState] = useState<IntervalSelectorState>('idle')
+  const [popupMode, setPopupMode] = useState<'select' | 'editing'>('select')
   const [popupOpen, setPopupOpen] = useState(false)
 
-  // Close editor on Escape
+  // Reset to select mode when popup closes
   useEffect(() => {
-    if (state !== 'editing') return
+    if (!popupOpen) setPopupMode('select')
+  }, [popupOpen])
+
+  // Close on Escape
+  useEffect(() => {
+    if (!popupOpen) return
 
     function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setState('idle')
+      if (e.key === 'Escape') {
+        if (popupMode === 'editing') {
+          setPopupMode('select')
+        } else {
+          setPopupOpen(false)
+        }
+      }
     }
 
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
-  }, [state])
+  }, [popupOpen, popupMode])
 
   // Select from popup
   const handlePopupSelect = useCallback(
@@ -65,11 +78,11 @@ export function IndicatorSelector({
     [onChange],
   )
 
-  // Save from editor
+  // Save from editor → back to select mode, keep popup open
   const handleEditorSave = useCallback(
     (next: IntervalItem[]) => {
       updateIntervals(next)
-      setState('idle')
+      setPopupMode('select')
     },
     [updateIntervals],
   )
@@ -89,64 +102,82 @@ export function IndicatorSelector({
           spacing={1}
         >
           {visible.map((iv) => (
-            <ToggleGroupItem
-              key={iv.value}
-              value={iv.value}
-              // className="rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
-            >
+            <ToggleGroupItem key={iv.value} value={iv.value}>
               {iv.label}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
 
-        {/* "+" button — opens popup of remaining intervals */}
-        {hidden.length > 0 && (
-          <Popover open={popupOpen} onOpenChange={setPopupOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="ghost"
-                size="xs"
-                className={cn(
-                  'ml-0.5 transition-colors',
-                  popupOpen
-                    ? 'text-primary bg-primary/10'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+        {/* "+" button — dual-mode popup */}
+        <Popover open={popupOpen} onOpenChange={setPopupOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="ghost"
+              size="xs"
+              className={cn(
+                'ml-0.5 transition-colors',
+                popupOpen
+                  ? 'text-primary bg-primary/10'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+              )}
+              aria-label="More intervals"
+            >
+              <Plus strokeWidth={2.5} />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" sideOffset={4} className="w-auto p-0">
+            {popupMode === 'select' ? (
+              <div className="min-w-[180px]">
+                {/* Header with Edit button */}
+                <div className="flex items-center justify-between px-3 py-1.5 border-b border-border">
+                  <span className="text-[10px] font-mono text-muted-foreground">Intervals</span>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    className="h-5 px-1.5 text-[10px] font-mono text-muted-foreground hover:text-foreground"
+                    onClick={() => setPopupMode('editing')}
+                  >
+                    <Pencil size={10} className="mr-1" />
+                    Edit
+                  </Button>
+                </div>
+
+                {/* Hidden intervals list */}
+                {hidden.length === 0 ? (
+                  <div className="text-[10px] text-muted-foreground/40 text-center py-3 font-mono px-3">
+                    All intervals are visible
+                  </div>
+                ) : (
+                  <div className="p-2 flex flex-wrap gap-1">
+                    {hidden.map((iv) => (
+                      <Button
+                        variant="ghost"
+                        key={iv.value}
+                        onClick={() => handlePopupSelect(iv.value)}
+                        className={cn(
+                          'px-2 py-1 text-[10px] font-mono rounded transition-colors',
+                          'text-muted-foreground hover:text-foreground hover:bg-muted/50',
+                        )}
+                      >
+                        {iv.label}
+                      </Button>
+                    ))}
+                  </div>
                 )}
-                aria-label="More intervals"
-              >
-                <Plus strokeWidth={2.5} />
-              </Button>
-            </PopoverTrigger>
-            <IntervalPopup items={hidden} onSelect={handlePopupSelect} />
-          </Popover>
-        )}
-
-        {/* ✎ edit button */}
-        <Button
-          variant="ghost"
-          onClick={() => setState(state === 'editing' ? 'idle' : 'editing')}
-          size="xs"
-          className={cn(
-            'ml-0.5 transition-colors',
-            state === 'editing'
-              ? 'text-primary bg-primary/10'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50',
-          )}
-          aria-label="Edit intervals"
-        >
-          <Pencil strokeWidth={2.5} />
-        </Button>
+              </div>
+            ) : (
+              <div className="min-w-[220px]">
+                <IntervalEditor
+                  intervals={effectiveIntervals}
+                  onSave={handleEditorSave}
+                  onCancel={() => setPopupMode('select')}
+                  unsupportedValues={unsupportedValues}
+                />
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
       </div>
-
-      {/* Editor overlay */}
-      {state === 'editing' && (
-        <IntervalEditor
-          intervals={effectiveIntervals}
-          onSave={handleEditorSave}
-          onCancel={() => setState('idle')}
-          unsupportedValues={unsupportedValues}
-        />
-      )}
     </div>
   )
 }
@@ -167,7 +198,6 @@ function useMemoEffectedIntervals(
   const serializedVisible = JSON.stringify(defaultVisible)
   const serializedHidden = JSON.stringify(defaultHidden)
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const depsKey = `${serializedPersisted}|${serializedVisible}|${serializedHidden}`
 
   return useMemo(() => {
@@ -175,7 +205,6 @@ function useMemoEffectedIntervals(
       return persisted
     }
 
-    // Build base from overrides
     const base: IntervalItem[] = [
       ...(defaultVisible?.map((iv) => ({
         ...iv,
@@ -189,9 +218,7 @@ function useMemoEffectedIntervals(
       })) ?? []),
     ]
 
-    // Merge persisted visibility flags onto base
     const persistedMap = new Map(persisted.map((iv) => [iv.value, iv]))
     return base.map((iv) => persistedMap.get(iv.value) ?? iv)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [depsKey])
 }
