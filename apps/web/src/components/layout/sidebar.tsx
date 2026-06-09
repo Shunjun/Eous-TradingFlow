@@ -1,33 +1,39 @@
-import type { ElementType } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { useState, useCallback, type ElementType } from 'react'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
-  Badge,
+  Button,
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
+  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarSeparator,
+  useSidebar,
 } from '@eous/ui'
 import {
   LayoutDashboard,
   Grid3x3,
-  GitBranch,
   BrainCircuit,
   BarChart3,
   Newspaper,
   Settings,
   Wallet,
+  Plus,
+  GitBranch,
 } from 'lucide-react'
+import { useWorkflowList } from '../../hooks/use-workflows'
+import { CreateWorkflowDialog } from '../workflow/create-workflow-dialog'
 
 interface NavItem {
   id: string
   label: string
   icon: ElementType
-  badge?: string
 }
 
 const navSections: { title: string; items: NavItem[] }[] = [
@@ -43,14 +49,9 @@ const navSections: { title: string; items: NavItem[] }[] = [
   {
     title: 'BUILD',
     items: [
-      { id: 'workflows', label: 'Workflows', icon: GitBranch, badge: '3' },
       { id: 'agents', label: 'Agents', icon: BrainCircuit },
       { id: 'datasets', label: 'Datasets', icon: Wallet },
     ],
-  },
-  {
-    title: 'SYSTEM',
-    items: [{ id: 'settings', label: 'Settings', icon: Settings }],
   },
 ]
 
@@ -59,7 +60,6 @@ const navToPath: Record<string, string> = {
   dashboard: '/dashboard',
   watchlist: '/watchlist',
   news: '/news',
-  workflows: '/workflows',
   agents: '/agents',
   datasets: '/datasets',
   settings: '/settings',
@@ -69,58 +69,161 @@ function isItemActive(pathname: string, to: string) {
   return pathname === to || pathname.startsWith(`${to}/`)
 }
 
+function extractWorkflowId(pathname: string): string | null {
+  const m = pathname.match(/^\/workflow\/([^/]+)/)
+  return m ? m[1] : null
+}
+
 export function AppSidebar() {
   const { pathname } = useLocation()
+  const navigate = useNavigate()
+  const { state } = useSidebar()
+  const { workflows } = useWorkflowList()
+  const [dialogOpen, setDialogOpen] = useState(false)
+
+  const isCollapsed = state === 'collapsed'
+  const activeWorkflowId = extractWorkflowId(pathname)
+  const isOnWorkflowPage = activeWorkflowId !== null
+
+  const handleCreated = useCallback(
+    (id: string) => {
+      setDialogOpen(false)
+      navigate(`/workflow/${id}`)
+    },
+    [navigate],
+  )
 
   return (
-    <Sidebar collapsible="icon" variant="sidebar">
-      <SidebarHeader className="h-14 shrink-0 flex-row items-center gap-2.5 px-3.5 border-b border-sidebar-border">
-        <div className="flex items-center gap-2.5">
-          <div className="flex size-7 items-center justify-center rounded-md border border-primary bg-primary/10">
-            <GitBranch size={14} className="text-primary" />
+    <>
+      <Sidebar collapsible="icon" variant="sidebar">
+        <SidebarHeader className="h-14 shrink-0 flex-row items-center gap-2.5 px-3.5 border-b border-sidebar-border">
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-7 items-center justify-center rounded-md border border-primary bg-primary/10">
+              <GitBranch size={14} className="text-primary" />
+            </div>
+            <span className="truncate font-mono text-sm font-bold tracking-wide group-data-[collapsible=icon]:hidden">
+              EOUS
+            </span>
           </div>
-          <span className="truncate font-mono text-sm font-bold tracking-wide group-data-[collapsible=icon]:hidden">
-            EOUS
-          </span>
-        </div>
-      </SidebarHeader>
+        </SidebarHeader>
 
-      <SidebarContent className="px-3 py-3">
-        {navSections.map((section) => (
-          <SidebarGroup key={section.title} className="mb-5 px-0 py-0">
-            <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu className="gap-0.5">
-                {section.items.map((item) => {
-                  const isActive = isItemActive(pathname, navToPath[item.id])
-                  const Icon = item.icon
+        <SidebarContent className="px-3 py-3">
+          {navSections.map((section) => (
+            <SidebarGroup key={section.title} className="p-0">
+              <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu className="gap-0.5">
+                  {section.items.map((item) => {
+                    const isActive = isItemActive(pathname, navToPath[item.id])
+                    const Icon = item.icon
 
-                  return (
-                    <SidebarMenuItem key={item.id}>
-                      {isActive && (
-                        <span className="pointer-events-none absolute -left-2 top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:hidden" />
-                      )}
-                      <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
-                        <NavLink to={navToPath[item.id]} className="cursor-pointer">
-                          <Icon size={16} />
-                          <span className="flex-1 text-left group-data-[collapsible=icon]:hidden">
-                            {item.label}
-                          </span>
-                          {item.badge && (
-                            <Badge className="border-0 bg-sidebar-primary/15 px-1.5 py-0.5 font-mono text-[10px] leading-none text-sidebar-primary group-data-[collapsible=icon]:hidden">
-                              {item.badge}
-                            </Badge>
-                          )}
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
-      </SidebarContent>
-    </Sidebar>
+                    return (
+                      <SidebarMenuItem key={item.id}>
+                        {isActive && (
+                          <span className="pointer-events-none absolute -left-2 top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:hidden" />
+                        )}
+                        <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+                          <NavLink to={navToPath[item.id]} className="cursor-pointer">
+                            <Icon size={16} />
+                            <span className="flex-1 text-left group-data-[collapsible=icon]:hidden">
+                              {item.label}
+                            </span>
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
+
+          {(workflows.length > 0 || isOnWorkflowPage) && (
+            <SidebarGroup className="px-0">
+              <SidebarGroupLabel>WORKFLOWS</SidebarGroupLabel>
+              <SidebarGroupAction
+                asChild
+                className="flex items-center justify-center"
+                onClick={() => setDialogOpen(true)}
+              >
+                <Button size="xs" variant="ghost-icon">
+                  <Plus size={14} />
+                </Button>
+              </SidebarGroupAction>
+              <SidebarGroupContent>
+                {isCollapsed && isOnWorkflowPage ? (
+                  <SidebarMenu className="gap-0.5">
+                    {(() => {
+                      const activeWf = workflows.find((wf) => wf.id === activeWorkflowId)
+                      if (!activeWf) return null
+                      return (
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild isActive tooltip={activeWf.name}>
+                            <NavLink to={`/workflow/${activeWf.id}`} className="cursor-pointer">
+                              <GitBranch size={16} />
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      )
+                    })()}
+                  </SidebarMenu>
+                ) : (
+                  <SidebarMenu className="gap-0.5">
+                    {workflows.length === 0 ? (
+                      <div className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-sidebar-foreground/40">
+                        <Plus size={12} />
+                        <span>暂无工作流</span>
+                      </div>
+                    ) : (
+                      workflows.map((wf) => {
+                        const isActive = activeWorkflowId === wf.id
+                        return (
+                          <SidebarMenuItem key={wf.id}>
+                            {isActive && (
+                              <span className="pointer-events-none absolute -left-2 top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:hidden" />
+                            )}
+                            <SidebarMenuButton asChild isActive={isActive} tooltip={wf.name}>
+                              <NavLink to={`/workflow/${wf.id}`} className="cursor-pointer">
+                                <GitBranch size={16} />
+                                <span className="flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
+                                  {wf.name}
+                                </span>
+                              </NavLink>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        )
+                      })
+                    )}
+                  </SidebarMenu>
+                )}
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )}
+        </SidebarContent>
+
+        <SidebarSeparator className="mx-3" />
+        <SidebarFooter className="px-3 py-3">
+          <SidebarMenu className="gap-0.5">
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={isItemActive(pathname, '/settings')}
+                tooltip="Settings"
+              >
+                <NavLink to="/settings" className="cursor-pointer">
+                  <Settings size={16} />
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+      </Sidebar>
+
+      <CreateWorkflowDialog
+        open={dialogOpen}
+        onCreated={handleCreated}
+        onCancel={() => setDialogOpen(false)}
+      />
+    </>
   )
 }
