@@ -129,6 +129,7 @@ function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
   const selectedNodeIdRef = useRef<string | null>(null)
   const [isLocalDraft, setIsLocalDraft] = useState(false)
   const [logOpen, setLogOpen] = useState(false)
+  const [logHeight, setLogHeight] = useState(280)
 
   useEffect(() => {
     selectedNodeIdRef.current = selectedNodeId
@@ -309,10 +310,17 @@ function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
         nodeId={selectedNode?.id ?? null}
         nodeType={selectedNode?.type ?? null}
         data={selectedNode?.data ?? null}
+        logOpen={logOpen}
+        logHeight={logHeight}
         onChange={handleNodeDataChange}
         onClose={handleCloseSettings}
       />
-      <GlobalLogPanel workflowId={workflowId} open={logOpen} onClose={handleToggleLog} />
+      <GlobalLogPanel
+        workflowId={workflowId}
+        open={logOpen}
+        onClose={handleToggleLog}
+        onHeightChange={setLogHeight}
+      />
     </div>
   )
 }

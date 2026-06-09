@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
-import { X, RefreshCw, ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { X, RefreshCw, ChevronDown, ChevronRight, Loader2, GripHorizontal } from 'lucide-react'
 import { Badge, Button, ScrollArea, cn } from '@eous/ui'
 import { api } from '../../lib/api'
 import { useWorkflowStore } from '../../stores/workflow'
@@ -28,6 +28,7 @@ interface GlobalLogPanelProps {
   workflowId: string
   open: boolean
   onClose: () => void
+  onHeightChange?: (height: number) => void
 }
 
 function formatTime(iso: string): string {
@@ -45,11 +46,42 @@ function formatDuration(ms: number | null): string {
   return `${(ms / 1000).toFixed(1)}s`
 }
 
-function GlobalLogPanel({ workflowId, open, onClose }: GlobalLogPanelProps) {
+const LOG_HEADER_H = 40
+const LOG_MIN_H = 100
+const LOG_DEFAULT_H = 320
+
+function GlobalLogPanel({ workflowId, open, onClose, onHeightChange }: GlobalLogPanelProps) {
   const [executions, setExecutions] = useState<ExecutionEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const storeNodes = useWorkflowStore((s) => s.nodes)
+  const [height, setHeight] = useState(LOG_DEFAULT_H)
+  const dragRef = useRef<{ startY: number; startH: number } | null>(null)
+
+  // Report height to parent
+  useEffect(() => {
+    onHeightChange?.(height)
+  }, [height, onHeightChange])
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault()
+      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+      dragRef.current = { startY: e.clientY, startH: height }
+    },
+    [height],
+  )
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragRef.current) return
+    const delta = dragRef.current.startY - e.clientY
+    const next = Math.max(LOG_MIN_H, dragRef.current.startH + delta)
+    setHeight(next)
+  }, [])
+
+  const handlePointerUp = useCallback(() => {
+    dragRef.current = null
+  }, [])
 
   const fetchExecutions = useCallback(async () => {
     setLoading(true)
@@ -91,12 +123,25 @@ function GlobalLogPanel({ workflowId, open, onClose }: GlobalLogPanelProps) {
     <div
       className={cn(
         'pointer-events-auto absolute bottom-0 left-0 right-0 z-30 overflow-hidden border-t border-border bg-card/95 shadow-lg backdrop-blur',
-        'transition-transform duration-300 ease-out',
+        'transition-[transform] duration-300 ease-out',
         open ? 'translate-y-0' : 'translate-y-[calc(100%-40px)]',
       )}
+      style={{ height: open ? height : LOG_HEADER_H }}
     >
+      {/* Drag handle — at top edge */}
+      {open && (
+        <div
+          className="flex h-1.5 cursor-row-resize items-center justify-center hover:bg-accent"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+        >
+          <GripHorizontal className="h-3 w-8 text-muted-foreground/50" />
+        </div>
+      )}
+
       {/* Header bar — always visible */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-2">
+      <div className="flex h-10 items-center justify-between border-b border-border px-4">
         <span className="text-sm font-medium text-foreground">运行日志</span>
         <div className="flex items-center gap-1">
           <Button
@@ -121,7 +166,7 @@ function GlobalLogPanel({ workflowId, open, onClose }: GlobalLogPanelProps) {
 
       {/* Content */}
       {open && (
-        <ScrollArea className="h-[280px]">
+        <ScrollArea className="h-[calc(100%-46px)]">
           {loading && executions.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -137,10 +182,7 @@ function GlobalLogPanel({ workflowId, open, onClose }: GlobalLogPanelProps) {
                 const nodeLabel = getNodeLabel(entry)
 
                 return (
-                  <div
-                    key={entry.id}
-                    className="rounded-md border border-border/50 bg-muted/30"
-                  >
+                  <div key={entry.id} className="rounded-md border border-border/50 bg-muted/30">
                     {/* Summary row */}
                     <button
                       type="button"
@@ -164,9 +206,7 @@ function GlobalLogPanel({ workflowId, open, onClose }: GlobalLogPanelProps) {
                       <span className="flex-1 truncate text-xs font-medium text-foreground">
                         {nodeLabel}
                       </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        ({entry.nodeType})
-                      </span>
+                      <span className="text-[10px] text-muted-foreground">({entry.nodeType})</span>
                       {entry.durationMs != null && (
                         <span className="text-[10px] text-muted-foreground">
                           {formatDuration(entry.durationMs)}

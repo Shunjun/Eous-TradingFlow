@@ -63,6 +63,9 @@ function useOptionsSource(
   const [options, setOptions] = useState<SelectOption[]>([])
   const [loading, setLoading] = useState(false)
 
+  const instanceId =
+    typeof data['dataSourceInstanceId'] === 'string' ? data['dataSourceInstanceId'] : null
+
   useEffect(() => {
     if (!optionsSource) return
 
@@ -75,34 +78,52 @@ function useOptionsSource(
         if (src.source === 'dataSourceInstances') {
           const res = await api.listDataSourceInstances()
           if (!cancelled) {
-            setOptions(
-              res.instances.map((inst) => ({
+            setOptions((prev) => {
+              const next = res.instances.map((inst) => ({
                 label: `${inst.name} (${inst.providerKind})`,
                 value: inst.id,
-              })),
-            )
+              }))
+              if (prev.length === next.length && prev.every((p, i) => p.value === next[i].value)) {
+                return prev
+              }
+              return next
+            })
           }
         } else if (src.source === 'instanceSymbols') {
-          const instanceId = data['dataSourceInstanceId']
-          if (typeof instanceId === 'string' && instanceId) {
+          if (instanceId) {
             const res = await api.getDataSourceInstanceSymbols(instanceId, query)
             if (!cancelled) {
-              setOptions(
-                res.symbols.map((s) => ({
+              setOptions((prev) => {
+                const next = res.symbols.map((s) => ({
                   label: s.name ? `${s.symbol} — ${s.name}` : s.symbol,
                   value: s.symbol,
-                })),
-              )
+                }))
+                if (
+                  prev.length === next.length &&
+                  prev.every((p, i) => p.value === next[i].value)
+                ) {
+                  return prev
+                }
+                return next
+              })
             }
           } else {
             if (!cancelled) setOptions([])
           }
         } else if (src.source === 'instanceIntervals') {
-          const instanceId = data['dataSourceInstanceId']
-          if (typeof instanceId === 'string' && instanceId) {
+          if (instanceId) {
             const res = await api.getDataSourceInstanceIntervals(instanceId)
             if (!cancelled) {
-              setOptions(res.intervals.map((i) => ({ label: i.label, value: i.value })))
+              setOptions((prev) => {
+                const next = res.intervals.map((i) => ({ label: i.label, value: i.value }))
+                if (
+                  prev.length === next.length &&
+                  prev.every((p, i) => p.value === next[i].value)
+                ) {
+                  return prev
+                }
+                return next
+              })
             }
           } else {
             if (!cancelled) setOptions([])
@@ -119,7 +140,7 @@ function useOptionsSource(
     return () => {
       cancelled = true
     }
-  }, [optionsSource, data, query])
+  }, [optionsSource, instanceId, query])
 
   return { options, loading }
 }

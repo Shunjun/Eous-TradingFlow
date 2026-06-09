@@ -13,7 +13,15 @@ interface FloatToolbarProps {
   onToggleLog: () => void
 }
 
-function FloatToolbar({ saving, publishing, isLocalDraft, logOpen, onSave, onPublish, onToggleLog }: FloatToolbarProps) {
+function FloatToolbar({
+  saving,
+  publishing,
+  isLocalDraft,
+  logOpen,
+  onSave,
+  onPublish,
+  onToggleLog,
+}: FloatToolbarProps) {
   const workflowName = useWorkflowStore((s) => s.workflowName)
   const isDirty = useWorkflowStore((s) => s.isDirty)
   const setWorkflowName = useWorkflowStore((s) => s.setWorkflowName)
@@ -83,29 +91,24 @@ function FloatToolbar({ saving, publishing, isLocalDraft, logOpen, onSave, onPub
       <div className="ml-auto flex items-center gap-2">
         <Button
           variant="outline"
-          size="sm"
+          size="xs"
           onClick={onToggleLog}
           className={cn(logOpen && 'bg-accent text-accent-foreground')}
         >
-          <ScrollText className="mr-1.5 h-3.5 w-3.5" />
+          <ScrollText className="mr-1" />
           日志
         </Button>
-        <Button variant="outline" size="sm" disabled={!isPublished}>
-          <Eye className="mr-1.5 h-3.5 w-3.5" />
-          预览
+        <Button variant="outline" size="xs" disabled={!isPublished}>
+          <Eye className="mr-1" />
+          <span>预览</span>
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onSave}
-          disabled={saving || !activeWorkflowId}
-        >
-          <Save className="mr-1.5 h-3.5 w-3.5" />
-          {saving ? '保存中…' : '保存'}
+        <Button variant="outline" size="xs" onClick={onSave} disabled={saving || !activeWorkflowId}>
+          <Save className="mr-1" />
+          <span>{saving ? '保存中…' : '保存'}</span>
         </Button>
-        <Button size="sm" onClick={onPublish} disabled={publishing || !activeWorkflowId}>
-          <Rocket className="mr-1.5 h-3.5 w-3.5" />
-          {publishing ? '发布中…' : '发布'}
+        <Button size="xs" onClick={onPublish} disabled={publishing || !activeWorkflowId}>
+          <Rocket className="mr-1" />
+          <span>{publishing ? '发布中…' : '发布'}</span>
         </Button>
       </div>
     </div>
