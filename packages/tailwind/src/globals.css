@@ -92,6 +92,7 @@
   --sidebar-active-foreground: 25 95% 53%;
   --sidebar-border: var(--border);
   --sidebar-ring: var(--ring);
+  --xy-minimap-background: hsl(var(--card));
 }
 
 /* ─── Dark theme ─── */

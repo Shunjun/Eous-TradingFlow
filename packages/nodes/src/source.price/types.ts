@@ -1,5 +1,7 @@
 export interface ExecuteInput {
+  dataSourceInstanceId: string
   symbol: string
+  [key: string]: unknown
 }
 
 export interface ExecuteOutput {

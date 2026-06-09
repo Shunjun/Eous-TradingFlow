@@ -6,4 +6,7 @@ export type {
   ProviderModel,
   DataSourceInstance,
   TrackedSymbol,
+  Workflow,
+  WorkflowVersion,
+  WorkflowNodeExecution,
 } from './generated/prisma/client'

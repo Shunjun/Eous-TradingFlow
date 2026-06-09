@@ -1,4 +1,5 @@
 import type { ApiClient } from '@eous/api-client'
+import type { WorkflowDefinition } from '@eous/types'
 
 export type { ApiClient } from '@eous/api-client'
 
@@ -42,6 +43,42 @@ export interface HttpClientOptions {
   onUnauthorized?: () => void
   requestInterceptors?: RequestInterceptor[]
   responseInterceptors?: ResponseInterceptor[]
+}
+
+/* ── Workflow response transformer ──────────────────────── */
+
+interface RawWorkflow {
+  id: string
+  name: string
+  description?: string
+  definition: string
+  createdAt: string
+  updatedAt: string
+}
+
+function parseWorkflowDefinition(raw: string): { nodes: WorkflowDefinition['nodes']; edges: WorkflowDefinition['edges'] } {
+  try {
+    const parsed = JSON.parse(raw) as { nodes?: unknown; edges?: unknown }
+    return {
+      nodes: Array.isArray(parsed.nodes) ? parsed.nodes : [],
+      edges: Array.isArray(parsed.edges) ? parsed.edges : [],
+    }
+  } catch {
+    return { nodes: [], edges: [] }
+  }
+}
+
+function toWorkflowDefinition(raw: RawWorkflow): WorkflowDefinition {
+  const { nodes, edges } = parseWorkflowDefinition(raw.definition)
+  return {
+    id: raw.id,
+    name: raw.name,
+    description: raw.description,
+    nodes,
+    edges,
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+  }
 }
 
 /* ── Client factory ───────────────────────────────────── */
@@ -147,9 +184,22 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
     },
 
     // ── Workflow APIs ──
-    listWorkflows: () => get('/workflows'),
-    getWorkflow: (id: string) => get(`/workflows/${encodeURIComponent(id)}`),
-    saveWorkflow: (workflow) => post('/workflows', workflow, true),
+    listWorkflows: async () => {
+      const res = await get<{ workflows: RawWorkflow[] }>('/workflows')
+      return res.workflows.map(toWorkflowDefinition)
+    },
+    getWorkflow: async (id: string) => {
+      const res = await get<{ workflow: RawWorkflow }>(`/workflows/${encodeURIComponent(id)}`)
+      return toWorkflowDefinition(res.workflow)
+    },
+    createWorkflow: async (params: { name: string; definition: string }) => {
+      const res = await post<{ workflow: RawWorkflow }>('/workflows', params)
+      return { workflow: toWorkflowDefinition(res.workflow) }
+    },
+    saveWorkflow: async (workflow) => {
+      const definition = JSON.stringify({ nodes: workflow.nodes, edges: workflow.edges })
+      await put(`/workflows/${encodeURIComponent(workflow.id)}`, { name: workflow.name, definition }, true)
+    },
     deleteWorkflow: (id: string) => del(`/workflows/${encodeURIComponent(id)}`, true),
     executeWorkflow: (id: string) => post(`/workflows/${encodeURIComponent(id)}/execute`),
 
@@ -157,6 +207,18 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
     getExecution: (id: string) => get(`/executions/${encodeURIComponent(id)}`),
     cancelExecution: (id: string) =>
       post(`/executions/${encodeURIComponent(id)}/cancel`, undefined, true),
+
+    // ── Node Execution APIs ──
+    runWorkflowNode: (workflowId: string, nodeId: string) =>
+      post(`/workflows/${encodeURIComponent(workflowId)}/nodes/${encodeURIComponent(nodeId)}/run`),
+    getNodeLastExecution: (workflowId: string, nodeId: string) =>
+      get(`/workflows/${encodeURIComponent(workflowId)}/nodes/${encodeURIComponent(nodeId)}/last-execution`),
+    getWorkflowVariables: (workflowId: string) =>
+      get(`/workflows/${encodeURIComponent(workflowId)}/variables`),
+    getWorkflowExecutions: (workflowId: string, limit?: number) => {
+      const params = limit !== undefined ? `?limit=${limit}` : ''
+      return get(`/workflows/${encodeURIComponent(workflowId)}/executions${params}`)
+    },
 
     // ── Asset APIs ──
     getWatchedAssets: () => get('/assets'),
@@ -192,6 +254,7 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       ),
 
     // ── Data Source APIs ──
+    listDataSourceProviders: () => get('/data-source-providers'),
     listDataSourceInstances: () => get('/data-source-instances'),
     getDataSourceInstance: (id: string) => get(`/data-source-instances/${encodeURIComponent(id)}`),
     createDataSourceInstance: (params) => post('/data-source-instances', params, true),
@@ -199,15 +262,12 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       del(`/data-source-instances/${encodeURIComponent(id)}`, true),
     testDataSourceInstance: (id: string) =>
       post(`/data-source-instances/${encodeURIComponent(id)}/test`),
-    listDataSourceProviders: () => get('/data-source-providers'),
-    getDefaultSymbols: (instanceId, params) =>
-      post(`/data-source-instances/${encodeURIComponent(instanceId)}/search`, params),
-    searchDataSourceSymbols: (instanceId, params) =>
-      post(`/data-source-instances/${encodeURIComponent(instanceId)}/search`, params),
+    getDataSourceInstanceSymbols: (instanceId: string, query: string | undefined) =>
+      post(`/data-source-instances/${encodeURIComponent(instanceId)}/symbols`, { query }),
+    getDataSourceInstanceIntervals: (instanceId: string) =>
+      get(`/data-source-instances/${encodeURIComponent(instanceId)}/intervals`),
     addDataSourceSymbol: (instanceId, params) =>
       post(`/data-source-instances/${encodeURIComponent(instanceId)}/symbols`, params, true),
-    getDataSourceIntervals: (instanceId: string) =>
-      get(`/data-source-instances/${encodeURIComponent(instanceId)}/intervals`),
     getDataSourceKlines: (instanceId, params) =>
       post(`/data-source-instances/${encodeURIComponent(instanceId)}/klines`, params),
 

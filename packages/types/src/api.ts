@@ -48,8 +48,9 @@ export interface ConfigFieldSchema {
   type: 'text' | 'password' | 'select' | 'number' | 'boolean'
   required?: boolean
   placeholder?: string
+  hint?: string
   options?: { label: string; value: string }[]
-  default?: unknown
+  defaultValue?: string | number | boolean
 }
 
 export interface DataSourceProvider {
@@ -109,6 +110,10 @@ export interface ApiClient {
   // ── Workflow APIs ──
   listWorkflows(): Promise<WorkflowDefinition[]>
   getWorkflow(id: string): Promise<WorkflowDefinition>
+  createWorkflow(params: {
+    name: string
+    definition: string
+  }): Promise<{ workflow: WorkflowDefinition }>
   saveWorkflow(workflow: WorkflowDefinition): Promise<void>
   deleteWorkflow(id: string): Promise<void>
 
@@ -116,6 +121,59 @@ export interface ApiClient {
   executeWorkflow(id: string): Promise<ExecutionRecord>
   cancelExecution(id: string): Promise<void>
   getExecution(id: string): Promise<ExecutionRecord>
+
+  // ── Node Execution APIs ──
+  runWorkflowNode(
+    workflowId: string,
+    nodeId: string,
+  ): Promise<{
+    execution: {
+      id: string
+      nodeId: string
+      status: string
+      inputs: Record<string, unknown> | null
+      outputs: Record<string, unknown> | null
+      logs: Array<{ ts: string; level: string; message: string }>
+      durationMs: number | null
+      error: string | null
+    } | null
+  }>
+  getNodeLastExecution(
+    workflowId: string,
+    nodeId: string,
+  ): Promise<{
+    execution: {
+      id: string
+      nodeId: string
+      status: string
+      inputs: Record<string, unknown> | null
+      outputs: Record<string, unknown> | null
+      logs: Array<{ ts: string; level: string; message: string }>
+      durationMs: number | null
+      error: string | null
+    } | null
+  }>
+  getWorkflowVariables(workflowId: string): Promise<{
+    variables: Record<string, Record<string, unknown>>
+  }>
+  getWorkflowExecutions(
+    workflowId: string,
+    limit?: number,
+  ): Promise<{
+    executions: Array<{
+      id: string
+      nodeId: string
+      nodeType: string
+      status: string
+      inputs: Record<string, unknown> | null
+      outputs: Record<string, unknown> | null
+      logs: Array<{ ts: string; level: string; message: string }>
+      durationMs: number | null
+      error: string | null
+      startedAt: string
+      finishedAt: string | null
+    }>
+  }>
 
   // ── Asset APIs ──
   getWatchedAssets(): Promise<AssetRef[]>
@@ -162,6 +220,7 @@ export interface ApiClient {
   deleteProviderModel(providerId: string, modelId: string): Promise<void>
 
   // ── Data Source APIs ──
+  listDataSourceProviders(): Promise<{ providers: DataSourceProvider[] }>
   listDataSourceInstances(): Promise<{ instances: DataSourceInstance[] }>
   getDataSourceInstance(id: string): Promise<{ instance: DataSourceDetail }>
   createDataSourceInstance(params: {
@@ -171,15 +230,13 @@ export interface ApiClient {
   }): Promise<void>
   deleteDataSourceInstance(id: string): Promise<void>
   testDataSourceInstance(id: string): Promise<{ ok: boolean; error?: string }>
-  listDataSourceProviders(): Promise<{ providers: DataSourceProvider[] }>
-  getDefaultSymbols(
+  getDataSourceInstanceSymbols(
     instanceId: string,
-    params: { offset?: number; limit?: number },
+    query: string | undefined,
   ): Promise<{ symbols: SymbolSearchResult[]; total: number }>
-  searchDataSourceSymbols(
+  getDataSourceInstanceIntervals(
     instanceId: string,
-    params: { query: string },
-  ): Promise<{ symbols: SymbolSearchResult[] } | { results: SymbolSearchResult[] }>
+  ): Promise<{ intervals: { value: string; label: string }[] }>
   addDataSourceSymbol(
     instanceId: string,
     params: {
@@ -189,9 +246,6 @@ export interface ApiClient {
       type?: string
     },
   ): Promise<void>
-  getDataSourceIntervals(
-    instanceId: string,
-  ): Promise<{ intervals: { value: string; label: string }[] }>
   getDataSourceKlines(
     instanceId: string,
     params: {

@@ -7,6 +7,8 @@ export const api: ApiClient = createHttpClient({
   baseURL: '/api',
   credentials: 'include',
   onUnauthorized: () => {
-    window.location.href = '/login'
+    if (window.location.pathname !== '/login') {
+      window.location.href = '/login'
+    }
   },
 })

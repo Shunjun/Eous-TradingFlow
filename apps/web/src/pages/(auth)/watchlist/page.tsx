@@ -37,30 +37,16 @@ export default function WatchlistPage() {
 
   const getIntervals = useMemo<GetIntervalsFn>(() => {
     return async (providerId: string) => {
-      const d = await api.getDataSourceIntervals(providerId)
+      const d = await api.getDataSourceInstanceIntervals(providerId)
       return d.intervals as IntervalOption[]
     }
   }, [])
 
   const getSymbols = useMemo<GetSymbolsFn>(() => {
     return async ({ providerId, query, offset = 0, limit = PAGE_SIZE }) => {
-      if (query) {
-        const data = await api.searchDataSourceSymbols(providerId, { query: query.trim() })
-        const results: SymbolSearchResult[] = 'symbols' in data ? data.symbols : data.results
-        return {
-          items: results.map((r) => ({
-            symbol: r.symbol,
-            name: r.name,
-            exchange: r.exchange,
-            type: r.type,
-            providerId,
-          })),
-          total: results.length,
-        }
-      }
-      const data = await api.getDefaultSymbols(providerId, { offset, limit })
+      const data = await api.getDataSourceInstanceSymbols(providerId, query?.trim())
       return {
-        items: data.symbols.map((r) => ({
+        items: data.symbols.map((r: SymbolSearchResult) => ({
           symbol: r.symbol,
           name: r.name,
           exchange: r.exchange,

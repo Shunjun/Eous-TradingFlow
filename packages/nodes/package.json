@@ -2,28 +2,26 @@
   "name": "@eous/nodes",
   "version": "0.0.0",
   "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "main": "./src/web/index.ts",
+  "types": "./src/web/index.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./types": "./src/types.ts",
-    "./base-node": "./src/base-node.tsx",
-    "./source.kline": "./src/source.kline/index.ts"
+    ".": "./src/web/index.ts",
+    "./server": "./src/server/index.ts",
+    "./types": "./src/types.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@xyflow/react": "^12.0.0",
     "react": "^19.0.0"
   },
   "dependencies": {
+    "@eous/data-sources": "workspace:*",
     "@eous/types": "workspace:*",
     "@eous/ui": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",
-    "@xyflow/react": "^12.11.0",
     "typescript": "^5.7.0"
   }
 }

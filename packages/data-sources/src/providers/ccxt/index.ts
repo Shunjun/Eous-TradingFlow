@@ -8,8 +8,10 @@ import type {
   Kline,
   KlinesRequest,
   IntervalDef,
+  ConfigField,
 } from '../../types.js'
 import { parseIntervalMs } from '../../utils.js'
+import { isNetworkError, isRateLimitError } from '../utils.js'
 
 // ── CCXT 支持的时间周期 ──
 const SUPPORTED_INTERVALS: IntervalDef[] = [
@@ -37,45 +39,11 @@ const INTERVAL_MAP: Record<string, string> = {
 
 const TIMEOUT_MS = 15_000
 
-function getExchange(exchangeId: string, proxyUrl?: string): Exchange {
-  const ExClass = (ccxt as unknown as Record<string, unknown>)[exchangeId] as new (
-    opts?: Record<string, unknown>,
-  ) => Exchange
-  if (!ExClass) {
-    throw new Error(`Unsupported exchange: ${exchangeId}`)
-  }
-  const opts: Record<string, unknown> = { timeout: TIMEOUT_MS }
+export class CCXTProvider implements DataSourceProvider {
+  readonly id = 'ccxt'
+  readonly name = 'CCXT'
 
-  if (proxyUrl) {
-    opts.agent = new HttpsProxyAgent(proxyUrl)
-  }
-
-  return new ExClass(opts)
-}
-
-function estimateLimit(request: KlinesRequest, timeframe: string): number {
-  const ms = parseIntervalMs(timeframe)
-  const count = Math.ceil((request.to - request.from) / ms)
-  return Math.min(Math.max(count, 1), 1000)
-}
-
-function resolveProxy(config: Record<string, string>): string | undefined {
-  return (
-    config['proxy'] ||
-    process.env.HTTPS_PROXY ||
-    process.env.https_proxy ||
-    process.env.HTTP_PROXY ||
-    process.env.http_proxy ||
-    process.env.ALL_PROXY ||
-    process.env.all_proxy ||
-    undefined
-  )
-}
-
-export const CCXTProvider: DataSourceProvider = {
-  id: 'ccxt',
-  name: 'CCXT',
-  configSchema: [
+  readonly configSchema: ConfigField[] = [
     {
       key: 'exchange',
       label: 'Exchange',
@@ -84,27 +52,30 @@ export const CCXTProvider: DataSourceProvider = {
       options: ccxt.exchanges.map((id) => ({ label: id, value: id })),
       hint: '100+ supported exchanges',
     },
-    {
-      key: 'proxy',
-      label: 'Proxy URL',
-      type: 'text',
-      required: false,
-      hint: 'SOCKS5/HTTP proxy, e.g. socks5://127.0.0.1:1080',
-    },
-  ],
+  ]
 
-  getSupportedIntervals() {
+  getSupportedIntervals(): IntervalDef[] {
     return SUPPORTED_INTERVALS
-  },
+  }
 
-  resolveIdentity(config) {
+  resolveIdentity(config: Record<string, string>): { displayName: string; key: string } {
     const ex = config['exchange'] || 'unknown'
     return { displayName: `CCXT - ${ex}`, key: ex }
-  },
+  }
 
-  async getDefaultSymbols(offset, limit, config) {
+  async getDefaultSymbols(
+    offset: number,
+    limit: number,
+    config: Record<string, string>,
+  ): Promise<{ symbols: SymbolInfo[]; total: number }> {
+    const exchangeId = config['exchange']
+    if (!exchangeId) {
+      throw new Error('config.exchange is required')
+    }
+
+    const ex = this.getExchange(exchangeId)
+
     try {
-      const ex = getExchange(config['exchange']!, resolveProxy(config))
       const markets = await ex.fetchMarkets()
       const total = markets.length
       const sliced = markets.slice(offset, offset + limit)
@@ -118,14 +89,23 @@ export const CCXTProvider: DataSourceProvider = {
         ),
         total,
       }
-    } catch {
-      return { symbols: [], total: 0 }
+    } catch (e) {
+      if (isNetworkError(e) || isRateLimitError(e)) {
+        return { symbols: [], total: 0 }
+      }
+      throw e
     }
-  },
+  }
 
-  async searchSymbols(query, config) {
+  async searchSymbols(query: string, config: Record<string, string>): Promise<SymbolInfo[]> {
+    const exchangeId = config['exchange']
+    if (!exchangeId) {
+      throw new Error('config.exchange is required')
+    }
+
+    const ex = this.getExchange(exchangeId)
+
     try {
-      const ex = getExchange(config['exchange']!, resolveProxy(config))
       const markets = await ex.fetchMarkets()
       const q = query.toUpperCase()
       const results: SymbolInfo[] = []
@@ -142,13 +122,21 @@ export const CCXTProvider: DataSourceProvider = {
       }
 
       return results
-    } catch {
-      return []
+    } catch (e) {
+      if (isNetworkError(e) || isRateLimitError(e)) {
+        return []
+      }
+      throw e
     }
-  },
+  }
 
-  async getQuote(symbol, config) {
-    const ex = getExchange(config['exchange']!, resolveProxy(config))
+  async getQuote(symbol: string, config: Record<string, string>): Promise<Quote> {
+    const exchangeId = config['exchange']
+    if (!exchangeId) {
+      throw new Error('config.exchange is required')
+    }
+
+    const ex = this.getExchange(exchangeId)
     const ticker = await ex.fetchTicker(symbol)
 
     return {
@@ -162,16 +150,34 @@ export const CCXTProvider: DataSourceProvider = {
       volume: ticker.baseVolume ?? undefined,
       timestamp: ticker.timestamp ?? Date.now(),
     }
-  },
+  }
 
-  async getKlines(request: KlinesRequest, config) {
+  async getKlines(request: KlinesRequest, config: Record<string, string>): Promise<Kline[]> {
+    const exchangeId = config['exchange']
+    if (!exchangeId) {
+      console.error('[ccxt getKlines] exchange missing', { config })
+      throw new Error('config.exchange is required')
+    }
+
+    console.log('[ccxt getKlines]', { request, configKeys: Object.keys(config) })
+
+    const ex = this.getExchange(exchangeId)
+
     try {
-      const ex = getExchange(config['exchange']!, resolveProxy(config))
       const timeframe = INTERVAL_MAP[request.interval]
       const since = request.from
-      const limit = estimateLimit(request, timeframe)
+      const limit = this.estimateLimit(request, timeframe)
+
+      console.log('[ccxt getKlines] fetchOHLCV params', {
+        symbol: request.symbol,
+        timeframe,
+        since,
+        limit,
+      })
 
       const ohlcv = await ex.fetchOHLCV(request.symbol, timeframe, since, limit)
+
+      console.log('[ccxt getKlines] response', { count: ohlcv.length, sample: ohlcv[0] })
 
       return ohlcv.map(
         (bar: OHLCV): Kline => ({
@@ -183,8 +189,51 @@ export const CCXTProvider: DataSourceProvider = {
           volume: bar[5] as number | undefined,
         }),
       )
-    } catch {
-      return []
+    } catch (e: any) {
+      console.error('[ccxt getKlines] error', {
+        message: e?.message,
+        code: e?.code,
+        stack: e?.stack?.split('\n').slice(0, 5).join('\n'),
+      })
+      if (isNetworkError(e) || isRateLimitError(e)) {
+        return []
+      }
+      throw e
     }
-  },
+  }
+
+  private getExchange(exchangeId: string): Exchange {
+    const ExClass = (ccxt as unknown as Record<string, unknown>)[exchangeId] as new (
+      opts?: Record<string, unknown>,
+    ) => Exchange
+    if (!ExClass) {
+      throw new Error(`Unsupported exchange: ${exchangeId}`)
+    }
+    const opts: Record<string, unknown> = { timeout: TIMEOUT_MS }
+
+    const proxyUrl = this.resolveProxy()
+    if (proxyUrl) {
+      opts.agent = new HttpsProxyAgent(proxyUrl)
+    }
+
+    return new ExClass(opts)
+  }
+
+  private estimateLimit(request: KlinesRequest, timeframe: string): number {
+    const ms = parseIntervalMs(timeframe)
+    const count = Math.ceil((request.to - request.from) / ms)
+    return Math.min(Math.max(count, 1), 1000)
+  }
+
+  private resolveProxy(): string | undefined {
+    return (
+      process.env.HTTPS_PROXY ||
+      process.env.https_proxy ||
+      process.env.HTTP_PROXY ||
+      process.env.http_proxy ||
+      process.env.ALL_PROXY ||
+      process.env.all_proxy ||
+      undefined
+    )
+  }
 }

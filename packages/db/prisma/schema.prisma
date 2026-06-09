@@ -22,6 +22,7 @@ model User {
   providers      Provider[]
   dataSourceInstances DataSourceInstance[]
   workspaceLayouts WorkspaceLayout[]
+  workflows      Workflow[]
 
   @@map("users")
 }
@@ -117,4 +118,58 @@ model TrackedSymbol {
 
   @@unique([instanceId, symbol])
   @@map("tracked_symbols")
+}
+
+model Workflow {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  definition  String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  versions    WorkflowVersion[]
+  nodeExecutions WorkflowNodeExecution[]
+
+  @@index([userId])
+  @@map("workflows")
+}
+
+model WorkflowVersion {
+  id         String   @id @default(cuid())
+  workflowId String   @map("workflow_id")
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  version    Int
+  definition String
+  createdAt  DateTime @default(now()) @map("created_at")
+  createdBy  String   @map("created_by")
+
+  @@index([workflowId])
+  @@unique([workflowId, version])
+  @@map("workflow_versions")
+}
+
+model WorkflowNodeExecution {
+  id             String   @id @default(cuid())
+  workflowId     String   @map("workflow_id")
+  userId         String   @map("user_id")
+  nodeId         String   @map("node_id")
+  nodeType       String   @map("node_type")
+  status         String
+  inputs         String
+  outputs        String?
+  error          String?
+  logs           String   @default("[]")
+  definitionHash String   @map("definition_hash")
+  durationMs     Int?     @map("duration_ms")
+  startedAt      DateTime @default(now()) @map("started_at")
+  finishedAt     DateTime? @map("finished_at")
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId, nodeId, definitionHash])
+  @@index([userId])
+  @@map("workflow_node_executions")
 }

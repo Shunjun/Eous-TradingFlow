@@ -1,16 +1,47 @@
-import { listDataSourceProviders, getDataSourceProvider } from '@eous/data-sources'
+import { getDataSourceProvider, type SymbolInfo } from '@eous/data-sources'
+import type { ConfigFieldSchema, DataSourceProvider } from '@eous/types'
 import { AppError } from '../lib/app-error.js'
+
+// ── Provider metadata (no ccxt import) ─────────────────────────────────────
+
+export interface ProviderMetadata {
+  id: string
+  name: string
+  configSchema: ConfigFieldSchema[]
+}
+
+export function listProviderMetadata(): ProviderMetadata[] {
+  return [
+    {
+      id: 'ccxt',
+      name: 'CCXT',
+      configSchema: [
+        { key: 'exchange', label: 'Exchange', type: 'select', required: true, hint: '100+ supported exchanges' },
+        { key: 'proxy', label: 'Proxy URL', type: 'text', required: false, hint: 'SOCKS5/HTTP proxy, e.g. socks5://127.0.0.1:1080' },
+      ],
+    },
+    {
+      id: 'yahoo-finance',
+      name: 'Yahoo Finance',
+      configSchema: [
+        {
+          key: 'region', label: 'Market Region', type: 'select', required: true, defaultValue: 'US',
+          options: [
+            { label: 'United States', value: 'US' },
+            { label: 'Hong Kong', value: 'HK' },
+            { label: 'China (A-Shares)', value: 'CN' },
+            { label: 'Japan', value: 'JP' },
+            { label: 'United Kingdom', value: 'UK' },
+            { label: 'Global', value: 'GLOBAL' },
+          ],
+        },
+      ],
+    },
+  ]
+}
 import { encrypt, decrypt, getEncryptionKey } from '../lib/crypto-utils.js'
 import { parseIntervalMs } from '../lib/interval-utils.js'
 import * as dsRepo from '../repositories/data-source.repo.js'
-
-export function listProviders() {
-  return listDataSourceProviders().map((p) => ({
-    id: p.id,
-    name: p.name,
-    configSchema: p.configSchema,
-  }))
-}
 
 export function listInstances(userId: string) {
   return dsRepo.findAllByUser(userId)
@@ -132,7 +163,7 @@ export async function deleteInstance(userId: string, id: string) {
   await dsRepo.remove(id)
 }
 
-async function decryptInstance(instance: {
+export async function decryptInstance(instance: {
   configEncrypted: string
   configIv: string
   providerKind: string
@@ -151,28 +182,29 @@ async function decryptInstance(instance: {
   return { config, provider }
 }
 
-export async function getDefaultSymbols(userId: string, id: string, offset: number, limit: number) {
+export async function getSymbolsForInstance(
+  userId: string,
+  id: string,
+  query: string | undefined,
+  offset = 0,
+  limit = 50,
+): Promise<{ symbols: SymbolInfo[]; total: number }> {
   const instance = await dsRepo.findByIdAndUser(id, userId)
   if (!instance) {
     throw new AppError('Instance not found', 404)
   }
 
   const { config, provider } = await decryptInstance(instance)
-  return provider.getDefaultSymbols(offset, limit, config)
-}
 
-export async function searchSymbols(userId: string, id: string, query: string) {
-  if (!query) {
-    throw new AppError('Missing required field: query', 400)
+  try {
+    if (query) {
+      const symbols = await provider.searchSymbols(query, config)
+      return { symbols, total: symbols.length }
+    }
+    return await provider.getDefaultSymbols(offset, limit, config)
+  } catch {
+    return { symbols: [], total: 0 }
   }
-
-  const instance = await dsRepo.findByIdAndUser(id, userId)
-  if (!instance) {
-    throw new AppError('Instance not found', 404)
-  }
-
-  const { config, provider } = await decryptInstance(instance)
-  return provider.searchSymbols(query, config)
 }
 
 export async function testConnection(userId: string, id: string) {
@@ -219,7 +251,7 @@ export async function getKlines(
   return provider.getKlines({ symbol, interval, from: from ?? defaultFrom, to: to ?? now }, config)
 }
 
-export async function getIntervals(userId: string, id: string) {
+export async function getIntervalsForInstance(userId: string, id: string) {
   const instance = await dsRepo.findByIdAndUser(id, userId)
   if (!instance) {
     throw new AppError('Instance not found', 404)

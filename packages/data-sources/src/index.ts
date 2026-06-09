@@ -15,3 +15,4 @@ export {
 } from './registry.js'
 
 export { CCXTProvider } from './providers/ccxt/index.js'
+export { YahooFinanceProvider } from './providers/yahoo-finance/index.js'

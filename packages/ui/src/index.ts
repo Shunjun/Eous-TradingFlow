@@ -112,6 +112,17 @@ export {
 } from './components/ui/empty'
 export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from './components/ui/popover'
 export {
+  Sheet,
+  SheetTrigger,
+  SheetClose,
+  SheetContent,
+  SheetHeader,
+  SheetFooter,
+  SheetTitle,
+  SheetDescription,
+} from './components/ui/sheet'
+export { ScrollArea, ScrollBar } from './components/ui/scroll-area'
+export {
   Sidebar,
   SidebarContent,
   SidebarFooter,

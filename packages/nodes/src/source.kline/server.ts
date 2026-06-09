@@ -1,60 +1,40 @@
-import type { OHLCVBar } from '@eous/types'
+import { getDataSourceProvider } from '@eous/data-sources'
 import type { ExecuteContext } from '../types'
 import type { ExecuteInput, ExecuteOutput } from './types'
 
-interface KlineDataSource {
-  getKlines(params: { symbol: string; interval: string; limit: number }): Promise<OHLCVBar[]>
-}
-
-function isKlineDataSource(value: unknown): value is KlineDataSource {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'getKlines' in value &&
-    typeof (value as Record<string, unknown>).getKlines === 'function'
-  )
-}
-
-function buildMockBars(limit: number): OHLCVBar[] {
-  const bars: OHLCVBar[] = []
-  const baseTs = Date.now() - limit * 86_400_000
-
-  for (let i = 0; i < limit; i++) {
-    const open = 100 + Math.random() * 50
-    const close = open + (Math.random() - 0.5) * 10
-    const high = Math.max(open, close) + Math.random() * 5
-    const low = Math.min(open, close) - Math.random() * 5
-
-    bars.push({
-      timestamp: baseTs + i * 86_400_000,
-      open,
-      high,
-      low,
-      close,
-      volume: Math.floor(Math.random() * 1_000_000),
-    })
-  }
-
-  return bars
-}
-
 async function execute(input: ExecuteInput, ctx: ExecuteContext): Promise<ExecuteOutput> {
-  let bars: OHLCVBar[]
+  const { symbol, interval, limit, dataSourceInstanceId } = input
 
-  if (isKlineDataSource(ctx.dataSource)) {
-    bars = await ctx.dataSource.getKlines({
-      symbol: input.symbol,
-      interval: input.interval,
-      limit: input.limit,
-    })
-  } else {
-    bars = buildMockBars(input.limit)
+  if (!dataSourceInstanceId) {
+    throw new Error('dataSourceInstanceId is required')
   }
+
+  const instanceConfig = await ctx.dataSourceService.getInstanceConfig(ctx.userId, dataSourceInstanceId)
+  const provider = getDataSourceProvider(instanceConfig.providerKind)
+  if (!provider) throw new Error(`Unknown provider: ${instanceConfig.providerKind}`)
+
+  ctx.log('info', `开始拉取 K 线: ${symbol} ${interval} limit=${limit}`)
+
+  const now = Date.now()
+  const from = now - limit * 86_400_000
+
+  const klines = await provider.getKlines({ symbol, interval, from, to: now }, instanceConfig.config)
+
+  if (klines.length === 0) {
+    ctx.log('warn', `返回 0 条数据 — 可能是网络问题、API 限流、symbol 不存在、或 instance config 缺失`)
+  }
+
+  const bars = klines.map((k) => ({
+    ...k,
+    volume: k.volume ?? 0,
+  }))
+
+  ctx.log('info', `成功拉取 ${bars.length} 条 K 线`)
 
   return {
     bars,
-    symbol: input.symbol,
-    interval: input.interval,
+    symbol,
+    interval,
   }
 }
 

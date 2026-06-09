@@ -11,9 +11,9 @@ async function main() {
   await prisma.$connect()
   console.log('[db] connected')
 
-  registerDataSourceProvider(YahooFinanceProvider)
-  registerDataSourceProvider(CCXTProvider)
-  console.log('[data-sources] registered:', YahooFinanceProvider.id, CCXTProvider.id)
+  registerDataSourceProvider(new YahooFinanceProvider())
+  registerDataSourceProvider(new CCXTProvider())
+  console.log('[data-sources] registered: yahoo-finance, ccxt')
 
   await seedInitialUser()
   await migrateWorkspaceLayouts()

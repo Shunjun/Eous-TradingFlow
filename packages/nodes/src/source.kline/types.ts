@@ -1,9 +1,11 @@
 import type { OHLCVBar } from '@eous/types'
 
 interface ExecuteInput {
+  dataSourceInstanceId: string
   symbol: string
   interval: string
   limit: number
+  [key: string]: unknown
 }
 
 interface ExecuteOutput {

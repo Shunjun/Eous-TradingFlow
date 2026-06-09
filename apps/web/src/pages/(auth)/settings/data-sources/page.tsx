@@ -24,10 +24,10 @@ import {
 } from '@eous/ui'
 import { Database, Plus, X, Trash2, Zap, Check, Loader2, Search, Tag } from 'lucide-react'
 import type {
-  ConfigFieldSchema,
-  DataSourceProvider,
   DataSourceInstance,
   SymbolSearchResult,
+  ConfigFieldSchema,
+  DataSourceProvider,
 } from '@eous/types'
 import { api } from '@/lib/api'
 
@@ -130,7 +130,7 @@ function AddDataSourceForm({
       setName(prov.name)
       const defaults: Record<string, unknown> = {}
       for (const field of prov.configSchema) {
-        defaults[field.key] = field.default ?? (field.type === 'boolean' ? false : '')
+        defaults[field.key] = field.defaultValue ?? (field.type === 'boolean' ? false : '')
       }
       setConfig(defaults)
     } else {
@@ -258,8 +258,8 @@ function SymbolSearchForm({ instanceId, onAdded }: { instanceId: string; onAdded
     setSearching(true)
     setResults([])
     try {
-      const data = await api.searchDataSourceSymbols(instanceId, { query: query.trim() })
-      setResults('symbols' in data ? data.symbols : data.results)
+      const data = await api.getDataSourceInstanceSymbols(instanceId, query.trim())
+      setResults(data.symbols)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Search failed')
     } finally {
@@ -467,10 +467,7 @@ export default function DataSourcesPage() {
 
   useEffect(() => {
     loadInstances()
-    api
-      .listDataSourceProviders()
-      .then((d: { providers: DataSourceProvider[] }) => setProviders(d.providers))
-      .catch(() => {})
+    api.listDataSourceProviders().then((res) => setProviders(res.providers))
   }, [loadInstances])
 
   return (
