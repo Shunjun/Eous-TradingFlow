@@ -2,6 +2,8 @@ import type { ApiClient } from '@eous/api-client'
 import type { WorkflowDefinition } from '@eous/types'
 
 export type { ApiClient } from '@eous/api-client'
+export { streamSSE } from './stream'
+export type { SSEEvent, StreamSSEOptions } from './stream'
 
 /* ── Error class ──────────────────────────────────────── */
 
@@ -56,7 +58,10 @@ interface RawWorkflow {
   updatedAt: string
 }
 
-function parseWorkflowDefinition(raw: string): { nodes: WorkflowDefinition['nodes']; edges: WorkflowDefinition['edges'] } {
+function parseWorkflowDefinition(raw: string): {
+  nodes: WorkflowDefinition['nodes']
+  edges: WorkflowDefinition['edges']
+} {
   try {
     const parsed = JSON.parse(raw) as { nodes?: unknown; edges?: unknown }
     return {
@@ -198,7 +203,11 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
     },
     saveWorkflow: async (workflow) => {
       const definition = JSON.stringify({ nodes: workflow.nodes, edges: workflow.edges })
-      await put(`/workflows/${encodeURIComponent(workflow.id)}`, { name: workflow.name, definition }, true)
+      await put(
+        `/workflows/${encodeURIComponent(workflow.id)}`,
+        { name: workflow.name, definition },
+        true,
+      )
     },
     deleteWorkflow: (id: string) => del(`/workflows/${encodeURIComponent(id)}`, true),
     executeWorkflow: (id: string) => post(`/workflows/${encodeURIComponent(id)}/execute`),
@@ -212,7 +221,9 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
     runWorkflowNode: (workflowId: string, nodeId: string) =>
       post(`/workflows/${encodeURIComponent(workflowId)}/nodes/${encodeURIComponent(nodeId)}/run`),
     getNodeLastExecution: (workflowId: string, nodeId: string) =>
-      get(`/workflows/${encodeURIComponent(workflowId)}/nodes/${encodeURIComponent(nodeId)}/last-execution`),
+      get(
+        `/workflows/${encodeURIComponent(workflowId)}/nodes/${encodeURIComponent(nodeId)}/last-execution`,
+      ),
     getWorkflowVariables: (workflowId: string) =>
       get(`/workflows/${encodeURIComponent(workflowId)}/variables`),
     getWorkflowExecutions: (workflowId: string, limit?: number) => {

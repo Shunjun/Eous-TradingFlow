@@ -10,7 +10,7 @@ import {
   ScrollArea,
   cn,
 } from '@eous/ui'
-import { sourceKline, sourcePrice, controlBranch, type NodeMeta } from '@eous/nodes'
+import { allNodeMetas, type NodeMeta } from '@eous/nodes'
 
 const CATEGORY_LABELS: Record<string, string> = {
   source: '数据源',
@@ -23,7 +23,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const CATEGORY_ORDER = ['source', 'compute', 'llm', 'control', 'output', 'agent'] as const
 
-const allNodes: NodeMeta[] = [sourceKline.def.meta, sourcePrice.def.meta, controlBranch.def.meta]
+const allNodes: NodeMeta[] = allNodeMetas
 
 function groupByCategory(nodes: NodeMeta[]) {
   const groups = new Map<string, NodeMeta[]>()

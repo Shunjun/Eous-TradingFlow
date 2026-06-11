@@ -6,5 +6,5 @@
     "jsx": "react-jsx",
     "resolvePackageJsonImports": true
   },
-  "include": ["src"]
+  "include": ["src", "../../types"]
 }

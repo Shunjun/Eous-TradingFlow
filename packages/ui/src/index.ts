@@ -149,5 +149,7 @@ export {
   useSidebar,
 } from './components/ui/sidebar'
 
+export { Collapsible, CollapsibleContent, CollapsibleTrigger } from './components/ui/collapsible'
+
 // ── Utils ───────────────────────────────────────────────────
 export { cn } from './lib/utils'

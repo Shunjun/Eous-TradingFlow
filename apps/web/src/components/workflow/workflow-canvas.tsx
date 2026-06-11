@@ -18,13 +18,7 @@ import {
   useReactFlow,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import {
-  sourceKline,
-  sourcePrice,
-  controlBranch,
-  type NodeComponentProps,
-  type ParamDef,
-} from '@eous/nodes'
+import { nodeRegistry, type NodeComponentProps, type ParamDef } from '@eous/nodes'
 import { useWorkflowStore } from '../../stores/workflow'
 import { BaseNode } from './base-node'
 
@@ -38,23 +32,19 @@ function extractDefaults(input: Record<string, ParamDef>): Record<string, unknow
   return data
 }
 
-const nodeRegistry: Record<string, { defaults: Record<string, unknown>; label: string; color: string }> = {
-  'source.kline': {
-    defaults: extractDefaults(sourceKline.def.executeInput),
-    label: sourceKline.def.meta.label,
-    color: sourceKline.def.meta.color,
-  },
-  'source.price': {
-    defaults: extractDefaults(sourcePrice.def.executeInput),
-    label: sourcePrice.def.meta.label,
-    color: sourcePrice.def.meta.color,
-  },
-  'control.branch': {
-    defaults: extractDefaults(controlBranch.def.executeInput),
-    label: controlBranch.def.meta.label,
-    color: controlBranch.def.meta.color,
-  },
-}
+const localNodeRegistry: Record<
+  string,
+  { defaults: Record<string, unknown>; label: string; color: string }
+> = Object.fromEntries(
+  Object.entries(nodeRegistry).map(([type, entry]) => [
+    type,
+    {
+      defaults: extractDefaults(entry.def.executeInput),
+      label: entry.def.meta.label,
+      color: entry.def.meta.color,
+    },
+  ]),
+)
 
 interface WorkflowNodeData extends Record<string, unknown> {
   status?: 'idle' | 'running' | 'completed' | 'failed'
@@ -84,17 +74,14 @@ function createNodeComponent(
   }
 }
 
-const nodeTypes: NodeTypes = {
-  'source.kline': createNodeComponent(sourceKline.canvas, {
-    hideHandles: false,
-  }),
-  'source.price': createNodeComponent(sourcePrice.canvas, {
-    hideHandles: false,
-  }),
-  'control.branch': createNodeComponent(controlBranch.canvas, {
-    hideHandles: true,
-  }),
-}
+const nodeTypes: NodeTypes = Object.fromEntries(
+  Object.entries(nodeRegistry).map(([type, entry]) => [
+    type,
+    createNodeComponent(entry.canvas as (props: NodeComponentProps) => React.ReactNode, {
+      hideHandles: type === 'control.branch',
+    }),
+  ]),
+)
 
 const defaultEdgeOptions = {
   animated: true,
@@ -164,7 +151,7 @@ function WorkflowCanvas({ onSelectNode }: WorkflowCanvasProps) {
         y: event.clientY,
       })
 
-      const entry = nodeRegistry[nodeType]
+      const entry = localNodeRegistry[nodeType]
       const newNode: Node<WorkflowNodeData> = {
         id: `${nodeType}-${Date.now()}`,
         type: nodeType,

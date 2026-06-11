@@ -1,15 +1,8 @@
 import { useMemo, useCallback } from 'react'
 import { Link } from 'lucide-react'
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  Badge,
-  ScrollArea,
-  cn,
-} from '@eous/ui'
+import { Popover, PopoverTrigger, PopoverContent, Badge, ScrollArea, cn } from '@eous/ui'
 import type { AcceptableType, OutputField } from '@eous/nodes'
-import { sourceKline, sourcePrice, controlBranch } from '@eous/nodes'
+import { getNodeOutputs } from '@eous/nodes'
 import { useWorkflowStore } from '../../stores/workflow'
 import type { Edge } from '@xyflow/react'
 
@@ -30,12 +23,6 @@ interface VariablePickerProps {
   children?: React.ReactNode
   triggerClassName?: string
   currentValue?: VariableRef
-}
-
-const NODE_OUTPUTS: Record<string, Record<string, OutputField>> = {
-  'source.kline': sourceKline.def.executeOutput,
-  'source.price': sourcePrice.def.executeOutput,
-  'control.branch': controlBranch.def.executeOutput,
 }
 
 // Map type names to AcceptableType for filtering
@@ -75,7 +62,11 @@ function VariablePicker({
       }
     }
 
-    const result: { nodeLabel: string; nodeId: string; fields: { name: string; type: string }[] }[] = []
+    const result: {
+      nodeLabel: string
+      nodeId: string
+      fields: { name: string; type: string }[]
+    }[] = []
 
     for (const id of upstreamIds) {
       // Skip nodes without cached outputs
@@ -83,11 +74,13 @@ function VariablePicker({
 
       const node = storeNodes.find((n) => n.id === id)
       const nodeLabel = node
-        ? (typeof node.data.label === 'string' ? node.data.label : (node.type ?? id))
+        ? typeof node.data.label === 'string'
+          ? node.data.label
+          : (node.type ?? id)
         : id
       const nodeType = node?.type ?? ''
 
-      const outputs = NODE_OUTPUTS[nodeType]
+      const outputs = getNodeOutputs(nodeType)
       if (!outputs) continue
 
       const fields = Object.values(outputs)
@@ -140,17 +133,13 @@ function VariablePicker({
         <div className="px-3 pt-3 pb-1">
           <p className="text-xs font-medium text-foreground">选择上游变量</p>
           {acceptTypes && acceptTypes.length > 0 && (
-            <p className="text-[10px] text-muted-foreground">
-              可用类型: {acceptTypes.join(', ')}
-            </p>
+            <p className="text-[10px] text-muted-foreground">可用类型: {acceptTypes.join(', ')}</p>
           )}
         </div>
         <ScrollArea className="max-h-60">
           <div className="px-1 pb-2">
             {groups.length === 0 ? (
-              <p className="px-2 py-3 text-center text-xs text-muted-foreground">
-                无可用变量
-              </p>
+              <p className="px-2 py-3 text-center text-xs text-muted-foreground">无可用变量</p>
             ) : (
               groups.map((group) => (
                 <div key={group.nodeId} className="mb-2">
@@ -161,7 +150,9 @@ function VariablePicker({
                     <button
                       key={`${group.nodeId}-${field.name}`}
                       type="button"
-                      onClick={() => handleSelect(group.nodeId, group.nodeLabel, field.name, field.type)}
+                      onClick={() =>
+                        handleSelect(group.nodeId, group.nodeLabel, field.name, field.type)
+                      }
                       className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-left transition-colors hover:bg-accent"
                     >
                       <span className="text-xs text-foreground">{field.name}</span>

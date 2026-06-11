@@ -21,17 +21,11 @@ import {
   SheetTitle,
   cn,
 } from '@eous/ui'
-import { sourceKline, sourcePrice, controlBranch, type OutputDef, type NodeDef } from '@eous/nodes'
+import { getNodeDef, type OutputDef, type NodeDef } from '@eous/nodes'
 import { useWorkflowStore } from '../../stores/workflow'
 import { api } from '../../lib/api'
 import { ConfigForm } from './config-form'
 import { VariableInspector } from './variable-inspector'
-
-const NODE_DEFS: Record<string, NodeDef> = {
-  'source.kline': sourceKline.def,
-  'source.price': sourcePrice.def,
-  'control.branch': controlBranch.def,
-}
 
 const OUTPUT_TYPES = ['string', 'number', 'boolean', 'json', 'array', 'file'] as const
 
@@ -95,7 +89,7 @@ function SettingsPanelContent({
     {},
   )
 
-  const nodeDef = NODE_DEFS[nodeType]
+  const nodeDef = getNodeDef(nodeType)
   const executeInput = nodeDef?.executeInput
 
   // Fetch upstream outputs on mount and after run

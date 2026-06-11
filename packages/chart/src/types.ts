@@ -63,11 +63,15 @@ export interface KlineChartProps {
 
   /** Default symbol to display on mount */
   defaultSymbol?: string
+  /** Default provider to use on mount */
+  defaultProviderId?: string
   /** Default interval (e.g. "1m", "5m", "15m", "1h", "4h", "1d", "1w") */
   defaultInterval?: string
 
   /** Called when the selected symbol changes */
   onSymbolChange?: (symbol: string | null) => void
+  /** Called when the selected provider changes */
+  onProviderChange?: (providerId: string) => void
   /** Called when the selected interval changes */
   onIntervalChange?: (interval: string) => void
 }

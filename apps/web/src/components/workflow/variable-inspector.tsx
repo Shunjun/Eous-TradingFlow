@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Badge, ScrollArea } from '@eous/ui'
-import { sourceKline, sourcePrice, controlBranch, type OutputDef, type NodeDef } from '@eous/nodes'
+import { getNodeDef, allNodeMetas, type OutputDef, type NodeDef } from '@eous/nodes'
 import { api } from '../../lib/api'
 import { useWorkflowStore } from '../../stores/workflow'
 
@@ -9,11 +9,9 @@ interface VariableInspectorProps {
   workflowId: string
 }
 
-const NODE_DEFS: Record<string, NodeDef> = {
-  'source.kline': sourceKline.def,
-  'source.price': sourcePrice.def,
-  'control.branch': controlBranch.def,
-}
+const NODE_LABELS: Record<string, string> = Object.fromEntries(
+  allNodeMetas.map((m) => [m.type, m.label]),
+)
 
 function getEffectiveOutputs(data: Record<string, unknown>, def: NodeDef | undefined): OutputDef[] {
   if (Array.isArray(data.outputs)) return data.outputs as OutputDef[]
@@ -26,12 +24,7 @@ function getEffectiveOutputs(data: Record<string, unknown>, def: NodeDef | undef
 }
 
 function getNodeTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    'source.kline': 'K线数据',
-    'source.price': '实时报价',
-    'control.branch': '条件分支',
-  }
-  return labels[type] ?? type
+  return NODE_LABELS[type] ?? type
 }
 
 /** Resolve a nested value by path like "[0].close" or ".close" */
@@ -87,7 +80,9 @@ function VariableInspector({ workflowId }: VariableInspectorProps) {
       }
     }
     load()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [workflowId])
 
   if (loading) {
@@ -113,10 +108,12 @@ function VariableInspector({ workflowId }: VariableInspectorProps) {
         {entries.map(([nodeId, rawOutputs]) => {
           const node = storeNodes.find((n) => n.id === nodeId)
           const nodeLabel = node
-            ? (typeof node.data.label === 'string' ? node.data.label : getNodeTypeLabel(node.type ?? nodeId))
+            ? typeof node.data.label === 'string'
+              ? node.data.label
+              : getNodeTypeLabel(node.type ?? nodeId)
             : getNodeTypeLabel(nodeId)
           const nodeType = node?.type ?? ''
-          const nodeDef = NODE_DEFS[nodeType]
+          const nodeDef = getNodeDef(nodeType)
           const effectiveOutputs = getEffectiveOutputs(node?.data ?? {}, nodeDef)
 
           return (

@@ -1,7 +1,7 @@
 import { useMemo, useCallback } from 'react'
 import { Link } from 'lucide-react'
 import { Popover, PopoverTrigger, PopoverContent, Badge, ScrollArea, cn } from '@eous/ui'
-import { sourceKline, sourcePrice, controlBranch, type OutputField } from '@eous/nodes'
+import { getNodeOutputs, type OutputField } from '@eous/nodes'
 import { useWorkflowStore } from '../../stores/workflow'
 import type { Edge } from '@xyflow/react'
 
@@ -10,12 +10,6 @@ interface VariableRef {
   nodeLabel: string
   fieldName: string
   fieldType: string
-}
-
-const NODE_OUTPUTS: Record<string, Record<string, OutputField>> = {
-  'source.kline': sourceKline.def.executeOutput,
-  'source.price': sourcePrice.def.executeOutput,
-  'control.branch': controlBranch.def.executeOutput,
 }
 
 function getUpstreamNodes(nodeId: string, edges: Edge[]) {
@@ -43,7 +37,13 @@ interface VariableSelectorProps {
   onOpenChange: (open: boolean) => void
 }
 
-function VariableSelector({ nodeId, currentValue, onSelect, open, onOpenChange }: VariableSelectorProps) {
+function VariableSelector({
+  nodeId,
+  currentValue,
+  onSelect,
+  open,
+  onOpenChange,
+}: VariableSelectorProps) {
   const edges = useWorkflowStore((s) => s.edges)
 
   const variables = useMemo(() => {
@@ -52,7 +52,7 @@ function VariableSelector({ nodeId, currentValue, onSelect, open, onOpenChange }
 
     for (const node of upstreamNodes) {
       if (!node.type) continue
-      const outputs = NODE_OUTPUTS[node.type]
+      const outputs = getNodeOutputs(node.type)
       if (!outputs) continue
 
       const label = typeof node.data.label === 'string' ? node.data.label : node.type

@@ -24,10 +24,10 @@ const buttonVariants = cva(
           'text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors',
       },
       size: {
-        default: 'h-9 px-4 py-2 has-[>svg]:px-2.5',
-        xs: "h-6 gap-1 rounded-md px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: 'h-8 gap-1.5 rounded-md has-[>svg]:px-2',
-        lg: 'h-10 rounded-md px-6 has-[>svg]:px-3',
+        default: 'h-9 px-4 py-2 has-[>svg:only-child]:px-2.5',
+        xs: "h-6 gap-1 rounded-md px-2 text-xs has-[>svg:only-child]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
+        sm: 'h-8 gap-1.5 rounded-md px-2 has-[>svg:only-child]:px-2',
+        lg: 'h-10 rounded-md px-6 has-[>svg:only-child]:px-3',
       },
     },
     defaultVariants: {

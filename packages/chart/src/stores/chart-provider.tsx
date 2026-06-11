@@ -15,7 +15,9 @@ interface ChartStoreProviderProps {
   store: ChartStore
   fetchFns: ChartFetchFns
   defaultSymbol?: string
+  defaultProviderId?: string
   onSymbolChange?: (symbol: string | null) => void
+  onProviderChange?: (providerId: string) => void
   onIntervalChange?: (interval: string) => void
   children: ReactNode
 }
@@ -26,12 +28,17 @@ export function ChartStoreProvider({
   store,
   fetchFns,
   defaultSymbol,
+  defaultProviderId,
   onSymbolChange,
+  onProviderChange,
   onIntervalChange,
   children,
 }: ChartStoreProviderProps) {
   const onSymbolChangeRef = useRef(onSymbolChange)
   onSymbolChangeRef.current = onSymbolChange
+
+  const onProviderChangeRef = useRef(onProviderChange)
+  onProviderChangeRef.current = onProviderChange
 
   const onIntervalChangeRef = useRef(onIntervalChange)
   onIntervalChangeRef.current = onIntervalChange
@@ -50,14 +57,15 @@ export function ChartStoreProvider({
       .then((providers) => {
         if (cancelled) return
         store.setState({ providers })
-        const firstId = providers[0]?.id ?? ''
-        store.setState({ activeProviderId: firstId })
+        const defaultExists = providers.some((provider) => provider.id === defaultProviderId)
+        const nextProviderId = defaultExists ? defaultProviderId! : (providers[0]?.id ?? '')
+        store.setState({ activeProviderId: nextProviderId })
       })
       .catch(() => {})
     return () => {
       cancelled = true
     }
-  }, [store])
+  }, [store, defaultProviderId])
 
   // ── Load intervals + default symbols when active provider changes ──────
   useEffect(() => {
@@ -133,15 +141,19 @@ export function ChartStoreProvider({
     }
   }, [store, defaultSymbol])
 
+  // ── Notify external onProviderChange ───────────────────────────────────
+  useEffect(() => {
+    const unsub = store.subscribe((state, prev) => {
+      if (state.activeProviderId === prev.activeProviderId) return
+      onProviderChangeRef.current?.(state.activeProviderId)
+    })
+    return unsub
+  }, [store])
+
   // ── Notify external onSymbolChange ─────────────────────────────────────
   useEffect(() => {
-    let isFirst = true
     const unsub = store.subscribe((state, prev) => {
       if (state.symbol === prev.symbol) return
-      if (isFirst) {
-        isFirst = false
-        return
-      }
       onSymbolChangeRef.current?.(state.symbol)
     })
     return unsub
@@ -149,13 +161,8 @@ export function ChartStoreProvider({
 
   // ── Notify external onIntervalChange ───────────────────────────────────
   useEffect(() => {
-    let isFirst = true
     const unsub = store.subscribe((state, prev) => {
       if (state.interval === prev.interval) return
-      if (isFirst) {
-        isFirst = false
-        return
-      }
       onIntervalChangeRef.current?.(state.interval)
     })
     return unsub

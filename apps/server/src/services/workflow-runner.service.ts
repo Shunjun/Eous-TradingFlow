@@ -1,20 +1,23 @@
 import { createHash } from 'node:crypto'
 import { prisma, type WorkflowNodeExecution } from '@eous/db'
-import { sourceKline, sourcePrice, controlBranch } from '@eous/nodes/server'
-import type { ExecuteContext, LogLevel, LogEntry, DataSourceService } from '@eous/nodes/types'
+import { executors } from '@eous/nodes/server'
+import type {
+  ExecuteContext,
+  LogLevel,
+  LogEntry,
+  DataSourceService,
+  LlmService,
+} from '@eous/nodes/types'
 import { resolveValue } from '../lib/var-resolver.js'
 import * as dataSourceService from './data-source.service.js'
+import * as llmServiceModule from './llm/llm.service.js'
 
 type NodeExecutor = (
   input: Record<string, unknown>,
   ctx: ExecuteContext,
 ) => Promise<Record<string, unknown>>
 
-const EXECUTORS: Record<string, NodeExecutor> = {
-  'source.kline': sourceKline as unknown as NodeExecutor,
-  'source.price': sourcePrice as unknown as NodeExecutor,
-  'control.branch': controlBranch as unknown as NodeExecutor,
-}
+const EXECUTORS: Record<string, NodeExecutor> = executors as Record<string, NodeExecutor>
 
 interface WorkflowNode {
   id: string
@@ -145,6 +148,7 @@ export async function runNode(
     const executionId = `exec_${Date.now()}_${node.id}`
     const ctx: ExecuteContext = {
       dataSourceService: dataSourceServiceImpl,
+      llmService: llmServiceModule as unknown as LlmService,
       userId,
       workflowId,
       executionId,

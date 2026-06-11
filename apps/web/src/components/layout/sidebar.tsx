@@ -1,7 +1,10 @@
-import { useState, useCallback, type ElementType } from 'react'
+import { useState, useCallback, type ElementType, useMemo } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   Button,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -26,6 +29,7 @@ import {
   Wallet,
   Plus,
   GitBranch,
+  ChevronDown,
 } from 'lucide-react'
 import { useWorkflowList } from '../../hooks/use-workflows'
 import { CreateWorkflowDialog } from '../workflow/create-workflow-dialog'
@@ -80,10 +84,16 @@ export function AppSidebar() {
   const { state } = useSidebar()
   const { workflows } = useWorkflowList()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [workflowsCollapsed, setWorkflowsCollapsed] = useState(false)
 
   const isCollapsed = state === 'collapsed'
   const activeWorkflowId = extractWorkflowId(pathname)
   const isOnWorkflowPage = activeWorkflowId !== null
+
+  const activeWorkflow = useMemo(
+    () => workflows.find((wf) => wf.id === activeWorkflowId) ?? null,
+    [workflows, activeWorkflowId],
+  )
 
   const handleCreated = useCallback(
     (id: string) => {
@@ -139,69 +149,102 @@ export function AppSidebar() {
           ))}
 
           {(workflows.length > 0 || isOnWorkflowPage) && (
-            <SidebarGroup className="px-0">
-              <SidebarGroupLabel>WORKFLOWS</SidebarGroupLabel>
-              <SidebarGroupAction
-                asChild
-                className="flex items-center justify-center"
-                onClick={() => setDialogOpen(true)}
-              >
-                <Button size="xs" variant="ghost-icon">
-                  <Plus size={14} />
-                </Button>
-              </SidebarGroupAction>
-              <SidebarGroupContent>
-                {isCollapsed && isOnWorkflowPage ? (
+            <Collapsible
+              open={!workflowsCollapsed}
+              onOpenChange={(open) => setWorkflowsCollapsed(!open)}
+              className="group/collapsible"
+            >
+              <SidebarGroup className="px-0">
+                <SidebarGroupLabel asChild>
+                  <CollapsibleTrigger className="w-full cursor-pointer select-none">
+                    <ChevronDown
+                      size={12}
+                      className="-ml-0.5 mr-1 -rotate-90 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-0"
+                    />
+                    WORKFLOWS
+                  </CollapsibleTrigger>
+                </SidebarGroupLabel>
+                <SidebarGroupAction
+                  asChild
+                  className="flex items-center justify-center"
+                  onClick={() => setDialogOpen(true)}
+                >
+                  <Button size="xs" variant="ghost-icon">
+                    <Plus size={14} />
+                  </Button>
+                </SidebarGroupAction>
+
+                {/* 折叠时 pin 住选中的 workflow */}
+                {workflowsCollapsed && activeWorkflow && (
                   <SidebarMenu className="gap-0.5">
-                    {(() => {
-                      const activeWf = workflows.find((wf) => wf.id === activeWorkflowId)
-                      if (!activeWf) return null
-                      return (
-                        <SidebarMenuItem>
-                          <SidebarMenuButton asChild isActive tooltip={activeWf.name}>
-                            <NavLink to={`/workflow/${activeWf.id}`} className="cursor-pointer">
-                              <GitBranch size={16} />
-                            </NavLink>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      )
-                    })()}
+                    <SidebarMenuItem>
+                      <span className="pointer-events-none absolute -left-2 top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:hidden" />
+                      <SidebarMenuButton asChild isActive tooltip={activeWorkflow.name}>
+                        <NavLink to={`/workflow/${activeWorkflow.id}`} className="cursor-pointer">
+                          <GitBranch size={16} />
+                          <span className="flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
+                            {activeWorkflow.name}
+                          </span>
+                        </NavLink>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                   </SidebarMenu>
-                ) : (
-                  <SidebarMenu className="gap-0.5">
-                    {workflows.length === 0 ? (
-                      <div className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-sidebar-foreground/40">
-                        <Plus size={12} />
-                        <span>暂无工作流</span>
-                      </div>
-                    ) : (
-                      workflows.map((wf) => {
-                        const isActive = activeWorkflowId === wf.id
-                        return (
-                          <SidebarMenuItem key={wf.id}>
-                            {isActive && (
-                              <span className="pointer-events-none absolute -left-2 top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:hidden" />
-                            )}
-                            <SidebarMenuButton asChild isActive={isActive} tooltip={wf.name}>
-                              <NavLink to={`/workflow/${wf.id}`} className="cursor-pointer">
+                )}
+
+                <CollapsibleContent>
+                  <SidebarGroupContent>
+                    {isCollapsed && isOnWorkflowPage ? (
+                      <SidebarMenu className="gap-0.5">
+                        {activeWorkflow && (
+                          <SidebarMenuItem>
+                            <SidebarMenuButton asChild isActive tooltip={activeWorkflow.name}>
+                              <NavLink
+                                to={`/workflow/${activeWorkflow.id}`}
+                                className="cursor-pointer"
+                              >
                                 <GitBranch size={16} />
-                                <span className="flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
-                                  {wf.name}
-                                </span>
                               </NavLink>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
-                        )
-                      })
+                        )}
+                      </SidebarMenu>
+                    ) : (
+                      <SidebarMenu className="gap-0.5">
+                        {workflows.length === 0 ? (
+                          <div className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-sidebar-foreground/40">
+                            <Plus size={12} />
+                            <span>暂无工作流</span>
+                          </div>
+                        ) : (
+                          workflows.map((wf) => {
+                            const isActive = activeWorkflowId === wf.id
+                            return (
+                              <SidebarMenuItem key={wf.id}>
+                                {isActive && (
+                                  <span className="pointer-events-none absolute -left-2 top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:hidden" />
+                                )}
+                                <SidebarMenuButton asChild isActive={isActive} tooltip={wf.name}>
+                                  <NavLink to={`/workflow/${wf.id}`} className="cursor-pointer">
+                                    <GitBranch size={16} />
+                                    <span className="flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
+                                      {wf.name}
+                                    </span>
+                                  </NavLink>
+                                </SidebarMenuButton>
+                              </SidebarMenuItem>
+                            )
+                          })
+                        )}
+                      </SidebarMenu>
                     )}
-                  </SidebarMenu>
-                )}
-              </SidebarGroupContent>
-            </SidebarGroup>
+                  </SidebarGroupContent>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
           )}
         </SidebarContent>
 
-        <SidebarSeparator className="mx-3" />
+        <SidebarSeparator />
         <SidebarFooter className="px-3 py-3">
           <SidebarMenu className="gap-0.5">
             <SidebarMenuItem>

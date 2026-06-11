@@ -29,8 +29,22 @@ export interface DataSourceService {
   getInstanceConfig(userId: string, instanceId: string): Promise<DataSourceInstanceConfig>
 }
 
+export interface LlmService {
+  streamChat(options: {
+    providerId: string
+    modelId: string
+    context: {
+      systemPrompt?: string
+      messages: { role: 'user' | 'assistant'; content: string; timestamp: number }[]
+    }
+    options?: Record<string, unknown>
+  }): Promise<AsyncIterable<{ type: string; [key: string]: unknown }>>
+  parseJsonWithTolerance(text: string): unknown
+}
+
 export interface ExecuteContext {
   dataSourceService: DataSourceService
+  llmService?: LlmService
   userId: string
   workflowId: string
   executionId: string
@@ -54,6 +68,8 @@ export type OptionsSource =
   | { source: 'dataSourceInstances' }
   | { source: 'instanceSymbols' }
   | { source: 'instanceIntervals' }
+  | { source: 'providers' }
+  | { source: 'providerModels'; providerIdField: string }
 
 export type AcceptableType = 'string' | 'number' | 'boolean' | 'json' | 'array' | 'file'
 
@@ -93,4 +109,10 @@ export interface NodeComponentProps {
   selected: boolean
   status?: 'idle' | 'running' | 'completed' | 'failed'
   onChange?: (data: Record<string, unknown>) => void
+}
+
+export interface NodeRegistryEntry {
+  def: NodeDef
+  canvas: (props: NodeComponentProps) => unknown
+  execute: (input: Record<string, unknown>, ctx: ExecuteContext) => Promise<Record<string, unknown>>
 }

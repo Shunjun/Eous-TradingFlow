@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { sourceKline, sourcePrice, controlBranch } from '@eous/nodes'
+import { nodeRegistry } from '@eous/nodes'
 import type { NodeType, WorkflowNode } from '@eous/types'
 import { useWorkflowStore } from '../../stores/workflow'
 import { useWorkflow, publishWorkflow, saveWorkflow } from '../../hooks/use-workflows'
@@ -30,23 +30,20 @@ function isNodeType(value: string): value is NodeType {
   return VALID_NODE_TYPES.has(value)
 }
 
-const NODE_DEFAULTS: Record<string, Record<string, unknown>> = {
-  'source.kline': extractDefaults(sourceKline.def.executeInput),
-  'source.price': extractDefaults(sourcePrice.def.executeInput),
-  'control.branch': extractDefaults(controlBranch.def.executeInput),
-}
+const NODE_DEFAULTS: Record<string, Record<string, unknown>> = Object.fromEntries(
+  Object.entries(nodeRegistry).map(([type, entry]) => [
+    type,
+    extractDefaults(entry.def.executeInput),
+  ]),
+)
 
-const NODE_LABELS: Record<string, string> = {
-  'source.kline': sourceKline.def.meta.label,
-  'source.price': sourcePrice.def.meta.label,
-  'control.branch': controlBranch.def.meta.label,
-}
+const NODE_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(nodeRegistry).map(([type, entry]) => [type, entry.def.meta.label]),
+)
 
-const NODE_COLORS: Record<string, string> = {
-  'source.kline': sourceKline.def.meta.color,
-  'source.price': sourcePrice.def.meta.color,
-  'control.branch': controlBranch.def.meta.color,
-}
+const NODE_COLORS: Record<string, string> = Object.fromEntries(
+  Object.entries(nodeRegistry).map(([type, entry]) => [type, entry.def.meta.color]),
+)
 
 function extractDefaults(input: Record<string, { default?: unknown }>): Record<string, unknown> {
   const data: Record<string, unknown> = {}

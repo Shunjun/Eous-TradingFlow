@@ -28,8 +28,10 @@ export function KlineChart({
   getIntervals,
   getProviders,
   defaultSymbol,
+  defaultProviderId,
   defaultInterval = '1d',
   onSymbolChange,
+  onProviderChange,
   onIntervalChange,
 }: KlineChartProps) {
   const store = useMemo(() => createChartStore(defaultInterval), [defaultInterval])
@@ -44,7 +46,9 @@ export function KlineChart({
       store={store}
       fetchFns={fetchFns}
       defaultSymbol={defaultSymbol}
+      defaultProviderId={defaultProviderId}
       onSymbolChange={onSymbolChange}
+      onProviderChange={onProviderChange}
       onIntervalChange={onIntervalChange}
     >
       <KlineChartInner fetchKlines={fetchKlines} />
@@ -98,6 +102,7 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
   // ── Read state from store ─────────────────────────────────────────────
   const symbol = useChartStore((s) => s.symbol)
   const interval = useChartStore((s) => s.interval)
+  const activeProviderId = useChartStore((s) => s.activeProviderId)
   const setIntervalAction = useChartStore((s) => s.setInterval)
 
   // ── Resizable panel state ─────────────────────────────────────────────
@@ -179,23 +184,26 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
   }, [engines, getKlineData, loadEarlier])
 
   // ── Load data on symbol/interval change ───────────────────────────────
-  const lastFetchedRef = useRef<{ symbol: string; interval: string } | null>(null)
+  const lastFetchedRef = useRef<{ providerId: string; symbol: string; interval: string } | null>(
+    null,
+  )
 
   useEffect(() => {
-    if (!symbol) return
+    if (!symbol || !activeProviderId) return
 
     const prev = lastFetchedRef.current
+    const providerChanged = prev?.providerId !== activeProviderId
     const symbolChanged = prev?.symbol !== symbol
     const intervalChanged = prev?.interval !== interval
-    lastFetchedRef.current = { symbol, interval }
+    lastFetchedRef.current = { providerId: activeProviderId, symbol, interval }
 
     const wrappedFetch = wrappedFetchKlinesRef.current
-    if (symbolChanged || !prev) {
+    if (providerChanged || symbolChanged || !prev) {
       loadKlines(wrappedFetch, symbol, interval)
     } else if (intervalChanged) {
       switchInterval(wrappedFetch, symbol, interval)
     }
-  }, [symbol, interval, loadKlines, switchInterval])
+  }, [activeProviderId, symbol, interval, loadKlines, switchInterval])
 
   // ── Indicator configs (persisted per symbol via Zustand store) ────────
   const indicatorConfigs = useIndicatorStore((s) =>

@@ -12,13 +12,7 @@ import {
   cn,
 } from '@eous/ui'
 import type { ParamDef, OutputField, NodeDef } from '@eous/nodes'
-import { sourceKline, sourcePrice, controlBranch } from '@eous/nodes'
-
-const NODE_OUTPUTS: Record<string, Record<string, OutputField>> = {
-  'source.kline': sourceKline.def.executeOutput,
-  'source.price': sourcePrice.def.executeOutput,
-  'control.branch': controlBranch.def.executeOutput,
-}
+import { getNodeOutputs } from '@eous/nodes'
 import { useWorkflowStore } from '../../stores/workflow'
 import { api } from '../../lib/api'
 import { VariablePicker } from './variable-picker'
@@ -65,6 +59,8 @@ function useOptionsSource(
 
   const instanceId =
     typeof data['dataSourceInstanceId'] === 'string' ? data['dataSourceInstanceId'] : null
+
+  const providerId = typeof data['providerId'] === 'string' ? data['providerId'] : null
 
   useEffect(() => {
     if (!optionsSource) return
@@ -128,6 +124,49 @@ function useOptionsSource(
           } else {
             if (!cancelled) setOptions([])
           }
+        } else if (src.source === 'providers') {
+          const res = await api.listProviders()
+          if (!cancelled) {
+            setOptions((prev) => {
+              const next = (res.providers ?? []).map(
+                (p: { id: string; name: string; kind: string }) => ({
+                  label: `${p.name} (${p.kind})`,
+                  value: p.id,
+                }),
+              )
+              if (prev.length === next.length && prev.every((p, i) => p.value === next[i].value)) {
+                return prev
+              }
+              return next
+            })
+          }
+        } else if (src.source === 'providerModels') {
+          const pid =
+            typeof data[src.providerIdField] === 'string'
+              ? (data[src.providerIdField] as string)
+              : null
+          if (pid) {
+            const res = await api.getProvider(pid)
+            if (!cancelled) {
+              setOptions((prev) => {
+                const next = (res.models ?? []).map(
+                  (m: { modelId: string; displayName?: string | null }) => ({
+                    label: m.displayName ?? m.modelId,
+                    value: m.modelId,
+                  }),
+                )
+                if (
+                  prev.length === next.length &&
+                  prev.every((p, i) => p.value === next[i].value)
+                ) {
+                  return prev
+                }
+                return next
+              })
+            }
+          } else {
+            if (!cancelled) setOptions([])
+          }
         }
       } catch {
         if (!cancelled) setOptions([])
@@ -140,7 +179,7 @@ function useOptionsSource(
     return () => {
       cancelled = true
     }
-  }, [optionsSource, instanceId, query])
+  }, [optionsSource, instanceId, providerId, query, data])
 
   return { options, loading }
 }
@@ -240,7 +279,7 @@ function ConfigField({
 
   const displayValue = hasVariable
     ? String(rawValue).replace(VAR_PATTERN, '$1')
-    : selectedOption?.label ?? String(rawValue ?? param.default ?? '')
+    : (selectedOption?.label ?? String(rawValue ?? param.default ?? ''))
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -256,7 +295,7 @@ function ConfigField({
           onSelect={handleVariableSelect}
           open={varPickerOpen}
           onOpenChange={setVarPickerOpen}
-          currentValue={hasVariable ? parseVariableRef(String(rawValue)) ?? undefined : undefined}
+          currentValue={hasVariable ? (parseVariableRef(String(rawValue)) ?? undefined) : undefined}
         />
       </div>
 
@@ -340,7 +379,7 @@ function ConfigField({
                         : (node.type ?? nid)
                       : nid
                     const nodeType = node?.type ?? ''
-                    const outputs = NODE_OUTPUTS[nodeType]
+                    const outputs = getNodeOutputs(nodeType)
                     if (!outputs) return null
                     return Object.keys(fieldValues).map((fieldName) => {
                       const fieldDef = outputs[fieldName]
