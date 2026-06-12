@@ -2,7 +2,17 @@ import type { ExecuteContext } from '../types'
 import type { ExecuteInput, ExecuteOutput } from './types'
 
 async function execute(input: ExecuteInput, ctx: ExecuteContext): Promise<ExecuteOutput> {
-  const { providerId, modelId, systemPrompt, userPrompt, temperature, maxTokens } = input
+  const {
+    providerId,
+    modelId,
+    systemPrompt,
+    userPrompt,
+    injectMemory,
+    memoryAgentId,
+    memoryQuery,
+    temperature,
+    maxTokens,
+  } = input
 
   if (!providerId) throw new Error('providerId is required')
   if (!modelId) throw new Error('modelId is required')
@@ -14,6 +24,11 @@ async function execute(input: ExecuteInput, ctx: ExecuteContext): Promise<Execut
   const stream = await ctx.llmService.streamChat({
     providerId,
     modelId,
+    memory: {
+      enabled: Boolean(injectMemory),
+      agentId: memoryAgentId || undefined,
+      query: memoryQuery || userPrompt,
+    },
     context: {
       systemPrompt,
       messages: [{ role: 'user', content: userPrompt, timestamp: Date.now() }],

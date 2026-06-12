@@ -193,7 +193,6 @@ export const useDashboardLayoutStore = create<DashboardLayoutState>((set, get) =
         schemaJson: { dockviewLayout: latestLayout },
       })
       set({
-        dockviewLayout: latestLayout,
         savedDockviewLayout: latestLayout,
         dirty: false,
         saving: false,

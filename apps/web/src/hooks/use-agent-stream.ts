@@ -9,6 +9,13 @@ export interface AgentStreamState {
   error: string | null
 }
 
+interface AgentStreamCallbacks {
+  onEvent?: (event: SSEEvent) => void
+  onTextDelta?: (delta: string) => void
+  onError?: (error: string) => void
+  onDone?: (event: SSEEvent) => void
+}
+
 /**
  * Minimal hook for subscribing to SSE streams.
  * Parses pi-ai streaming events (text_delta, done, error) into a reactive state.
@@ -23,48 +30,64 @@ export function useAgentStream() {
   })
   const abortRef = useRef<AbortController | null>(null)
 
-  const start = useCallback(async (path: string, body?: unknown) => {
-    abortRef.current?.abort()
-    const controller = new AbortController()
-    abortRef.current = controller
+  const start = useCallback(
+    async (path: string, body?: unknown, callbacks: AgentStreamCallbacks = {}) => {
+      abortRef.current?.abort()
+      const controller = new AbortController()
+      abortRef.current = controller
 
-    setState({ events: [], text: '', isStreaming: true, error: null })
+      setState({ events: [], text: '', isStreaming: true, error: null })
 
-    try {
-      const token = (api as unknown as { getToken?: () => string | null }).getToken?.() ?? null
-      const events: SSEEvent[] = []
-      let text = ''
+      try {
+        const token = (api as unknown as { getToken?: () => string | null }).getToken?.() ?? null
+        const events: SSEEvent[] = []
+        let text = ''
 
-      for await (const event of streamSSE(path, body, {
-        baseURL: '/api',
-        getToken: () => token,
-      })) {
-        if (controller.signal.aborted) break
+        for await (const event of streamSSE(path, body, {
+          baseURL: '/api',
+          getToken: () => token,
+        })) {
+          if (controller.signal.aborted) break
 
-        events.push(event)
+          events.push(event)
 
-        if (
-          event.type === 'text_delta' &&
-          typeof event.data === 'object' &&
-          event.data !== null &&
-          'delta' in event.data
-        ) {
-          text += (event.data as { delta: string }).delta
+          if (
+            event.type === 'text_delta' &&
+            typeof event.data === 'object' &&
+            event.data !== null &&
+            'delta' in event.data
+          ) {
+            const delta = (event.data as { delta: string }).delta
+            text += delta
+            callbacks.onTextDelta?.(delta)
+          } else if (
+            event.type === 'error' &&
+            typeof event.data === 'object' &&
+            event.data !== null &&
+            'error' in event.data
+          ) {
+            callbacks.onError?.(String((event.data as { error: unknown }).error))
+          } else if (event.type === 'done') {
+            callbacks.onDone?.(event)
+          }
+
+          callbacks.onEvent?.(event)
+          setState({ events: [...events], text, isStreaming: true, error: null })
         }
 
-        setState({ events: [...events], text, isStreaming: true, error: null })
+        setState({ events, text, isStreaming: false, error: null })
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') return
+        setState((prev) => ({
+          ...prev,
+          isStreaming: false,
+          error: err instanceof Error ? err.message : String(err),
+        }))
+        callbacks.onError?.(err instanceof Error ? err.message : String(err))
       }
-
-      setState({ events, text, isStreaming: false, error: null })
-    } catch (err) {
-      if ((err as Error).name === 'AbortError') return
-      setState((prev) => ({
-        ...prev,
-        isStreaming: false,
-        error: err instanceof Error ? err.message : String(err),
-      }))
-    }
-  }, [])
+    },
+    [],
+  )
 
   const stop = useCallback(() => {
     abortRef.current?.abort()

@@ -33,6 +33,12 @@ export interface LlmService {
   streamChat(options: {
     providerId: string
     modelId: string
+    memory?: {
+      enabled?: boolean
+      agentId?: string
+      query?: string
+      limit?: number
+    }
     context: {
       systemPrompt?: string
       messages: { role: 'user' | 'assistant'; content: string; timestamp: number }[]
@@ -69,6 +75,7 @@ export type OptionsSource =
   | { source: 'instanceSymbols' }
   | { source: 'instanceIntervals' }
   | { source: 'providers' }
+  | { source: 'agents' }
   | { source: 'providerModels'; providerIdField: string }
 
 export type AcceptableType = 'string' | 'number' | 'boolean' | 'json' | 'array' | 'file'

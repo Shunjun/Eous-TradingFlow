@@ -31,4 +31,8 @@ export type {
   TrackedSymbol,
   SymbolSearchResult,
   WorkspaceLayoutSummary,
+  AgentSummary,
+  AgentSessionSummary,
+  AgentMessage,
+  AgentMemory,
 } from './api.js'

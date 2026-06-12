@@ -9,4 +9,9 @@ export type {
   Workflow,
   WorkflowVersion,
   WorkflowNodeExecution,
+  Agent,
+  AgentSession,
+  AgentMessage,
+  AgentSummary,
+  AgentMemory,
 } from './generated/prisma/client'

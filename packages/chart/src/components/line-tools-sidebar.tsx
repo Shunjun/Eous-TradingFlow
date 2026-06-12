@@ -6,16 +6,13 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@eous/ui'
-import { MousePointer2, Shapes, Trash2 } from 'lucide-react'
+import { useCallback, useState } from 'react'
+import { GripVertical, MousePointer2, Shapes, Trash2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { LINE_TOOL_GROUPS } from '../line-tools/registry'
 import type { LineToolDefinition } from '../line-tools/types'
@@ -50,74 +47,101 @@ export function LineToolsSidebar({
   const activeGroup = LINE_TOOL_GROUPS.find((group) =>
     group.tools.some((tool) => tool.type === activeTool),
   )
-  const activeDefinition = activeGroup?.tools.find((tool) => tool.type === activeTool)
-  const DrawingIcon = activeDefinition?.icon ?? Shapes
+  const [width, setWidth] = useState(48)
+  const showLabels = width >= 96
+
+  const handleResizePointerDown = useCallback(
+    (event: React.PointerEvent<HTMLDivElement>) => {
+      event.preventDefault()
+      const startX = event.clientX
+      const startWidth = width
+
+      function handlePointerMove(moveEvent: PointerEvent) {
+        const nextWidth = Math.min(180, Math.max(44, startWidth + moveEvent.clientX - startX))
+        setWidth(nextWidth)
+      }
+
+      function handlePointerUp() {
+        window.removeEventListener('pointermove', handlePointerMove)
+        window.removeEventListener('pointerup', handlePointerUp)
+      }
+
+      window.addEventListener('pointermove', handlePointerMove)
+      window.addEventListener('pointerup', handlePointerUp)
+    },
+    [width],
+  )
 
   return (
-    <div className="flex flex-col items-center w-10 py-1.5 border-r border-border shrink-0 gap-0.5">
+    <div
+      className="relative flex shrink-0 flex-col gap-0.5 border-r border-border py-1.5"
+      style={{ width }}
+    >
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
             variant="ghost-icon"
-            className={cn(activeTool === POINTER_TOOL.id && 'bg-primary/15 text-primary')}
+            className={cn(
+              'mx-1 justify-start',
+              !showLabels && 'justify-center px-0',
+              activeTool === POINTER_TOOL.id && 'bg-primary/15 text-primary',
+            )}
             onClick={() => onSelectTool(POINTER_TOOL.id)}
           >
             <POINTER_TOOL.icon size={14} />
+            {showLabels && <span className="truncate text-xs">{POINTER_TOOL.label}</span>}
           </Button>
         </TooltipTrigger>
         <TooltipContent>{POINTER_TOOL.label}</TooltipContent>
       </Tooltip>
 
-      <DropdownMenu>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost-icon"
-                className={cn(activeDefinition && 'bg-primary/15 text-primary')}
-              >
-                <DrawingIcon size={14} />
-              </Button>
-            </DropdownMenuTrigger>
-          </TooltipTrigger>
-          <TooltipContent>{activeDefinition?.label ?? 'Drawing tools'}</TooltipContent>
-        </Tooltip>
-        <DropdownMenuContent side="right" align="start" className="min-w-[190px]">
-          <DropdownMenuLabel>Drawing Tools</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {LINE_TOOL_GROUPS.map((group) => {
-            const groupIsActive = group.id === activeGroup?.id
-            return (
-              <DropdownMenuSub key={group.id}>
-                <DropdownMenuSubTrigger
-                  className={cn(groupIsActive && 'bg-primary/10 text-primary')}
-                >
-                  <Shapes size={14} />
-                  <span>{group.label}</span>
-                </DropdownMenuSubTrigger>
-                <DropdownMenuSubContent className="min-w-[180px]">
-                  <DropdownMenuGroup>
-                    {group.tools.map((tool) => {
-                      const Icon = tool.icon
-                      const isActive = activeTool === tool.type
-                      return (
-                        <DropdownMenuItem
-                          key={tool.type}
-                          className={cn(isActive && 'bg-primary/10 text-primary')}
-                          onClick={() => onSelectTool(tool.type)}
-                        >
-                          <Icon size={14} />
-                          <span>{tool.label}</span>
-                        </DropdownMenuItem>
-                      )
-                    })}
-                  </DropdownMenuGroup>
-                </DropdownMenuSubContent>
-              </DropdownMenuSub>
-            )
-          })}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {LINE_TOOL_GROUPS.map((group) => {
+        const groupIsActive = group.id === activeGroup?.id
+        const activeDefinition = group.tools.find((tool) => tool.type === activeTool)
+        const GroupIcon = activeDefinition?.icon ?? Shapes
+
+        return (
+          <DropdownMenu key={group.id}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost-icon"
+                    className={cn(
+                      'mx-1 justify-start',
+                      !showLabels && 'justify-center px-0',
+                      groupIsActive && 'bg-primary/15 text-primary',
+                    )}
+                  >
+                    <GroupIcon size={14} />
+                    {showLabels && <span className="truncate text-xs">{group.label}</span>}
+                  </Button>
+                </DropdownMenuTrigger>
+              </TooltipTrigger>
+              <TooltipContent>{activeDefinition?.label ?? group.label}</TooltipContent>
+            </Tooltip>
+            <DropdownMenuContent side="right" align="start" className="min-w-[190px]">
+              <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
+              <DropdownMenuGroup>
+                {group.tools.map((tool) => {
+                  const Icon = tool.icon
+                  const isActive = activeTool === tool.type
+                  return (
+                    <DropdownMenuItem
+                      key={tool.type}
+                      className={cn(isActive && 'bg-primary/10 text-primary')}
+                      onClick={() => onSelectTool(tool.type)}
+                    >
+                      <Icon size={14} />
+                      <span>{tool.label}</span>
+                    </DropdownMenuItem>
+                  )
+                })}
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )
+      })}
 
       <div className="flex-1" />
 
@@ -126,15 +150,27 @@ export function LineToolsSidebar({
           <TooltipTrigger asChild>
             <Button
               variant="ghost-icon"
-              className="text-red-400 hover:text-red-300"
+              className={cn(
+                'mx-1 justify-start text-red-400 hover:text-red-300',
+                !showLabels && 'justify-center px-0',
+              )}
               onClick={onDeleteSelected}
             >
               <Trash2 size={14} />
+              {showLabels && <span className="truncate text-xs">Delete</span>}
             </Button>
           </TooltipTrigger>
           <TooltipContent>Delete selected</TooltipContent>
         </Tooltip>
       )}
+
+      <div
+        className="absolute right-0 top-0 flex h-full w-2 translate-x-1 cursor-col-resize items-center justify-center text-muted-foreground/60 hover:text-primary"
+        onPointerDown={handleResizePointerDown}
+        aria-hidden="true"
+      >
+        <GripVertical size={12} />
+      </div>
     </div>
   )
 }

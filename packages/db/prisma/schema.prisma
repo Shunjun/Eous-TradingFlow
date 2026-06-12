@@ -23,6 +23,10 @@ model User {
   dataSourceInstances DataSourceInstance[]
   workspaceLayouts WorkspaceLayout[]
   workflows      Workflow[]
+  agents         Agent[]
+  agentSessions  AgentSession[]
+  agentMessages  AgentMessage[]
+  agentMemories  AgentMemory[]
 
   @@map("users")
 }
@@ -173,4 +177,97 @@ model WorkflowNodeExecution {
   @@index([workflowId, nodeId, definitionHash])
   @@index([userId])
   @@map("workflow_node_executions")
+}
+
+model Agent {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  systemPrompt String? @map("system_prompt")
+  providerId  String? @map("provider_id")
+  modelId     String? @map("model_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  sessions AgentSession[]
+  memories AgentMemory[]
+
+  @@index([userId])
+  @@map("agents")
+}
+
+model AgentSession {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId     String   @map("agent_id")
+  agent       Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  title       String
+  summary     String?
+  workflowId  String?  @map("workflow_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  messages  AgentMessage[]
+  summaries AgentSummary[]
+  memories  AgentMemory[]
+
+  @@index([userId])
+  @@index([agentId])
+  @@map("agent_sessions")
+}
+
+model AgentMessage {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId String   @map("session_id")
+  session   AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String
+  content   String
+  metadata  String   @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([sessionId, createdAt])
+  @@map("agent_messages")
+}
+
+model AgentSummary {
+  id        String   @id @default(cuid())
+  sessionId String   @map("session_id")
+  session   AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  content   String
+  fromMessageId String? @map("from_message_id")
+  toMessageId   String? @map("to_message_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([sessionId])
+  @@map("agent_summaries")
+}
+
+model AgentMemory {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId    String?  @map("agent_id")
+  agent      Agent?   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  sessionId  String?  @map("session_id")
+  session    AgentSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  scope      String
+  targetId   String   @map("target_id")
+  kind       String
+  content    String
+  tags       String   @default("[]")
+  importance Int      @default(1)
+  confidence Float    @default(0.7)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, scope, targetId])
+  @@index([agentId])
+  @@index([sessionId])
+  @@map("agent_memories")
 }

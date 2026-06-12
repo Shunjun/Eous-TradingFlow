@@ -299,5 +299,22 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
     deleteWorkspaceLayout: (id: string) => del(`/workspace/layouts/${encodeURIComponent(id)}`),
     activateWorkspaceLayout: (id: string) =>
       post(`/workspace/layouts/${encodeURIComponent(id)}/activate`, undefined, true),
+
+    // ── Agent APIs ──
+    listAgents: () => get('/agents'),
+    createAgent: (params) => post('/agents', params),
+    updateAgent: (id, params) => patch(`/agents/${encodeURIComponent(id)}`, params),
+    listAgentSessions: () => get('/agents/sessions'),
+    createAgentSession: (params) => post('/agents/sessions', params),
+    getAgentSession: (id: string) => get(`/agents/sessions/${encodeURIComponent(id)}`),
+    listAgentMemories: (params = {}) => {
+      const query = new URLSearchParams()
+      if (params.agentId) query.set('agentId', params.agentId)
+      if (params.sessionId) query.set('sessionId', params.sessionId)
+      if (params.query) query.set('query', params.query)
+      const suffix = query.toString() ? `?${query.toString()}` : ''
+      return get(`/agents/memories${suffix}`)
+    },
+    createAgentMemory: (params) => post('/agents/memories', params),
   }
 }

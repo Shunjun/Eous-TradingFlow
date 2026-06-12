@@ -140,6 +140,22 @@ function useOptionsSource(
               return next
             })
           }
+        } else if (src.source === 'agents') {
+          const res = await api.listAgents()
+          if (!cancelled) {
+            setOptions((prev) => {
+              const next = (res.agents ?? []).map(
+                (agent: { id: string; name: string; modelId?: string | null }) => ({
+                  label: agent.modelId ? `${agent.name} (${agent.modelId})` : agent.name,
+                  value: agent.id,
+                }),
+              )
+              if (prev.length === next.length && prev.every((p, i) => p.value === next[i].value)) {
+                return prev
+              }
+              return next
+            })
+          }
         } else if (src.source === 'providerModels') {
           const pid =
             typeof data[src.providerIdField] === 'string'

@@ -5,11 +5,16 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
+  Dot,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  cn,
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupAction,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
@@ -17,15 +22,20 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  useTheme,
   useSidebar,
 } from '@eous/ui'
 import {
   LayoutDashboard,
   Grid3x3,
+  Bell,
   BrainCircuit,
   BarChart3,
   Newspaper,
+  LogOut,
+  Moon,
   Settings,
+  Sun,
   Wallet,
   Plus,
   GitBranch,
@@ -33,6 +43,7 @@ import {
 } from 'lucide-react'
 import { useWorkflowList } from '../../hooks/use-workflows'
 import { CreateWorkflowDialog } from '../workflow/create-workflow-dialog'
+import { api } from '../../lib/api'
 
 interface NavItem {
   id: string
@@ -82,6 +93,7 @@ export function AppSidebar() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { state } = useSidebar()
+  const { theme, setTheme } = useTheme()
   const { workflows } = useWorkflowList()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [workflowsCollapsed, setWorkflowsCollapsed] = useState(false)
@@ -94,6 +106,7 @@ export function AppSidebar() {
     () => workflows.find((wf) => wf.id === activeWorkflowId) ?? null,
     [workflows, activeWorkflowId],
   )
+  const showPinnedActiveWorkflow = !isCollapsed && workflowsCollapsed && activeWorkflow
 
   const handleCreated = useCallback(
     (id: string) => {
@@ -102,6 +115,15 @@ export function AppSidebar() {
     },
     [navigate],
   )
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await api.logout()
+    } catch {
+      /* ignore */
+    }
+    window.location.href = '/login'
+  }, [])
 
   return (
     <>
@@ -148,7 +170,7 @@ export function AppSidebar() {
             </SidebarGroup>
           ))}
 
-          {(workflows.length > 0 || isOnWorkflowPage) && (
+          {(!isCollapsed || isOnWorkflowPage) && (
             <Collapsible
               open={!workflowsCollapsed}
               onOpenChange={(open) => setWorkflowsCollapsed(!open)}
@@ -157,25 +179,13 @@ export function AppSidebar() {
               <SidebarGroup className="px-0">
                 <SidebarGroupLabel asChild>
                   <CollapsibleTrigger className="w-full cursor-pointer select-none">
-                    <ChevronDown
-                      size={12}
-                      className="-ml-0.5 mr-1 -rotate-90 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-0"
-                    />
                     WORKFLOWS
+                    <ChevronDown className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
                   </CollapsibleTrigger>
                 </SidebarGroupLabel>
-                <SidebarGroupAction
-                  asChild
-                  className="flex items-center justify-center"
-                  onClick={() => setDialogOpen(true)}
-                >
-                  <Button size="xs" variant="ghost-icon">
-                    <Plus size={14} />
-                  </Button>
-                </SidebarGroupAction>
 
                 {/* 折叠时 pin 住选中的 workflow */}
-                {workflowsCollapsed && activeWorkflow && (
+                {showPinnedActiveWorkflow && (
                   <SidebarMenu className="gap-0.5">
                     <SidebarMenuItem>
                       <span className="pointer-events-none absolute -left-2 top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:hidden" />
@@ -210,9 +220,16 @@ export function AppSidebar() {
                       </SidebarMenu>
                     ) : (
                       <SidebarMenu className="gap-0.5">
+                        <SidebarMenuItem>
+                          <SidebarMenuButton onClick={() => setDialogOpen(true)}>
+                            <Plus size={16} />
+                            <span className="flex-1 text-left group-data-[collapsible=icon]:hidden">
+                              新建工作流
+                            </span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
                         {workflows.length === 0 ? (
                           <div className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-sidebar-foreground/40">
-                            <Plus size={12} />
                             <span>暂无工作流</span>
                           </div>
                         ) : (
@@ -246,19 +263,62 @@ export function AppSidebar() {
 
         <SidebarSeparator />
         <SidebarFooter className="px-3 py-3">
-          <SidebarMenu className="gap-0.5">
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={isItemActive(pathname, '/settings')}
-                tooltip="Settings"
-              >
-                <NavLink to="/settings" className="cursor-pointer">
-                  <Settings size={16} />
-                </NavLink>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
+          <div className="grid grid-cols-4 gap-1 group-data-[collapsible=icon]:grid-cols-1">
+            <Button
+              asChild
+              variant="ghost-icon"
+              size="sm"
+              aria-label="Settings"
+              className={cn(
+                'relative size-8 p-0',
+                isItemActive(pathname, '/settings') &&
+                  'bg-sidebar-active text-sidebar-active-foreground',
+              )}
+            >
+              <NavLink to="/settings" className="cursor-pointer">
+                <Settings size={16} />
+              </NavLink>
+            </Button>
+
+            <Button
+              variant="ghost-icon"
+              size="sm"
+              aria-label="Alerts"
+              className="relative size-8 p-0"
+            >
+              <Bell size={16} />
+              <Dot size="xs" variant="glow" className="absolute right-1.5 top-1.5" />
+            </Button>
+
+            <Button
+              variant="ghost-icon"
+              size="sm"
+              aria-label="Toggle theme"
+              className="size-8 p-0"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            >
+              {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            </Button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost-icon" size="sm" aria-label="Account" className="size-8 p-0">
+                  <span className="flex size-5 items-center justify-center rounded-sm border border-border font-mono text-[10px] text-muted-foreground">
+                    S
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" side="right" className="w-40">
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="cursor-pointer gap-2 text-xs font-mono text-muted-foreground hover:text-red-400"
+                >
+                  <LogOut size={13} />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </SidebarFooter>
       </Sidebar>
 

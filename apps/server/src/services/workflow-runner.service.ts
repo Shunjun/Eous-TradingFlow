@@ -93,6 +93,18 @@ const dataSourceServiceImpl: DataSourceService = {
   },
 }
 
+function createLlmService(userId: string): LlmService {
+  return {
+    streamChat: (options) =>
+      llmServiceModule.streamChat({
+        userId,
+        ...options,
+        context: options.context as Parameters<typeof llmServiceModule.streamChat>[0]['context'],
+      }),
+    parseJsonWithTolerance: llmServiceModule.parseJsonWithTolerance,
+  }
+}
+
 export async function runNode(
   workflowId: string,
   userId: string,
@@ -148,7 +160,7 @@ export async function runNode(
     const executionId = `exec_${Date.now()}_${node.id}`
     const ctx: ExecuteContext = {
       dataSourceService: dataSourceServiceImpl,
-      llmService: llmServiceModule as unknown as LlmService,
+      llmService: createLlmService(userId),
       userId,
       workflowId,
       executionId,

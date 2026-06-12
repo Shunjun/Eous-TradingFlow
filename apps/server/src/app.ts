@@ -6,6 +6,7 @@ import { providerRouter, templatesRouter } from './routes/provider.js'
 import { dataSourceRouter, dataSourceInstanceRouter } from './routes/data-source.js'
 import { workspaceRouter } from './routes/workspace.js'
 import { workflowRouter } from './routes/workflow.js'
+import { agentRouter } from './routes/agent.js'
 import { AppError } from './lib/app-error.js'
 
 export const app = new Hono()
@@ -20,6 +21,7 @@ app.route('/api', dataSourceRouter)
 app.route('/api', dataSourceInstanceRouter)
 app.route('/api/workspace', workspaceRouter)
 app.route('/api/workflows', workflowRouter)
+app.route('/api/agents', agentRouter)
 
 app.onError((err, c) => {
   if (err instanceof AppError) {

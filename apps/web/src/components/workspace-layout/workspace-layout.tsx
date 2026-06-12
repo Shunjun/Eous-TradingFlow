@@ -87,7 +87,7 @@ export function WorkspaceLayout() {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <LayoutToolbar />
-      <div className="min-h-0 flex-1 overflow-hidden p-2">
+      <div className="min-h-0 flex-1 overflow-hidden">
         <div
           className="workspace-dockview dockview-theme-dark h-full"
           data-layout-version={layoutVersion}

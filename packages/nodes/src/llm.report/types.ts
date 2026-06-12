@@ -3,6 +3,9 @@ interface ExecuteInput {
   modelId: string
   systemPrompt: string
   userPrompt: string
+  injectMemory?: boolean
+  memoryAgentId?: string
+  memoryQuery?: string
   temperature?: number
   maxTokens?: number
   [key: string]: unknown

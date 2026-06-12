@@ -12,6 +12,7 @@ import {
   TrendLineDefinition,
   VerticalLineDefinition,
 } from './lines/definitions'
+import { FibRetracementDefinition } from './fib-retracement/definition'
 import { RectangleDefinition } from './rectangle/definition'
 
 export const LINE_TOOL_DEFINITIONS: LineToolDefinition[] = [
@@ -24,6 +25,7 @@ export const LINE_TOOL_DEFINITIONS: LineToolDefinition[] = [
   ArrowDefinition,
   RayDefinition,
   CalloutDefinition,
+  FibRetracementDefinition,
   RectangleDefinition,
 ]
 
@@ -47,6 +49,11 @@ export const LINE_TOOL_GROUPS = [
     id: 'annotations',
     label: 'Annotations',
     tools: [RectangleDefinition, CalloutDefinition],
+  },
+  {
+    id: 'fibonacci',
+    label: 'Fibonacci',
+    tools: [FibRetracementDefinition],
   },
 ] satisfies { id: string; label: string; tools: LineToolDefinition[] }[]
 

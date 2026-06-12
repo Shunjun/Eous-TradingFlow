@@ -95,6 +95,7 @@ export class ChartEngine {
 
   private unsubData: () => void
   private unsubTheme: () => void
+  private hasData = false
 
   constructor(container: HTMLElement, eventBus: EventBus, _klineData: unknown, theme: ChartTheme) {
     this.container = container
@@ -158,6 +159,9 @@ export class ChartEngine {
   }
 
   private setData(klines: KlineDataPoint[], fit: boolean): void {
+    this.hasData = klines.length > 0
+    this.setCrosshairVisible(this.hasData)
+
     if (klines.length > 0) {
       const precision = inferPricePrecision(klines)
       this.candleSeries.applyOptions({
@@ -193,6 +197,8 @@ export class ChartEngine {
         })
       }
       this.volumeSeries.setData(volumes)
+    } else {
+      this.volumeSeries?.setData([])
     }
     if (fit) {
       this.chart.timeScale().fitContent()
@@ -210,8 +216,18 @@ export class ChartEngine {
         horzLines: { color: t.border },
       },
       crosshair: {
-        vertLine: { color: t.foreground, labelBackgroundColor: t.foreground },
-        horzLine: { color: t.foreground, labelBackgroundColor: t.foreground },
+        vertLine: {
+          color: t.foreground,
+          labelBackgroundColor: t.foreground,
+          visible: this.hasData,
+          labelVisible: this.hasData,
+        },
+        horzLine: {
+          color: t.foreground,
+          labelBackgroundColor: t.foreground,
+          visible: this.hasData,
+          labelVisible: this.hasData,
+        },
       },
       rightPriceScale: { borderColor: t.border },
       timeScale: { borderColor: t.border },
@@ -228,6 +244,15 @@ export class ChartEngine {
 
   resize(): void {
     this.chart.resize(this.container.clientWidth, this.container.clientHeight)
+  }
+
+  private setCrosshairVisible(visible: boolean): void {
+    this.chart.applyOptions({
+      crosshair: {
+        vertLine: { visible, labelVisible: visible },
+        horzLine: { visible, labelVisible: visible },
+      },
+    })
   }
 
   getVisibleRange(): { from: number; to: number } | null {

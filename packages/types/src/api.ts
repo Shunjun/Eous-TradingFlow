@@ -100,6 +100,49 @@ export interface WorkspaceLayoutSummary {
   updatedAt: string
 }
 
+export interface AgentSummary {
+  id: string
+  name: string
+  description: string | null
+  systemPrompt: string | null
+  providerId: string | null
+  modelId: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AgentSessionSummary {
+  id: string
+  agentId: string
+  title: string
+  summary: string | null
+  workflowId: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AgentMessage {
+  id: string
+  sessionId: string
+  role: 'user' | 'assistant' | 'system' | 'tool'
+  content: string
+  metadata: Record<string, unknown>
+  createdAt: string
+}
+
+export interface AgentMemory {
+  id: string
+  scope: string
+  targetId: string
+  kind: string
+  content: string
+  tags: string[]
+  importance: number
+  confidence: number
+  createdAt: string
+  updatedAt: string
+}
+
 /* ── API Client Interface ─────────────────────────────── */
 
 export interface ApiClient {
@@ -285,4 +328,50 @@ export interface ApiClient {
   saveWorkspaceLayout(id: string, params: { schemaJson: unknown; name?: string }): Promise<void>
   deleteWorkspaceLayout(id: string): Promise<{ newActiveLayoutId?: string }>
   activateWorkspaceLayout(id: string): Promise<{ activeLayoutId: string }>
+
+  // ── Agent APIs ──
+  listAgents(): Promise<{ agents: AgentSummary[] }>
+  createAgent(params: {
+    name: string
+    description?: string | null
+    systemPrompt?: string | null
+    providerId?: string | null
+    modelId?: string | null
+  }): Promise<{ agent: AgentSummary }>
+  updateAgent(
+    id: string,
+    params: {
+      name?: string
+      description?: string | null
+      systemPrompt?: string | null
+      providerId?: string | null
+      modelId?: string | null
+    },
+  ): Promise<{ agent: AgentSummary }>
+  listAgentSessions(): Promise<{ sessions: AgentSessionSummary[] }>
+  createAgentSession(params: {
+    agentId?: string
+    title?: string
+    workflowId?: string
+  }): Promise<{ session: AgentSessionSummary }>
+  getAgentSession(id: string): Promise<{
+    session: AgentSessionSummary
+    messages: AgentMessage[]
+  }>
+  listAgentMemories(params?: {
+    agentId?: string
+    sessionId?: string
+    query?: string
+  }): Promise<{ memories: AgentMemory[] }>
+  createAgentMemory(params: {
+    agentId?: string
+    sessionId?: string
+    scope: string
+    targetId?: string
+    kind: string
+    content: string
+    tags?: string[]
+    importance?: number
+    confidence?: number
+  }): Promise<{ memory: AgentMemory }>
 }
