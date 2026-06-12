@@ -59,13 +59,17 @@ export function ChartStoreProvider({
         store.setState({ providers })
         const defaultExists = providers.some((provider) => provider.id === defaultProviderId)
         const nextProviderId = defaultExists ? defaultProviderId! : (providers[0]?.id ?? '')
-        store.setState({ activeProviderId: nextProviderId })
+        const nextProvider = providers.find((provider) => provider.id === nextProviderId)
+        store.setState({
+          activeProviderId: nextProviderId,
+          symbol: defaultSymbol ?? nextProvider?.defaultSymbol ?? null,
+        })
       })
       .catch(() => {})
     return () => {
       cancelled = true
     }
-  }, [store, defaultProviderId])
+  }, [store, defaultProviderId, defaultSymbol])
 
   // ── Load intervals + default symbols when active provider changes ──────
   useEffect(() => {
@@ -73,6 +77,7 @@ export function ChartStoreProvider({
       if (state.activeProviderId === prev.activeProviderId) return
       const providerId = state.activeProviderId
       const fns = store.getState().fetchFnsRef.current
+      const provider = store.getState().providers.find((item) => item.id === providerId)
       if (!providerId || !fns) {
         store.setState({
           intervals: [],
@@ -83,6 +88,10 @@ export function ChartStoreProvider({
           isSearching: false,
         })
         return
+      }
+
+      if (provider?.defaultSymbol && state.symbol !== provider.defaultSymbol) {
+        store.setState({ symbol: provider.defaultSymbol })
       }
 
       // Load intervals
@@ -133,13 +142,6 @@ export function ChartStoreProvider({
     })
     return unsub
   }, [store])
-
-  // ── Set initial symbol ─────────────────────────────────────────────────
-  useEffect(() => {
-    if (defaultSymbol) {
-      store.setState({ symbol: defaultSymbol })
-    }
-  }, [store, defaultSymbol])
 
   // ── Notify external onProviderChange ───────────────────────────────────
   useEffect(() => {

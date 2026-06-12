@@ -2,8 +2,10 @@ import { useEffect, useState, useCallback, useRef, useMemo, useContext } from 'r
 import type { ISeriesApi } from 'lightweight-charts'
 import { useIndicatorStore } from '@eous/stores'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@eous/ui'
+import { BarChart3, Loader2 } from 'lucide-react'
 import type { KlineChartProps, IndicatorConfig } from './types'
 import type { FetchKlinesFn } from './core/kline-data'
+import type { ChartDataStatus } from './core/event-bus'
 import { createChartStore } from './stores/chart-store'
 import { ChartStoreProvider, ChartStoreContext } from './stores/chart-provider'
 import { useChartStore } from './hooks/use-chart-store'
@@ -78,9 +80,10 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
     removeIndicator,
     loadKlines,
     switchInterval,
+    clearKlines,
     loadEarlier,
     getKlineData,
-    toggleDrawingTool,
+    subscribeDataStatus,
     deleteSelectedDrawing,
   } = useChart(containerRef, chartTheme)
 
@@ -108,6 +111,9 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
   // ── Resizable panel state ─────────────────────────────────────────────
   const [panelOpen, setPanelOpen] = useState(false)
   const [selectedIndicatorId, setSelectedIndicatorId] = useState<string | null>(null)
+  const [dataStatus, setDataStatus] = useState<ChartDataStatus>('idle')
+
+  useEffect(() => subscribeDataStatus(setDataStatus), [subscribeDataStatus])
 
   // Series map for legend (indicator ID -> series refs)
   const seriesMapRef = useRef<Map<string, ISeriesApi<'Line' | 'Histogram'>[]>>(new Map())
@@ -189,7 +195,11 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
   )
 
   useEffect(() => {
-    if (!symbol || !activeProviderId) return
+    if (!symbol || !activeProviderId) {
+      lastFetchedRef.current = null
+      clearKlines()
+      return
+    }
 
     const prev = lastFetchedRef.current
     const providerChanged = prev?.providerId !== activeProviderId
@@ -203,7 +213,7 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
     } else if (intervalChanged) {
       switchInterval(wrappedFetch, symbol, interval)
     }
-  }, [activeProviderId, symbol, interval, loadKlines, switchInterval])
+  }, [activeProviderId, symbol, interval, clearKlines, loadKlines, switchInterval])
 
   // ── Indicator configs (persisted per symbol via Zustand store) ────────
   const indicatorConfigs = useIndicatorStore((s) =>
@@ -228,6 +238,12 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
   useEffect(() => {
     if (!lineToolsEngine) return
     return lineToolsEngine.onSelectionChange(setHasSelectedDrawing)
+  }, [lineToolsEngine])
+
+  useEffect(() => {
+    if (!lineToolsEngine) return
+    setActiveDrawingTool(lineToolsEngine.activeTool)
+    return lineToolsEngine.onActiveToolChange(setActiveDrawingTool)
   }, [lineToolsEngine])
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────
@@ -267,15 +283,12 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
   const handleSelectTool = useCallback(
     (id: string) => {
       if (id === 'none') {
-        setActiveDrawingTool('none')
         lineToolsEngine?.setActiveTool('none')
       } else {
-        const toolType = id as LineToolType
-        setActiveDrawingTool(toolType)
-        toggleDrawingTool(toolType)
+        lineToolsEngine?.setActiveTool(id as LineToolType)
       }
     },
-    [lineToolsEngine, toggleDrawingTool],
+    [lineToolsEngine],
   )
 
   const handleAddIndicator = useCallback(
@@ -314,11 +327,16 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
     selectedIndicatorConfig && selectedIndicatorDefinition
       ? `${selectedIndicatorDefinition.label} Settings`
       : 'Settings'
+  const overlayStatus: Exclude<ChartDataStatus, 'ready'> | null = !symbol
+    ? 'idle'
+    : dataStatus === 'loading' || dataStatus === 'empty' || dataStatus === 'error'
+      ? dataStatus
+      : null
 
   return (
     <div
       ref={wrapperRef}
-      className="flex flex-col h-full w-full min-h-0 border border-border rounded-lg overflow-hidden"
+      className="flex h-full w-full min-h-0 flex-col overflow-hidden bg-background"
     >
       {/* Toolbar — always visible */}
       <ChartToolbar onAddIndicator={handleAddIndicator} containerRef={wrapperRef} />
@@ -338,11 +356,7 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
           <ResizablePanel defaultSize={panelOpen ? 72 : 100} minSize={55} className="min-w-0">
             <div className="relative flex-1 min-h-0 h-full" data-chart-container>
               <div ref={containerRef} className="h-full w-full" />
-              {!symbol && (
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center font-mono text-sm text-muted-foreground">
-                  Select a symbol
-                </div>
-              )}
+              {overlayStatus && <ChartEmptyState status={overlayStatus} />}
 
               {/* Indicator legend */}
               {engines.chart.current?.chart && (
@@ -388,6 +402,45 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
             </>
           )}
         </ResizablePanelGroup>
+      </div>
+    </div>
+  )
+}
+
+function ChartEmptyState({ status }: { status: Exclude<ChartDataStatus, 'ready'> }) {
+  const content =
+    status === 'loading'
+      ? {
+          title: 'Loading market data',
+          description: 'Fetching candles for the selected symbol.',
+          icon: <Loader2 className="h-5 w-5 animate-spin" />,
+        }
+      : status === 'error'
+        ? {
+            title: 'Unable to load candles',
+            description: 'Check the data source connection or choose another symbol.',
+            icon: <BarChart3 className="h-5 w-5" />,
+          }
+        : status === 'empty'
+          ? {
+              title: 'No candles available',
+              description: 'This data source returned no K-line data for the selected symbol.',
+              icon: <BarChart3 className="h-5 w-5" />,
+            }
+          : {
+              title: 'Select a symbol',
+              description: 'Choose a market from the toolbar to display K-line data.',
+              icon: <BarChart3 className="h-5 w-5" />,
+            }
+
+  return (
+    <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-6">
+      <div className="flex max-w-sm flex-col items-center gap-2 text-center font-mono">
+        <div className="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-background/80 text-muted-foreground shadow-sm backdrop-blur">
+          {content.icon}
+        </div>
+        <div className="text-sm font-medium text-foreground">{content.title}</div>
+        <div className="text-xs leading-5 text-muted-foreground">{content.description}</div>
       </div>
     </div>
   )

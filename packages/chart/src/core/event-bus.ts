@@ -5,8 +5,11 @@ import type { KlineDataPoint } from './kline-data'
 
 export interface ChartEvents {
   'data:updated': { klines: KlineDataPoint[]; fit: boolean }
+  'data:status': { status: 'idle' | 'loading' | 'ready' | 'empty' | 'error' }
   'theme:changed': { theme: ChartTheme }
 }
+
+export type ChartDataStatus = ChartEvents['data:status']['status']
 
 type EventKey = keyof ChartEvents
 type Handler<T> = (payload: T) => void

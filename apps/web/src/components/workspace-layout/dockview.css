@@ -32,6 +32,9 @@
 
 .workspace-dockview .dv-groupview {
   background-color: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  overflow: hidden;
 }
 
 .workspace-dockview .dv-tab {

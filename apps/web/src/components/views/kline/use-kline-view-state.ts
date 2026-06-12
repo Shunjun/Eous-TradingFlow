@@ -19,7 +19,7 @@ export type KlineViewProps = Pick<
 >
 
 const DEFAULT_KLINE_STATE: KlineViewState = {
-  symbol: null,
+  symbol: 'BTC/USDT',
   providerId: null,
   interval: '1d',
 }
@@ -31,7 +31,7 @@ export function createDefaultKlineViewState(): KlineViewState {
 export function normalizeKlineViewState(raw: unknown): KlineViewState {
   const value = raw as Partial<KlineViewState> | null | undefined
   return {
-    symbol: typeof value?.symbol === 'string' ? value.symbol : null,
+    symbol: typeof value?.symbol === 'string' ? value.symbol : DEFAULT_KLINE_STATE.symbol,
     providerId: typeof value?.providerId === 'string' ? value.providerId : null,
     interval: typeof value?.interval === 'string' ? value.interval : DEFAULT_KLINE_STATE.interval,
   }

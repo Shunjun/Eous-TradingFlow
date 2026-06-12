@@ -66,11 +66,20 @@ export class KLineData {
     this.eventBus.emit('theme:changed', { theme })
   }
 
+  clear(): void {
+    this.klines = []
+    this._hasMore = true
+    this._loading = false
+    this.eventBus.emit('data:updated', { klines: [], fit: true })
+    this.eventBus.emit('data:status', { status: 'idle' })
+  }
+
   // ── Initial load (no data → fit) ───────────────────────
   async loadInitial(fetchFn: FetchKlinesFn, symbol: string, interval: string): Promise<void> {
     this.suspendScroll = true
     this.klines = []
     this._hasMore = true
+    this.eventBus.emit('data:updated', { klines: [], fit: true })
     await this.fetch(fetchFn, symbol, interval, {}, true)
     this.suspendScroll = false
   }
@@ -80,6 +89,7 @@ export class KLineData {
     this.suspendScroll = true
     this.klines = []
     this._hasMore = true
+    this.eventBus.emit('data:updated', { klines: [], fit: true })
     // Don't send from/to → server defaults to latest data
     await this.fetch(fetchFn, symbol, interval, {}, true)
     this.suspendScroll = false
@@ -121,6 +131,7 @@ export class KLineData {
   ): Promise<void> {
     const id = ++this.fetchId
     this._loading = true
+    if (fit) this.eventBus.emit('data:status', { status: 'loading' })
 
     try {
       const data = await fetchFn({ symbol, interval, ...opts })
@@ -136,9 +147,18 @@ export class KLineData {
 
       this._hasMore = data.length >= 100
       this.eventBus.emit('data:updated', { klines: this.klines, fit })
+      if (fit) {
+        this.eventBus.emit('data:status', { status: this.klines.length > 0 ? 'ready' : 'empty' })
+      }
       this.lastLoadTime = Date.now()
     } catch {
       if (id !== this.fetchId) return
+      if (fit) {
+        this.klines = []
+        this._hasMore = false
+        this.eventBus.emit('data:updated', { klines: [], fit: true })
+        this.eventBus.emit('data:status', { status: 'error' })
+      }
     } finally {
       if (id === this.fetchId) this._loading = false
     }
@@ -159,9 +179,7 @@ export class KLineData {
   }
 
   destroy(): void {
-    this.klines = []
-    this._hasMore = true
-    this._loading = false
+    this.clear()
   }
 }
 

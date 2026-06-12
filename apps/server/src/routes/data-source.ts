@@ -16,6 +16,15 @@ dataSourceRouter.get('/data-source-providers', (c) => {
   return c.json({ providers })
 })
 
+dataSourceRouter.get('/data-source-providers/:id/options/:fieldKey', async (c) => {
+  const options = await dataSourceService.getProviderConfigFieldOptions(
+    c.req.param('id'),
+    c.req.param('fieldKey'),
+    c.req.query('query'),
+  )
+  return c.json({ options })
+})
+
 // ── Debug: direct fetch ─────────────────────────────────────────────────────
 
 dataSourceRouter.post('/data-source-providers/:id/debug-fetch', async (c) => {
@@ -54,6 +63,7 @@ dataSourceInstanceRouter.post('/data-source-instances', async (c) => {
   const body = await c.req.json<{
     name: string
     providerKind: string
+    defaultSymbol: string
     config: Record<string, string>
   }>()
   const instance = await dataSourceService.createInstance(c.get('userId'), body)
@@ -71,7 +81,11 @@ dataSourceInstanceRouter.get('/data-source-instances/:id', async (c) => {
 })
 
 dataSourceInstanceRouter.patch('/data-source-instances/:id', async (c) => {
-  const body = await c.req.json<{ name?: string; config?: Record<string, string> }>()
+  const body = await c.req.json<{
+    name?: string
+    defaultSymbol?: string
+    config?: Record<string, string>
+  }>()
   const instance = await dataSourceService.updateInstance(c.get('userId'), c.req.param('id'), body)
   return c.json({ instance })
 })
@@ -96,7 +110,10 @@ dataSourceInstanceRouter.post('/data-source-instances/:id/symbols', async (c) =>
 })
 
 dataSourceInstanceRouter.get('/data-source-instances/:id/intervals', async (c) => {
-  const intervals = await dataSourceService.getIntervalsForInstance(c.get('userId'), c.req.param('id'))
+  const intervals = await dataSourceService.getIntervalsForInstance(
+    c.get('userId'),
+    c.req.param('id'),
+  )
   return c.json({ intervals })
 })
 
@@ -129,7 +146,14 @@ dataSourceInstanceRouter.post('/data-source-instances/:id/tracked-symbols', asyn
   return c.json({ symbol }, 201)
 })
 
-dataSourceInstanceRouter.delete('/data-source-instances/:id/tracked-symbols/:symbolId', async (c) => {
-  await dataSourceService.removeSymbol(c.get('userId'), c.req.param('id'), c.req.param('symbolId'))
-  return c.json({ ok: true })
-})
+dataSourceInstanceRouter.delete(
+  '/data-source-instances/:id/tracked-symbols/:symbolId',
+  async (c) => {
+    await dataSourceService.removeSymbol(
+      c.get('userId'),
+      c.req.param('id'),
+      c.req.param('symbolId'),
+    )
+    return c.json({ ok: true })
+  },
+)

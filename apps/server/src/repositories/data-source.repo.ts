@@ -33,6 +33,7 @@ export function findByNameAndUser(
 export function create(data: {
   name: string
   providerKind: string
+  defaultSymbol: string
   identityKey?: string | null
   identityLabel?: string | null
   configEncrypted: string

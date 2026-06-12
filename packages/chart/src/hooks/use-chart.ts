@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback, useMemo } from 'react'
 import type { ChartTheme, IndicatorConfig } from '../types'
 import type { LineToolType } from 'lightweight-charts-line-tools-core'
 import { EventBus } from '../core/event-bus'
+import type { ChartDataStatus } from '../core/event-bus'
 import { KLineData } from '../core/kline-data'
 import type { FetchKlinesFn } from '../core/kline-data'
 import { ChartEngine } from '../core/chart-engine'
@@ -96,6 +97,10 @@ export function useChart(containerRef: React.RefObject<HTMLDivElement | null>, t
     klineDataRef.current?.switchInterval(fetchFn, symbol, interval)
   }, [])
 
+  const clearKlines = useCallback(() => {
+    klineDataRef.current?.clear()
+  }, [])
+
   const loadEarlier = useCallback(
     (fetchFn: FetchKlinesFn, symbol: string, interval: string, oldestTimestamp: number) => {
       klineDataRef.current?.loadEarlier(fetchFn, symbol, interval, oldestTimestamp)
@@ -104,6 +109,10 @@ export function useChart(containerRef: React.RefObject<HTMLDivElement | null>, t
   )
 
   const getKlineData = useCallback(() => klineDataRef.current, [])
+
+  const subscribeDataStatus = useCallback((handler: (status: ChartDataStatus) => void) => {
+    return eventBusRef.current?.on('data:status', ({ status }) => handler(status)) ?? (() => {})
+  }, [])
 
   const setActiveDrawingTool = useCallback((type: LineToolType | 'none') => {
     lineToolsEngineRef.current?.setActiveTool(type)
@@ -137,8 +146,10 @@ export function useChart(containerRef: React.RefObject<HTMLDivElement | null>, t
       updateIndicator,
       loadKlines,
       switchInterval,
+      clearKlines,
       loadEarlier,
       getKlineData,
+      subscribeDataStatus,
       setActiveDrawingTool,
       toggleDrawingTool,
       deleteSelectedDrawing,
@@ -153,8 +164,10 @@ export function useChart(containerRef: React.RefObject<HTMLDivElement | null>, t
       updateIndicator,
       loadKlines,
       switchInterval,
+      clearKlines,
       loadEarlier,
       getKlineData,
+      subscribeDataStatus,
       setActiveDrawingTool,
       toggleDrawingTool,
       deleteSelectedDrawing,

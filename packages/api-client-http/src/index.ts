@@ -266,6 +266,14 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
 
     // ── Data Source APIs ──
     listDataSourceProviders: () => get('/data-source-providers'),
+    getDataSourceProviderOptions: (providerId: string, fieldKey: string, query?: string) => {
+      const params = new URLSearchParams()
+      if (query) params.set('query', query)
+      const suffix = params.toString() ? `?${params.toString()}` : ''
+      return get(
+        `/data-source-providers/${encodeURIComponent(providerId)}/options/${encodeURIComponent(fieldKey)}${suffix}`,
+      )
+    },
     listDataSourceInstances: () => get('/data-source-instances'),
     getDataSourceInstance: (id: string) => get(`/data-source-instances/${encodeURIComponent(id)}`),
     createDataSourceInstance: (params) => post('/data-source-instances', params, true),

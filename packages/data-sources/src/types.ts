@@ -7,7 +7,13 @@ export interface ConfigField {
   placeholder?: string
   hint?: string
   options?: { label: string; value: string }[] // select 用
+  optionsSource?: { source: 'provider' } // 由 provider 按字段动态提供选项
   defaultValue?: string | number | boolean
+}
+
+export interface ConfigFieldOption {
+  label: string
+  value: string
 }
 
 // ── 符号信息 ──
@@ -70,6 +76,9 @@ export interface DataSourceProvider {
    * 无需区分的 provider 返回 key="" 即可。
    */
   resolveIdentity(config: Record<string, string>): { displayName: string; key: string }
+
+  /** 返回配置字段的动态选项，例如 CCXT exchange 列表。 */
+  getConfigFieldOptions?(fieldKey: string, query?: string): Promise<ConfigFieldOption[]>
 
   getDefaultSymbols(
     offset: number,

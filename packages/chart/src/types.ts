@@ -120,6 +120,8 @@ export interface ProviderOption {
   id: string
   /** Display name (e.g. "Yahoo Finance", "CCXT") */
   name: string
+  /** Provider-specific fallback symbol used when a panel has no saved symbol */
+  defaultSymbol: string
 }
 
 export interface SymbolItem {

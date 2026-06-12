@@ -92,6 +92,7 @@ model DataSourceInstance {
   id               String   @id @default(cuid())
   name             String
   providerKind     String
+  defaultSymbol    String   @map("default_symbol")
   identityKey      String?  @map("identity_key")
   identityLabel    String?  @map("identity_label")
   configEncrypted  String

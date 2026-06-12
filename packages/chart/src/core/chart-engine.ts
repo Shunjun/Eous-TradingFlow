@@ -12,6 +12,9 @@ import type { ChartTheme, ParsedBar, VolumeBar } from '../types'
 import type { KlineDataPoint } from './kline-data'
 import type { EventBus } from './event-bus'
 
+const MIN_PRICE_PRECISION = 2
+const MAX_PRICE_PRECISION = 8
+
 // ── Data Helpers ────────────────────────────────────────────────────────────
 
 export function parseTime(raw: string): Time {
@@ -41,6 +44,45 @@ export function parseOhlcvData(
     }
   }
   return { candles, volumes }
+}
+
+function countDecimals(value: number): number {
+  if (!Number.isFinite(value)) return MIN_PRICE_PRECISION
+
+  const normalized = value.toFixed(12).replace(/0+$/, '').replace(/\.$/, '')
+  const decimalIndex = normalized.indexOf('.')
+  return decimalIndex === -1 ? 0 : normalized.length - decimalIndex - 1
+}
+
+function inferPricePrecision(klines: KlineDataPoint[]): number {
+  let precision = MIN_PRICE_PRECISION
+  const lastClose = klines.at(-1)?.close ?? 0
+  const maxPrecision = getMaxPrecisionForPrice(lastClose)
+
+  for (const kline of klines) {
+    precision = Math.max(
+      precision,
+      countDecimals(kline.open),
+      countDecimals(kline.high),
+      countDecimals(kline.low),
+      countDecimals(kline.close),
+    )
+    if (precision >= maxPrecision) return maxPrecision
+  }
+
+  return Math.min(maxPrecision, Math.max(MIN_PRICE_PRECISION, precision))
+}
+
+function getMaxPrecisionForPrice(price: number): number {
+  const absPrice = Math.abs(price)
+  if (absPrice >= 1000) return 2
+  if (absPrice >= 1) return 4
+  if (absPrice >= 0.01) return 6
+  return MAX_PRICE_PRECISION
+}
+
+function precisionToMinMove(precision: number): number {
+  return 1 / 10 ** precision
 }
 
 // ── ChartEngine ──────────────────────────────────────────────────────────────
@@ -116,6 +158,17 @@ export class ChartEngine {
   }
 
   private setData(klines: KlineDataPoint[], fit: boolean): void {
+    if (klines.length > 0) {
+      const precision = inferPricePrecision(klines)
+      this.candleSeries.applyOptions({
+        priceFormat: {
+          type: 'price',
+          precision,
+          minMove: precisionToMinMove(precision),
+        },
+      })
+    }
+
     const { candles, volumes } = parseOhlcvData(
       klines.map((k) => ({
         time: String(Math.floor(k.timestamp / 1000)),

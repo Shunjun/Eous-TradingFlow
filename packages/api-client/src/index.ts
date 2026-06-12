@@ -6,6 +6,7 @@ export type {
   ProviderTemplate,
   TestResult,
   ConfigFieldSchema,
+  ConfigFieldOption,
   DataSourceProvider,
   DataSourceInstance,
   DataSourceDetail,

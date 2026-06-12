@@ -1,5 +1,6 @@
 export type {
   ConfigField,
+  ConfigFieldOption,
   SymbolInfo,
   Quote,
   Kline,

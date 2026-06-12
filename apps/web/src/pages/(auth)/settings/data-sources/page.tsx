@@ -21,8 +21,12 @@ import {
   SelectContent,
   SelectItem,
   SelectValue,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  ScrollArea,
 } from '@eous/ui'
-import { Database, Plus, X, Trash2, Zap, Check, Loader2, Search, Tag } from 'lucide-react'
+import { Database, Plus, X, Trash2, Zap, Check, Loader2, Search, ChevronDown } from 'lucide-react'
 import type {
   DataSourceInstance,
   SymbolSearchResult,
@@ -34,15 +38,63 @@ import { api } from '@/lib/api'
 /* ── Dynamic Config Field ──────────────────────────────── */
 
 function ConfigField({
+  providerId,
   field,
   value,
   onChange,
 }: {
+  providerId: string
   field: ConfigFieldSchema
   value: unknown
   onChange: (key: string, value: unknown) => void
 }) {
+  const [dynamicOptions, setDynamicOptions] = useState<{ label: string; value: string }[]>([])
+  const [optionsLoading, setOptionsLoading] = useState(false)
+  const [comboboxOpen, setComboboxOpen] = useState(false)
+  const [optionsQuery, setOptionsQuery] = useState('')
+
   const id = `config-${field.key}`
+  const options = field.optionsSource ? dynamicOptions : (field.options ?? [])
+  const usesSearchableSelect =
+    field.type === 'select' && (field.optionsSource || (field.options?.length ?? 0) > 50)
+  const filteredOptions = field.optionsSource
+    ? options
+    : options.filter((opt) => {
+        const q = optionsQuery.trim().toLowerCase()
+        if (!q) return true
+        return opt.label.toLowerCase().includes(q) || opt.value.toLowerCase().includes(q)
+      })
+  const selectedOption = options.find((opt) => opt.value === String(value ?? ''))
+  const displayValue = selectedOption?.label ?? String(value ?? '')
+
+  useEffect(() => {
+    if (!field.optionsSource || !comboboxOpen) return
+
+    let cancelled = false
+    setOptionsLoading(true)
+
+    const timer = window.setTimeout(
+      () => {
+        api
+          .getDataSourceProviderOptions(providerId, field.key, optionsQuery)
+          .then((res) => {
+            if (!cancelled) setDynamicOptions(res.options)
+          })
+          .catch(() => {
+            if (!cancelled) setDynamicOptions([])
+          })
+          .finally(() => {
+            if (!cancelled) setOptionsLoading(false)
+          })
+      },
+      optionsQuery ? 150 : 0,
+    )
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [comboboxOpen, field.key, field.optionsSource, optionsQuery, providerId])
 
   return (
     <div className="space-y-1.5">
@@ -53,7 +105,82 @@ function ConfigField({
         {field.label}
         {field.required && <span className="text-red-400 ml-0.5">*</span>}
       </Label>
-      {field.type === 'select' ? (
+      {usesSearchableSelect ? (
+        <Popover
+          open={comboboxOpen}
+          onOpenChange={(open) => {
+            setComboboxOpen(open)
+            if (open) setOptionsQuery('')
+          }}
+        >
+          <PopoverTrigger asChild>
+            <button
+              id={id}
+              type="button"
+              className={cn(
+                'flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow]',
+                'hover:bg-accent/40 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50',
+                !displayValue && 'text-muted-foreground',
+              )}
+            >
+              <span className="truncate font-mono text-xs">
+                {displayValue || `Select ${field.label}…`}
+              </span>
+              <ChevronDown size={14} className="shrink-0 text-muted-foreground" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            className="w-[var(--radix-popover-trigger-width)] overflow-hidden p-0"
+            align="start"
+          >
+            <div className="flex items-center border-b border-border px-2">
+              <Search size={12} className="shrink-0 text-muted-foreground" />
+              <input
+                className="h-8 w-full bg-transparent px-2 font-mono text-xs outline-none placeholder:text-muted-foreground"
+                placeholder={`Search ${field.label}…`}
+                value={optionsQuery}
+                onChange={(e) => setOptionsQuery(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <ScrollArea className="max-h-64">
+              <div className="p-1">
+                {optionsLoading ? (
+                  <div className="flex items-center justify-center gap-1.5 px-2 py-3 font-mono text-xs text-muted-foreground">
+                    <Loader2 size={12} className="animate-spin" />
+                    Loading options…
+                  </div>
+                ) : filteredOptions.length === 0 ? (
+                  <div className="px-2 py-3 text-center font-mono text-xs text-muted-foreground">
+                    No options
+                  </div>
+                ) : (
+                  filteredOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={cn(
+                        'flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left font-mono text-xs hover:bg-accent/50',
+                        String(value ?? '') === opt.value && 'bg-accent',
+                      )}
+                      onClick={() => {
+                        onChange(field.key, opt.value)
+                        setComboboxOpen(false)
+                        setOptionsQuery('')
+                      }}
+                    >
+                      <span className="min-w-0 flex-1 truncate">{opt.label}</span>
+                      {String(value ?? '') === opt.value && (
+                        <Check size={12} className="shrink-0" />
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
+            </ScrollArea>
+          </PopoverContent>
+        </Popover>
+      ) : field.type === 'select' ? (
         <Select
           value={String(value ?? '') || undefined}
           onValueChange={(v) => onChange(field.key, v)}
@@ -62,7 +189,7 @@ function ConfigField({
             <SelectValue placeholder={`Select ${field.label}…`} />
           </SelectTrigger>
           <SelectContent>
-            {field.options?.map((opt) => (
+            {options.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
               </SelectItem>
@@ -117,6 +244,7 @@ function AddDataSourceForm({
 }) {
   const [kind, setKind] = useState('')
   const [name, setName] = useState('')
+  const [defaultSymbol, setDefaultSymbol] = useState('')
   const [config, setConfig] = useState<Record<string, unknown>>({})
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -128,6 +256,7 @@ function AddDataSourceForm({
     const prov = providers.find((p) => p.id === nextKind)
     if (prov) {
       setName(prov.name)
+      setDefaultSymbol(nextKind === 'ccxt' ? 'BTC/USDT' : 'AAPL')
       const defaults: Record<string, unknown> = {}
       for (const field of prov.configSchema) {
         defaults[field.key] = field.defaultValue ?? (field.type === 'boolean' ? false : '')
@@ -135,6 +264,7 @@ function AddDataSourceForm({
       setConfig(defaults)
     } else {
       setName('')
+      setDefaultSymbol('')
       setConfig({})
     }
   }
@@ -148,7 +278,12 @@ function AddDataSourceForm({
     setError('')
     setLoading(true)
     try {
-      await api.createDataSourceInstance({ name, providerKind: kind, config })
+      await api.createDataSourceInstance({
+        name,
+        providerKind: kind,
+        defaultSymbol: defaultSymbol.trim(),
+        config,
+      })
       onCreated()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to create data source')
@@ -205,11 +340,25 @@ function AddDataSourceForm({
               {selected.configSchema.map((field) => (
                 <ConfigField
                   key={field.key}
+                  providerId={selected.id}
                   field={field}
                   value={config[field.key]}
                   onChange={handleConfigChange}
                 />
               ))}
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                  Default Symbol<span className="text-red-400 ml-0.5">*</span>
+                </Label>
+                <Input
+                  value={defaultSymbol}
+                  onChange={(e) => setDefaultSymbol(e.target.value)}
+                  placeholder={kind === 'ccxt' ? 'BTC/USDT' : 'AAPL'}
+                  className="font-mono text-xs"
+                  required
+                />
+              </div>
 
               {error && <p className="text-xs font-mono text-red-400">{error}</p>}
 
@@ -413,6 +562,9 @@ function DataSourceCard({
           <span className="text-sm font-medium truncate">{instance.name}</span>
           <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wider">
             {instance.identityLabel || instance.providerKind}
+          </Badge>
+          <Badge variant="secondary" className="font-mono text-[10px]">
+            Default {instance.defaultSymbol}
           </Badge>
         </div>
         <div className="flex items-center gap-2 shrink-0">

@@ -19,6 +19,7 @@ export function useKlineData() {
       return d.instances.map((inst: DataSourceInstance) => ({
         id: inst.id,
         name: inst.name,
+        defaultSymbol: inst.defaultSymbol,
       }))
     }
   }, [])

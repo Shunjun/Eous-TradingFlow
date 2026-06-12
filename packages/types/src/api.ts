@@ -50,7 +50,13 @@ export interface ConfigFieldSchema {
   placeholder?: string
   hint?: string
   options?: { label: string; value: string }[]
+  optionsSource?: { source: 'provider' }
   defaultValue?: string | number | boolean
+}
+
+export interface ConfigFieldOption {
+  label: string
+  value: string
 }
 
 export interface DataSourceProvider {
@@ -63,6 +69,7 @@ export interface DataSourceInstance {
   id: string
   name: string
   providerKind: string
+  defaultSymbol: string
   identityKey?: string
   identityLabel?: string | null
   createdAt?: string
@@ -221,11 +228,17 @@ export interface ApiClient {
 
   // ── Data Source APIs ──
   listDataSourceProviders(): Promise<{ providers: DataSourceProvider[] }>
+  getDataSourceProviderOptions(
+    providerId: string,
+    fieldKey: string,
+    query?: string,
+  ): Promise<{ options: ConfigFieldOption[] }>
   listDataSourceInstances(): Promise<{ instances: DataSourceInstance[] }>
   getDataSourceInstance(id: string): Promise<{ instance: DataSourceDetail }>
   createDataSourceInstance(params: {
     name: string
     providerKind: string
+    defaultSymbol: string
     config: Record<string, unknown>
   }): Promise<void>
   deleteDataSourceInstance(id: string): Promise<void>

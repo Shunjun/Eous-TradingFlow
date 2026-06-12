@@ -49,7 +49,9 @@ export class CCXTProvider implements DataSourceProvider {
       label: 'Exchange',
       type: 'select',
       required: true,
-      options: ccxt.exchanges.map((id) => ({ label: id, value: id })),
+      defaultValue: 'binance',
+      placeholder: 'binance',
+      optionsSource: { source: 'provider' },
       hint: '100+ supported exchanges',
     },
   ]
@@ -61,6 +63,16 @@ export class CCXTProvider implements DataSourceProvider {
   resolveIdentity(config: Record<string, string>): { displayName: string; key: string } {
     const ex = config['exchange'] || 'unknown'
     return { displayName: `CCXT - ${ex}`, key: ex }
+  }
+
+  async getConfigFieldOptions(fieldKey: string, query?: string) {
+    if (fieldKey !== 'exchange') return []
+
+    const q = query?.trim().toLowerCase()
+    const exchanges = q
+      ? ccxt.exchanges.filter((id) => id.toLowerCase().includes(q))
+      : ccxt.exchanges
+    return exchanges.map((id) => ({ label: id, value: id }))
   }
 
   async getDefaultSymbols(

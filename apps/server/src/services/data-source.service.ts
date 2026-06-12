@@ -1,6 +1,9 @@
-import { getDataSourceProvider, type SymbolInfo } from '@eous/data-sources'
-import type { ConfigFieldSchema, DataSourceProvider } from '@eous/types'
+import { getDataSourceProvider, listDataSourceProviders, type SymbolInfo } from '@eous/data-sources'
+import type { ConfigFieldOption, ConfigFieldSchema } from '@eous/types'
 import { AppError } from '../lib/app-error.js'
+import { encrypt, decrypt, getEncryptionKey } from '../lib/crypto-utils.js'
+import { parseIntervalMs } from '../lib/interval-utils.js'
+import * as dsRepo from '../repositories/data-source.repo.js'
 
 // ── Provider metadata (no ccxt import) ─────────────────────────────────────
 
@@ -11,37 +14,50 @@ export interface ProviderMetadata {
 }
 
 export function listProviderMetadata(): ProviderMetadata[] {
-  return [
-    {
-      id: 'ccxt',
-      name: 'CCXT',
-      configSchema: [
-        { key: 'exchange', label: 'Exchange', type: 'select', required: true, hint: '100+ supported exchanges' },
-        { key: 'proxy', label: 'Proxy URL', type: 'text', required: false, hint: 'SOCKS5/HTTP proxy, e.g. socks5://127.0.0.1:1080' },
-      ],
-    },
-    {
-      id: 'yahoo-finance',
-      name: 'Yahoo Finance',
-      configSchema: [
-        {
-          key: 'region', label: 'Market Region', type: 'select', required: true, defaultValue: 'US',
-          options: [
-            { label: 'United States', value: 'US' },
-            { label: 'Hong Kong', value: 'HK' },
-            { label: 'China (A-Shares)', value: 'CN' },
-            { label: 'Japan', value: 'JP' },
-            { label: 'United Kingdom', value: 'UK' },
-            { label: 'Global', value: 'GLOBAL' },
-          ],
-        },
-      ],
-    },
-  ]
+  return listDataSourceProviders().map((provider) => ({
+    id: provider.id,
+    name: provider.name,
+    configSchema: provider.configSchema,
+  }))
 }
-import { encrypt, decrypt, getEncryptionKey } from '../lib/crypto-utils.js'
-import { parseIntervalMs } from '../lib/interval-utils.js'
-import * as dsRepo from '../repositories/data-source.repo.js'
+
+function filterOptions(
+  options: { label: string; value: string }[],
+  query: string | undefined,
+): { label: string; value: string }[] {
+  const q = query?.trim().toLowerCase()
+  if (!q) return options
+
+  return options.filter(
+    (option) => option.label.toLowerCase().includes(q) || option.value.toLowerCase().includes(q),
+  )
+}
+
+export async function getProviderConfigFieldOptions(
+  providerId: string,
+  fieldKey: string,
+  query?: string,
+): Promise<ConfigFieldOption[]> {
+  const provider = getDataSourceProvider(providerId)
+  if (!provider) {
+    throw new AppError(`Unknown provider: ${providerId}`, 404)
+  }
+
+  const field = provider.configSchema.find((item) => item.key === fieldKey)
+  if (!field) {
+    throw new AppError(`Unknown config field: ${fieldKey}`, 404)
+  }
+
+  if (field.optionsSource?.source === 'provider') {
+    if (!provider.getConfigFieldOptions) {
+      throw new AppError(`Provider does not support dynamic options for: ${fieldKey}`, 400)
+    }
+
+    return provider.getConfigFieldOptions(fieldKey, query)
+  }
+
+  return filterOptions(field.options ?? [], query)
+}
 
 export function listInstances(userId: string) {
   return dsRepo.findAllByUser(userId)
@@ -63,6 +79,7 @@ export async function getInstance(userId: string, id: string) {
     id: instance.id,
     name: instance.name,
     providerKind: instance.providerKind,
+    defaultSymbol: instance.defaultSymbol,
     config,
     trackedSymbols: instance.trackedSymbols,
     createdAt: instance.createdAt,
@@ -74,13 +91,15 @@ export async function createInstance(
   body: {
     name: string
     providerKind: string
+    defaultSymbol: string
     config: Record<string, string>
   },
 ) {
   const { name, providerKind, config } = body
+  const defaultSymbol = body.defaultSymbol?.trim()
 
-  if (!name || !providerKind || !config) {
-    throw new AppError('Missing required fields: name, providerKind, config', 400)
+  if (!name || !providerKind || !defaultSymbol || !config) {
+    throw new AppError('Missing required fields: name, providerKind, defaultSymbol, config', 400)
   }
 
   const provider = getDataSourceProvider(providerKind)
@@ -101,6 +120,7 @@ export async function createInstance(
   return dsRepo.create({
     name,
     providerKind,
+    defaultSymbol,
     identityKey: identityKey || null,
     identityLabel: identityLabel || null,
     configEncrypted: ciphertext,
@@ -114,12 +134,14 @@ export async function updateInstance(
   id: string,
   body: {
     name?: string
+    defaultSymbol?: string
     config?: Record<string, string>
   },
 ) {
   const { name, config } = body
+  const defaultSymbol = body.defaultSymbol?.trim()
 
-  if (!name && !config) {
+  if (!name && !defaultSymbol && !config) {
     throw new AppError('At least one field must be provided', 400)
   }
 
@@ -137,6 +159,7 @@ export async function updateInstance(
 
   const updateData: Record<string, unknown> = {}
   if (name) updateData.name = name
+  if (defaultSymbol) updateData.defaultSymbol = defaultSymbol
   if (config) {
     const keyHex = getEncryptionKey()
     const { ciphertext, iv } = encrypt(JSON.stringify(config), keyHex)
