@@ -1,8 +1,15 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { X, RefreshCw, ChevronDown, ChevronRight, Loader2, GripHorizontal } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import {
+  RefreshCw,
+  ChevronDown,
+  ChevronRight,
+  ChevronsDown,
+  ChevronsUp,
+  Loader2,
+} from 'lucide-react'
 import { Badge, Button, ScrollArea, cn } from '@eous/ui'
-import { api } from '../../lib/api'
-import { useWorkflowStore } from '../../stores/workflow'
+import { api } from '../../../lib/api'
+import { useWorkflowStore } from '../../../stores/workflow'
 
 interface ExecutionLog {
   ts: string
@@ -28,7 +35,6 @@ interface GlobalLogPanelProps {
   workflowId: string
   open: boolean
   onClose: () => void
-  onHeightChange?: (height: number) => void
 }
 
 function formatTime(iso: string): string {
@@ -46,42 +52,11 @@ function formatDuration(ms: number | null): string {
   return `${(ms / 1000).toFixed(1)}s`
 }
 
-const LOG_HEADER_H = 40
-const LOG_MIN_H = 100
-const LOG_DEFAULT_H = 320
-
-function GlobalLogPanel({ workflowId, open, onClose, onHeightChange }: GlobalLogPanelProps) {
+function GlobalLogPanel({ workflowId, open, onClose }: GlobalLogPanelProps) {
   const [executions, setExecutions] = useState<ExecutionEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const storeNodes = useWorkflowStore((s) => s.nodes)
-  const [height, setHeight] = useState(LOG_DEFAULT_H)
-  const dragRef = useRef<{ startY: number; startH: number } | null>(null)
-
-  // Report height to parent
-  useEffect(() => {
-    onHeightChange?.(height)
-  }, [height, onHeightChange])
-
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      e.preventDefault()
-      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
-      dragRef.current = { startY: e.clientY, startH: height }
-    },
-    [height],
-  )
-
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!dragRef.current) return
-    const delta = dragRef.current.startY - e.clientY
-    const next = Math.max(LOG_MIN_H, dragRef.current.startH + delta)
-    setHeight(next)
-  }, [])
-
-  const handlePointerUp = useCallback(() => {
-    dragRef.current = null
-  }, [])
 
   const fetchExecutions = useCallback(async () => {
     setLoading(true)
@@ -122,25 +97,9 @@ function GlobalLogPanel({ workflowId, open, onClose, onHeightChange }: GlobalLog
   return (
     <div
       className={cn(
-        'pointer-events-auto absolute bottom-0 left-0 right-0 z-30 overflow-hidden border-t border-border bg-card/95 shadow-lg backdrop-blur',
-        'transition-[transform] duration-300 ease-out',
-        open ? 'translate-y-0' : 'translate-y-[calc(100%-40px)]',
+        'pointer-events-auto h-full overflow-hidden border-t border-border bg-card/95 shadow-lg backdrop-blur flex flex-col',
       )}
-      style={{ height: open ? height : LOG_HEADER_H }}
     >
-      {/* Drag handle — at top edge */}
-      {open && (
-        <div
-          className="flex h-1.5 cursor-row-resize items-center justify-center hover:bg-accent"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-        >
-          <GripHorizontal className="h-3 w-8 text-muted-foreground/50" />
-        </div>
-      )}
-
-      {/* Header bar — always visible */}
       <div className="flex h-10 items-center justify-between border-b border-border px-4">
         <span className="text-sm font-medium text-foreground">运行日志</span>
         <div className="flex items-center gap-1">
@@ -159,14 +118,14 @@ function GlobalLogPanel({ workflowId, open, onClose, onHeightChange }: GlobalLog
             onClick={onClose}
             className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
-            <X className="h-4 w-4" />
+            {open ? <ChevronsDown className="h-4 w-4" /> : <ChevronsUp className="h-4 w-4" />}
           </button>
         </div>
       </div>
 
       {/* Content */}
       {open && (
-        <ScrollArea className="h-[calc(100%-46px)]">
+        <ScrollArea className="min-h-0 flex-1">
           {loading && executions.length === 0 ? (
             <div className="flex h-full items-center justify-center">
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />

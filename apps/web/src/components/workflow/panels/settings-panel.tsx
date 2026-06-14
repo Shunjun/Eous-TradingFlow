@@ -17,15 +17,13 @@ import {
   Separator,
   Sheet,
   SheetContent,
-  SheetHeader,
-  SheetTitle,
   cn,
 } from '@eous/ui'
 import { getNodeDef, type OutputDef, type NodeDef } from '@eous/nodes'
-import { useWorkflowStore } from '../../stores/workflow'
-import { api } from '../../lib/api'
+import { useWorkflowStore } from '../../../stores/workflow'
+import { api } from '../../../lib/api'
 import { ConfigForm } from './config-form'
-import { VariableInspector } from './variable-inspector'
+import { VariableInspector } from '../variables'
 
 const OUTPUT_TYPES = ['string', 'number', 'boolean', 'json', 'array', 'file'] as const
 
@@ -433,8 +431,6 @@ interface SettingsPanelProps {
   nodeId: string | null
   nodeType: string | null
   data: Record<string, unknown> | null
-  logOpen: boolean
-  logHeight: number
   onChange: (data: Record<string, unknown>) => void
   onClose: () => void
 }
@@ -444,8 +440,6 @@ function SettingsPanel({
   nodeId,
   nodeType,
   data,
-  logOpen,
-  logHeight,
   onChange,
   onClose,
 }: SettingsPanelProps) {
@@ -461,68 +455,61 @@ function SettingsPanel({
     if (!isVisible) setInspectorOpen(false)
   }, [isVisible])
 
+  if (!isVisible) return null
+
   return (
-    <>
-      {/* Settings sheet — non-modal, only closes when clicking another node */}
-      <Sheet modal={false} open={isVisible} onOpenChange={() => {}}>
+    <Sheet modal={false} open={isVisible} onOpenChange={() => {}}>
+      <div className="pointer-events-auto flex h-full min-h-0 items-stretch gap-3">
+        {inspectorOpen && (
+          <SheetContent
+            inline
+            side="right"
+            showCloseButton={false}
+            showOverlay={false}
+            className={cn(
+              'h-full w-[400px] min-h-0 overflow-hidden rounded-lg border border-border bg-card/95 shadow-lg backdrop-blur',
+              'animate-[workflow-panel-in_180ms_cubic-bezier(0.16,1,0.3,1)_both]',
+            )}
+          >
+            <div className="relative flex h-12 items-center border-b border-border px-4">
+              <span className="text-sm font-medium text-foreground">变量查看器</span>
+              <button
+                type="button"
+                onClick={handleToggleInspector}
+                className="absolute right-3 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-hidden">
+              <VariableInspector workflowId={workflowId} />
+            </div>
+          </SheetContent>
+        )}
+
         <SheetContent
+          inline
           side="right"
           showCloseButton={false}
           showOverlay={false}
           className={cn(
-            'top-16 h-auto w-[380px] max-w-[380px] rounded-lg border border-border bg-card/95 shadow-lg backdrop-blur',
-            'transition-[right,bottom] duration-300 ease-out',
-            inspectorOpen ? '!right-[412px]' : '!right-3',
+            'h-full w-[380px] min-h-0 overflow-hidden rounded-lg border border-border bg-card/95 shadow-lg backdrop-blur',
+            'animate-[workflow-panel-in_180ms_cubic-bezier(0.16,1,0.3,1)_both]',
           )}
-          style={{ bottom: logOpen ? logHeight + 52 : 52 }}
         >
-          {isVisible && (
-            <SettingsPanelContent
-              workflowId={workflowId}
-              nodeId={nodeId}
-              nodeType={nodeType}
-              data={data}
-              onChange={onChange}
-              onClose={onClose}
-              inspectorOpen={inspectorOpen}
-              onToggleInspector={handleToggleInspector}
-            />
-          )}
+          <SettingsPanelContent
+            workflowId={workflowId}
+            nodeId={nodeId}
+            nodeType={nodeType}
+            data={data}
+            onChange={onChange}
+            onClose={onClose}
+            inspectorOpen={inspectorOpen}
+            onToggleInspector={handleToggleInspector}
+          />
         </SheetContent>
-      </Sheet>
-
-      {/* Variable inspector sheet */}
-      <Sheet
-        open={isVisible && inspectorOpen}
-        onOpenChange={(open) => {
-          if (!open) setInspectorOpen(false)
-        }}
-      >
-        <SheetContent
-          side="right"
-          showCloseButton={false}
-          className={cn(
-            'top-16 h-auto w-[400px] max-w-[400px] rounded-lg border border-border bg-card/95 shadow-lg backdrop-blur !right-3',
-            'transition-[bottom] duration-300 ease-out',
-          )}
-          style={{ bottom: logOpen ? logHeight + 52 : 52 }}
-        >
-          <SheetHeader className="border-b border-border px-4 py-3">
-            <SheetTitle className="text-sm">变量查看器</SheetTitle>
-            <button
-              type="button"
-              onClick={handleToggleInspector}
-              className="absolute top-4 right-4 rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </SheetHeader>
-          <div className="flex-1 overflow-hidden">
-            <VariableInspector workflowId={workflowId} />
-          </div>
-        </SheetContent>
-      </Sheet>
-    </>
+      </div>
+    </Sheet>
   )
 }
 

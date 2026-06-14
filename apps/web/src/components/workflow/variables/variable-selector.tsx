@@ -2,7 +2,7 @@ import { useMemo, useCallback } from 'react'
 import { Link } from 'lucide-react'
 import { Popover, PopoverTrigger, PopoverContent, Badge, ScrollArea, cn } from '@eous/ui'
 import { getNodeOutputs, type OutputField } from '@eous/nodes'
-import { useWorkflowStore } from '../../stores/workflow'
+import { useWorkflowStore } from '../../../stores/workflow'
 import type { Edge } from '@xyflow/react'
 
 interface VariableRef {

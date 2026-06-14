@@ -19,8 +19,9 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { nodeRegistry, type NodeComponentProps, type ParamDef } from '@eous/nodes'
-import { useWorkflowStore } from '../../stores/workflow'
-import { BaseNode } from './base-node'
+import { useWorkflowStore } from '../../../stores/workflow'
+import { BaseNode } from '../nodes/base-node'
+import type { CanvasInteractionMode } from './canvas-toolbar'
 
 function extractDefaults(input: Record<string, ParamDef>): Record<string, unknown> {
   const data: Record<string, unknown> = {}
@@ -89,10 +90,11 @@ const defaultEdgeOptions = {
 }
 
 interface WorkflowCanvasProps {
+  interactionMode: CanvasInteractionMode
   onSelectNode?: (nodeId: string | null) => void
 }
 
-function WorkflowCanvas({ onSelectNode }: WorkflowCanvasProps) {
+function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) {
   const nodes = useWorkflowStore((s) => s.nodes)
   const edges = useWorkflowStore((s) => s.edges)
   const setNodes = useWorkflowStore((s) => s.setNodes)
@@ -196,13 +198,27 @@ function WorkflowCanvas({ onSelectNode }: WorkflowCanvasProps) {
         onPaneClick={handlePaneClick}
         defaultEdgeOptions={defaultEdgeOptions}
         deleteKeyCode={['Backspace', 'Delete']}
+        panOnDrag={interactionMode === 'pan'}
+        selectionOnDrag={interactionMode === 'select'}
+        selectionKeyCode={null}
         fitView
-        className="bg-background"
+        className="bg-background [--xy-attribution-background-color:hsl(var(--card)/0.82)] [&_.react-flow__attribution]:rounded-tl-sm [&_.react-flow__attribution]:border-l [&_.react-flow__attribution]:border-t [&_.react-flow__attribution]:border-border [&_.react-flow__attribution]:backdrop-blur [&_.react-flow__attribution_a]:text-muted-foreground [&_.react-flow__attribution_a:hover]:text-foreground"
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} className="opacity-30" />
         <MiniMap
-          className="bg-card border-border text-foreground"
-          nodeClassName="fill-muted-foreground/20"
+          position="bottom-right"
+          pannable
+          zoomable
+          className="!m-3 overflow-hidden rounded-md border border-border bg-card/95 shadow-sm backdrop-blur"
+          style={{ width: 128, height: 88 }}
+          bgColor="hsl(var(--card))"
+          maskColor="hsl(var(--background) / 0.58)"
+          maskStrokeColor="hsl(var(--border))"
+          maskStrokeWidth={1}
+          nodeColor="hsl(var(--muted))"
+          nodeStrokeColor="hsl(var(--muted-foreground))"
+          nodeBorderRadius={4}
+          nodeStrokeWidth={1}
         />
       </ReactFlow>
     </div>

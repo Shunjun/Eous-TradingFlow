@@ -43,7 +43,12 @@ function CreateWorkflowDialog({ open, onCreated, onCancel }: CreateWorkflowDialo
   )
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) onCancel() }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) onCancel()
+      }}
+    >
       <DialogContent showCloseButton={false}>
         <form onSubmit={handleSubmit}>
           <DialogHeader>

@@ -123,3 +123,8 @@ export interface NodeRegistryEntry {
   canvas: (props: NodeComponentProps) => unknown
   execute: (input: Record<string, unknown>, ctx: ExecuteContext) => Promise<Record<string, unknown>>
 }
+
+export interface WebNodeRegistryEntry {
+  def: NodeDef
+  canvas: (props: NodeComponentProps) => unknown
+}

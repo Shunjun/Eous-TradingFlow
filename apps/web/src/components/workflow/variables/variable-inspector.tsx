@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Badge, ScrollArea } from '@eous/ui'
 import { getNodeDef, allNodeMetas, type OutputDef, type NodeDef } from '@eous/nodes'
-import { api } from '../../lib/api'
-import { useWorkflowStore } from '../../stores/workflow'
+import { api } from '../../../lib/api'
+import { useWorkflowStore } from '../../../stores/workflow'
 
 interface VariableInspectorProps {
   workflowId: string

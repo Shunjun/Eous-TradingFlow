@@ -3,11 +3,7 @@ import { nodeRegistry } from '@eous/nodes'
 import type { NodeType, WorkflowNode } from '@eous/types'
 import { useWorkflowStore } from '../../stores/workflow'
 import { useWorkflow, publishWorkflow, saveWorkflow } from '../../hooks/use-workflows'
-import { FloatToolbar } from './float-toolbar'
-import { NodeSelector } from './node-selector'
-import { SettingsPanel } from './settings-panel'
-import { WorkflowCanvas } from './workflow-canvas'
-import { GlobalLogPanel } from './global-log-panel'
+import { WorkflowCanvas, WorkflowOverlay, type CanvasInteractionMode } from './canvas'
 
 const VALID_NODE_TYPES = new Set<string>([
   'source.price',
@@ -107,6 +103,11 @@ function removeDraft(id: string): void {
   }
 }
 
+function isEditableTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  return Boolean(target.closest('input, textarea, select, [contenteditable="true"]'))
+}
+
 interface WorkflowEditorProps {
   workflowId: string
 }
@@ -126,11 +127,48 @@ function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
   const selectedNodeIdRef = useRef<string | null>(null)
   const [isLocalDraft, setIsLocalDraft] = useState(false)
   const [logOpen, setLogOpen] = useState(false)
-  const [logHeight, setLogHeight] = useState(280)
+  const [canvasMode, setCanvasMode] = useState<CanvasInteractionMode>('pan')
+  const canvasModeRef = useRef(canvasMode)
+  const spacePanPreviousModeRef = useRef<CanvasInteractionMode | null>(null)
 
   useEffect(() => {
     selectedNodeIdRef.current = selectedNodeId
   }, [selectedNodeId])
+
+  useEffect(() => {
+    canvasModeRef.current = canvasMode
+  }, [canvasMode])
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== 'Space' || event.repeat || isEditableTarget(event.target)) return
+      event.preventDefault()
+
+      if (spacePanPreviousModeRef.current === null) {
+        spacePanPreviousModeRef.current = canvasModeRef.current
+      }
+      setCanvasMode('pan')
+    }
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.code !== 'Space') return
+
+      const previousMode = spacePanPreviousModeRef.current
+      if (previousMode === null) return
+
+      event.preventDefault()
+      spacePanPreviousModeRef.current = null
+      setCanvasMode(previousMode)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [])
 
   useEffect(() => {
     if (!workflow) return
@@ -291,32 +329,30 @@ function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      <WorkflowCanvas onSelectNode={setSelectedNodeId} />
-      <FloatToolbar
+      <WorkflowCanvas interactionMode={canvasMode} onSelectNode={setSelectedNodeId} />
+      <WorkflowOverlay
+        workflowId={workflowId}
         saving={saving}
         publishing={publishing}
         isLocalDraft={isLocalDraft}
         logOpen={logOpen}
+        canvasMode={canvasMode}
+        selectedNode={
+          selectedNode
+            ? {
+                id: selectedNode.id,
+                type: selectedNode.type,
+                data: selectedNode.data ?? {},
+              }
+            : null
+        }
         onSave={handleSave}
         onPublish={handlePublish}
         onToggleLog={handleToggleLog}
-      />
-      <NodeSelector onSelectNode={handleAddNode} />
-      <SettingsPanel
-        workflowId={workflowId}
-        nodeId={selectedNode?.id ?? null}
-        nodeType={selectedNode?.type ?? null}
-        data={selectedNode?.data ?? null}
-        logOpen={logOpen}
-        logHeight={logHeight}
-        onChange={handleNodeDataChange}
-        onClose={handleCloseSettings}
-      />
-      <GlobalLogPanel
-        workflowId={workflowId}
-        open={logOpen}
-        onClose={handleToggleLog}
-        onHeightChange={setLogHeight}
+        onCanvasModeChange={setCanvasMode}
+        onSelectNodeType={handleAddNode}
+        onNodeDataChange={handleNodeDataChange}
+        onCloseSettings={handleCloseSettings}
       />
     </div>
   )

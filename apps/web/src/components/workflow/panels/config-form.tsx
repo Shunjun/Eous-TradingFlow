@@ -13,10 +13,9 @@ import {
 } from '@eous/ui'
 import type { ParamDef, OutputField, NodeDef } from '@eous/nodes'
 import { getNodeOutputs } from '@eous/nodes'
-import { useWorkflowStore } from '../../stores/workflow'
-import { api } from '../../lib/api'
-import { VariablePicker } from './variable-picker'
-import type { VariableRef } from './variable-picker'
+import { useWorkflowStore } from '../../../stores/workflow'
+import { api } from '../../../lib/api'
+import { VariablePicker, type VariableRef } from '../variables'
 import type { Edge } from '@xyflow/react'
 
 // ── Helpers ─────────────────────────────────────────────────

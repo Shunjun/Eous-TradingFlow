@@ -3,8 +3,7 @@ import { Link } from 'lucide-react'
 import { Popover, PopoverTrigger, PopoverContent, Badge, ScrollArea, cn } from '@eous/ui'
 import type { AcceptableType, OutputField } from '@eous/nodes'
 import { getNodeOutputs } from '@eous/nodes'
-import { useWorkflowStore } from '../../stores/workflow'
-import type { Edge } from '@xyflow/react'
+import { useWorkflowStore } from '../../../stores/workflow'
 
 interface VariableRef {
   nodeId: string

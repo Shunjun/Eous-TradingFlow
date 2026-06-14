@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { Eye, Rocket, Save, ScrollText } from 'lucide-react'
 import { Button, Input, cn } from '@eous/ui'
-import { useWorkflowStore } from '../../stores/workflow'
+import { useWorkflowStore } from '../../../stores/workflow'
 
 interface FloatToolbarProps {
   saving: boolean
@@ -56,7 +56,7 @@ function FloatToolbar({
   return (
     <div
       className={cn(
-        'pointer-events-auto absolute left-4 right-4 top-3 z-10 flex h-10 items-center gap-3 rounded-lg border border-border bg-card/80 px-4 shadow-sm backdrop-blur',
+        'pointer-events-auto flex h-10 min-w-0 items-center gap-3 rounded-lg border border-border bg-card/80 px-4 shadow-sm backdrop-blur',
       )}
     >
       {editing ? (

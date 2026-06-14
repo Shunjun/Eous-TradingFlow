@@ -1,36 +1,24 @@
-import type { NodeDef, NodeComponentProps, ExecuteContext, NodeRegistryEntry } from '../types'
+import type { NodeDef, NodeComponentProps, WebNodeRegistryEntry } from '../types'
 
 const defModules = import.meta.glob<{
   def: NodeDef
   CanvasNode: (props: NodeComponentProps) => unknown
-}>('../src/*/def.ts', { eager: true })
-
-const serverModules = import.meta.glob<{
-  execute: (input: Record<string, unknown>, ctx: ExecuteContext) => Promise<Record<string, unknown>>
-}>('../src/*/server.ts', { eager: true })
+}>('../*/def.ts', { eager: true })
 
 function extractTypeFromPath(path: string): string {
-  const match = path.match(/^\.\/src\/(.+)\/def\.ts$/)
+  const match = path.match(/^\.\.\/(.+)\/def\.ts$/)
   return match?.[1] ?? ''
 }
 
-export const nodeRegistry: Record<string, NodeRegistryEntry> = {}
+export const nodeRegistry: Record<string, WebNodeRegistryEntry> = {}
 
 for (const [defPath, defMod] of Object.entries(defModules)) {
   const nodeType = extractTypeFromPath(defPath)
   if (!nodeType) continue
 
-  const serverPath = defPath.replace('/def.ts', '/server.ts')
-  const serverMod = serverModules[serverPath]
-  if (!serverMod) {
-    console.warn(`[node-registry] Missing server.ts for node: ${nodeType}`)
-    continue
-  }
-
   nodeRegistry[nodeType] = {
     def: defMod.def,
     canvas: defMod.CanvasNode,
-    execute: serverMod.execute,
   }
 }
 

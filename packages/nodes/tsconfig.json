@@ -4,7 +4,8 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "jsx": "react-jsx",
-    "resolvePackageJsonImports": true
+    "resolvePackageJsonImports": true,
+    "types": ["vite/client"]
   },
   "include": ["src", "../../types"]
 }
