@@ -11,6 +11,7 @@ interface WorkflowOverlayProps {
   publishing: boolean
   isLocalDraft: boolean
   logOpen: boolean
+  showWorkflowList?: boolean
   canvasMode: CanvasInteractionMode
   selectedNode: {
     id: string
@@ -20,6 +21,7 @@ interface WorkflowOverlayProps {
   onSave: () => void
   onPublish: () => void
   onToggleLog: () => void
+  onWorkflowSelect?: (workflowId: string) => void
   onCanvasModeChange: (mode: CanvasInteractionMode) => void
   onSelectNodeType: (nodeType: string) => void
   onNodeDataChange: (data: Record<string, unknown>) => void
@@ -48,11 +50,13 @@ function WorkflowOverlay({
   publishing,
   isLocalDraft,
   logOpen,
+  showWorkflowList,
   canvasMode,
   selectedNode,
   onSave,
   onPublish,
   onToggleLog,
+  onWorkflowSelect,
   onCanvasModeChange,
   onSelectNodeType,
   onNodeDataChange,
@@ -109,9 +113,11 @@ function WorkflowOverlay({
         publishing={publishing}
         isLocalDraft={isLocalDraft}
         logOpen={logOpen}
+        showWorkflowList={showWorkflowList}
         onSave={onSave}
         onPublish={onPublish}
         onToggleLog={onToggleLog}
+        onWorkflowSelect={onWorkflowSelect}
       />
 
       <div className="grid min-h-0 grid-cols-[1fr_auto] gap-3">

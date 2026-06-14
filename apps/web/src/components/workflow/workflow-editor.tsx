@@ -110,9 +110,11 @@ function isEditableTarget(target: EventTarget | null): boolean {
 
 interface WorkflowEditorProps {
   workflowId: string
+  showWorkflowList?: boolean
+  onWorkflowSelect?: (workflowId: string) => void
 }
 
-function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
+function WorkflowEditor({ workflowId, showWorkflowList, onWorkflowSelect }: WorkflowEditorProps) {
   const { workflow, loading } = useWorkflow(workflowId)
   const loadWorkflow = useWorkflowStore((s) => s.loadWorkflow)
   const reset = useWorkflowStore((s) => s.reset)
@@ -336,6 +338,7 @@ function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
         publishing={publishing}
         isLocalDraft={isLocalDraft}
         logOpen={logOpen}
+        showWorkflowList={showWorkflowList}
         canvasMode={canvasMode}
         selectedNode={
           selectedNode
@@ -349,6 +352,7 @@ function WorkflowEditor({ workflowId }: WorkflowEditorProps) {
         onSave={handleSave}
         onPublish={handlePublish}
         onToggleLog={handleToggleLog}
+        onWorkflowSelect={onWorkflowSelect}
         onCanvasModeChange={setCanvasMode}
         onSelectNodeType={handleAddNode}
         onNodeDataChange={handleNodeDataChange}

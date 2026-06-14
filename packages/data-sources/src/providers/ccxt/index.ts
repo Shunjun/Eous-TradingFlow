@@ -171,8 +171,6 @@ export class CCXTProvider implements DataSourceProvider {
       throw new Error('config.exchange is required')
     }
 
-    console.log('[ccxt getKlines]', { request, configKeys: Object.keys(config) })
-
     const ex = this.getExchange(exchangeId)
 
     try {
@@ -180,16 +178,7 @@ export class CCXTProvider implements DataSourceProvider {
       const since = request.from
       const limit = this.estimateLimit(request, timeframe)
 
-      console.log('[ccxt getKlines] fetchOHLCV params', {
-        symbol: request.symbol,
-        timeframe,
-        since,
-        limit,
-      })
-
       const ohlcv = await ex.fetchOHLCV(request.symbol, timeframe, since, limit)
-
-      console.log('[ccxt getKlines] response', { count: ohlcv.length, sample: ohlcv[0] })
 
       return ohlcv.map(
         (bar: OHLCV): Kline => ({

@@ -1,5 +1,5 @@
 import { Button } from '@eous/ui'
-import { VIEW_REGISTRY, type ViewRegistryEntry, type ViewType } from '../views/index.js'
+import { VIEW_REGISTRY, type AnyViewRegistryEntry, type ViewType } from '../views/index.js'
 
 interface ComponentGridProps {
   onSelect: (type: ViewType) => void
@@ -26,7 +26,7 @@ function ComponentButton({
   selected,
   onClick,
 }: {
-  entry: ViewRegistryEntry
+  entry: AnyViewRegistryEntry
   selected?: boolean
   onClick: () => void
 }) {

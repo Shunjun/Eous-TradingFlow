@@ -9,11 +9,11 @@ export interface ViewStateBridge<TState extends SerializableViewState, TProps ex
   title: string
 }
 
-export type ViewType = 'kline'
+export type ViewType = 'kline' | 'workflow'
 
 export interface ViewRegistryEntry<
   TState extends SerializableViewState = SerializableViewState,
-  TProps extends object = object,
+  TProps extends object = Record<string, never>,
 > {
   type: ViewType
   label: string
@@ -25,3 +25,5 @@ export interface ViewRegistryEntry<
   ) => ViewStateBridge<TState, TProps>
   createDefaultState: () => TState
 }
+
+export type AnyViewRegistryEntry = ViewRegistryEntry<SerializableViewState, any>
