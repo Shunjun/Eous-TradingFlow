@@ -16,8 +16,8 @@
     "react": "^19.0.0"
   },
   "dependencies": {
+    "@eous/api-client": "workspace:*",
     "@eous/data-sources": "workspace:*",
-    "@eous/types": "workspace:*",
     "@eous/ui": "workspace:*"
   },
   "devDependencies": {

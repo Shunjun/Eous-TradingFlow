@@ -6,6 +6,8 @@ import {
   ColorType,
   LineStyle,
 } from 'lightweight-charts'
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
 import type { IChartApi, ISeriesApi } from 'lightweight-charts'
 import type { Time } from 'lightweight-charts'
 import type { ChartTheme, ParsedBar, VolumeBar } from '../types'
@@ -15,7 +17,34 @@ import type { EventBus } from './event-bus'
 const MIN_PRICE_PRECISION = 2
 const MAX_PRICE_PRECISION = 8
 
+dayjs.extend(utc)
+
 // ── Data Helpers ────────────────────────────────────────────────────────────
+
+function timeToDayjs(time: Time): dayjs.Dayjs | null {
+  if (typeof time === 'number') {
+    return dayjs.unix(time).utc()
+  }
+  if (typeof time === 'string' && /^\d+$/.test(time)) {
+    return dayjs.unix(Number(time)).utc()
+  }
+  if (typeof time === 'object' && time && 'year' in time) {
+    return dayjs.utc(`${time.year}-${time.month}-${time.day}`, 'YYYY-M-D')
+  }
+  return null
+}
+
+function formatChartTime(time: Time): string {
+  return timeToDayjs(time)?.format('YYYY-MM-DD HH:mm') ?? String(time)
+}
+
+function formatTickTime(time: Time): string {
+  const date = timeToDayjs(time)
+  if (!date) return String(time)
+  return date.hour() === 0 && date.minute() === 0
+    ? date.format('MM-DD')
+    : date.format('MM-DD HH:mm')
+}
 
 export function parseTime(raw: string): Time {
   if (/^\d+$/.test(raw)) {
@@ -131,10 +160,15 @@ export class ChartEngine {
         borderColor: theme.border,
         scaleMargins: { top: 0.05, bottom: 0.25 },
       },
+      localization: {
+        locale: 'en-US',
+        timeFormatter: formatChartTime,
+      },
       timeScale: {
         borderColor: theme.border,
         timeVisible: true,
         secondsVisible: false,
+        tickMarkFormatter: formatTickTime,
       },
       handleScroll: true,
       handleScale: true,

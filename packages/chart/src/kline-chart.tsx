@@ -36,7 +36,12 @@ export function KlineChart({
   onProviderChange,
   onIntervalChange,
 }: KlineChartProps) {
-  const store = useMemo(() => createChartStore(defaultInterval), [defaultInterval])
+  const initialDefaultsRef = useRef({ defaultSymbol, defaultProviderId, defaultInterval })
+  const storeRef = useRef<ReturnType<typeof createChartStore> | null>(null)
+  if (!storeRef.current) {
+    storeRef.current = createChartStore(initialDefaultsRef.current.defaultInterval ?? '1d')
+  }
+  const store = storeRef.current
 
   const fetchFns = useMemo(
     () => ({ fetchKlines, getSymbols, getIntervals, getProviders }),
@@ -47,8 +52,8 @@ export function KlineChart({
     <ChartStoreProvider
       store={store}
       fetchFns={fetchFns}
-      defaultSymbol={defaultSymbol}
-      defaultProviderId={defaultProviderId}
+      defaultSymbol={initialDefaultsRef.current.defaultSymbol}
+      defaultProviderId={initialDefaultsRef.current.defaultProviderId}
       onSymbolChange={onSymbolChange}
       onProviderChange={onProviderChange}
       onIntervalChange={onIntervalChange}

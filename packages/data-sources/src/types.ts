@@ -62,20 +62,22 @@ export interface IntervalDef {
 }
 
 // ── Provider 接口 ──
-export interface DataSourceProvider {
+export type DataSourceConfig = Record<string, string>
+
+export interface DataSourceProvider<TConfig extends DataSourceConfig = DataSourceConfig> {
   id: string // 唯一标识，如 "yahoo-finance"
   name: string // 显示名 "Yahoo Finance"
   configSchema: ConfigField[] // 配置表单定义
 
   /** 返回该 provider 支持的时间周期列表 */
-  getSupportedIntervals(): IntervalDef[]
+  getSupportedIntervals(config: TConfig): Promise<IntervalDef[]> | IntervalDef[]
 
   /**
    * 根据用户配置生成 provider 的唯一标识。
    * 例：CCXT exchange=binance → { displayName: "CCXT - Binance", key: "binance" }
    * 无需区分的 provider 返回 key="" 即可。
    */
-  resolveIdentity(config: Record<string, string>): { displayName: string; key: string }
+  resolveIdentity(config: TConfig): { displayName: string; key: string }
 
   /** 返回配置字段的动态选项，例如 CCXT exchange 列表。 */
   getConfigFieldOptions?(fieldKey: string, query?: string): Promise<ConfigFieldOption[]>
@@ -83,10 +85,10 @@ export interface DataSourceProvider {
   getDefaultSymbols(
     offset: number,
     limit: number,
-    config: Record<string, string>,
+    config: TConfig,
   ): Promise<{ symbols: SymbolInfo[]; total: number }>
 
-  searchSymbols(query: string, config: Record<string, string>): Promise<SymbolInfo[]>
-  getQuote(symbol: string, config: Record<string, string>): Promise<Quote>
-  getKlines(request: KlinesRequest, config: Record<string, string>): Promise<Kline[]>
+  searchSymbols(query: string, config: TConfig): Promise<SymbolInfo[]>
+  getQuote(symbol: string, config: TConfig): Promise<Quote>
+  getKlines(request: KlinesRequest, config: TConfig): Promise<Kline[]>
 }

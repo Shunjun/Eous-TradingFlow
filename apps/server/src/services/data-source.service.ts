@@ -1,5 +1,5 @@
 import { getDataSourceProvider, listDataSourceProviders, type SymbolInfo } from '@eous/data-sources'
-import type { ConfigFieldOption, ConfigFieldSchema } from '@eous/types'
+import type { ConfigFieldOption, ConfigFieldSchema } from '@eous/api-client'
 import { AppError } from '../lib/app-error.js'
 import { encrypt, decrypt, getEncryptionKey } from '../lib/crypto-utils.js'
 import { parseIntervalMs } from '../lib/interval-utils.js'
@@ -31,6 +31,10 @@ function filterOptions(
   return options.filter(
     (option) => option.label.toLowerCase().includes(q) || option.value.toLowerCase().includes(q),
   )
+}
+
+function providerErrorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e)
 }
 
 export async function getProviderConfigFieldOptions(
@@ -225,8 +229,8 @@ export async function getSymbolsForInstance(
       return { symbols, total: symbols.length }
     }
     return await provider.getDefaultSymbols(offset, limit, config)
-  } catch {
-    return { symbols: [], total: 0 }
+  } catch (e) {
+    throw new AppError(`Failed to fetch data source symbols: ${providerErrorMessage(e)}`, 502)
   }
 }
 
@@ -271,7 +275,14 @@ export async function getKlines(
   const intervalMs = parseIntervalMs(interval)
   const defaultFrom = now - DEFAULT_BAR_COUNT * intervalMs
 
-  return provider.getKlines({ symbol, interval, from: from ?? defaultFrom, to: to ?? now }, config)
+  try {
+    return await provider.getKlines(
+      { symbol, interval, from: from ?? defaultFrom, to: to ?? now },
+      config,
+    )
+  } catch (e) {
+    throw new AppError(`Failed to fetch K-line data: ${providerErrorMessage(e)}`, 502)
+  }
 }
 
 export async function getIntervalsForInstance(userId: string, id: string) {
@@ -280,12 +291,13 @@ export async function getIntervalsForInstance(userId: string, id: string) {
     throw new AppError('Instance not found', 404)
   }
 
-  const provider = getDataSourceProvider(instance.providerKind)
-  if (!provider) {
-    throw new AppError(`Provider not found: ${instance.providerKind}`, 500)
-  }
+  const { config, provider } = await decryptInstance(instance)
 
-  return provider.getSupportedIntervals()
+  try {
+    return await provider.getSupportedIntervals(config)
+  } catch (e) {
+    throw new AppError(`Failed to fetch data source intervals: ${providerErrorMessage(e)}`, 502)
+  }
 }
 
 export async function addSymbol(

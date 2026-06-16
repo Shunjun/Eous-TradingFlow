@@ -6,6 +6,7 @@ export type {
   Kline,
   KlinesRequest,
   IntervalDef,
+  DataSourceConfig,
   DataSourceProvider,
 } from './types.js'
 

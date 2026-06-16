@@ -33,6 +33,10 @@ const INTERVAL_MAP: Record<string, string> = {
 
 const TIMEOUT_MS = 10_000
 
+type YahooFinanceConfig = Record<string, string> & {
+  region?: string
+}
+
 // ── region → search query 偏好 ──
 const REGION_SUFFIX: Record<string, string> = {
   HK: '.HK',
@@ -97,7 +101,7 @@ interface YahooChartResponse {
   }
 }
 
-export class YahooFinanceProvider implements DataSourceProvider {
+export class YahooFinanceProvider implements DataSourceProvider<YahooFinanceConfig> {
   readonly id = 'yahoo-finance'
   readonly name = 'Yahoo Finance'
 
@@ -123,14 +127,14 @@ export class YahooFinanceProvider implements DataSourceProvider {
     return SUPPORTED_INTERVALS
   }
 
-  resolveIdentity(_config: Record<string, string>): { displayName: string; key: string } {
+  resolveIdentity(_config: YahooFinanceConfig): { displayName: string; key: string } {
     return { displayName: 'Yahoo Finance', key: '' }
   }
 
   async getDefaultSymbols(
     offset: number,
     limit: number,
-    _config: Record<string, string>,
+    _config: YahooFinanceConfig,
   ): Promise<{ symbols: SymbolInfo[]; total: number }> {
     const url = `https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?scrIds=most_actives&start=${offset}&count=${limit}`
 
@@ -158,7 +162,7 @@ export class YahooFinanceProvider implements DataSourceProvider {
     }
   }
 
-  async searchSymbols(query: string, config: Record<string, string>): Promise<SymbolInfo[]> {
+  async searchSymbols(query: string, config: YahooFinanceConfig): Promise<SymbolInfo[]> {
     const region = config['region'] ?? 'US'
     const searchQuery =
       region !== 'US' && region !== 'GLOBAL' && REGION_SUFFIX[region]
@@ -185,7 +189,7 @@ export class YahooFinanceProvider implements DataSourceProvider {
     }
   }
 
-  async getQuote(symbol: string, _config: Record<string, string>): Promise<Quote> {
+  async getQuote(symbol: string, _config: YahooFinanceConfig): Promise<Quote> {
     // 拉最近 2 根日 K 线用于计算 change
     const now = Math.floor(Date.now() / 1000)
     const from = now - 7 * 86400 // 7 天前，保证至少有 2 根日线
@@ -222,13 +226,15 @@ export class YahooFinanceProvider implements DataSourceProvider {
       }
     } catch (e) {
       if (isNetworkError(e) || isRateLimitError(e)) {
-        throw new Error(`Failed to fetch quote for ${symbol}: ${e instanceof Error ? e.message : String(e)}`)
+        throw new Error(
+          `Failed to fetch quote for ${symbol}: ${e instanceof Error ? e.message : String(e)}`,
+        )
       }
       throw e
     }
   }
 
-  async getKlines(request: KlinesRequest, _config: Record<string, string>): Promise<Kline[]> {
+  async getKlines(request: KlinesRequest, _config: YahooFinanceConfig): Promise<Kline[]> {
     const interval = INTERVAL_MAP[request.interval] ?? '1d'
     const period1 = Math.floor(request.from / 1000) // ms → s
     const period2 = Math.floor(request.to / 1000)
@@ -241,7 +247,10 @@ export class YahooFinanceProvider implements DataSourceProvider {
       const data = await this.fetchJson<YahooChartResponse>(url)
       const result = data.chart.result
       if (!result || result.length === 0) {
-        console.log('[yahoo getKlines] empty result', { hasResult: !!data.chart.result, error: data.chart.error })
+        console.log('[yahoo getKlines] empty result', {
+          hasResult: !!data.chart.result,
+          error: data.chart.error,
+        })
         return []
       }
 

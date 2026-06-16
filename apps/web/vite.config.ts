@@ -9,7 +9,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@eous/tailwind': path.resolve(__dirname, '../../packages/tailwind/src'),
-      '@eous/types': path.resolve(__dirname, '../../packages/types/src'),
+      '@eous/api-client': path.resolve(__dirname, '../../packages/api-client/src'),
       '@eous/ui': path.resolve(__dirname, '../../packages/ui/src'),
     },
   },

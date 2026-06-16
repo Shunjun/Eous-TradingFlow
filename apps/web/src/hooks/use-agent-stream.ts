@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { streamSSE, type SSEEvent } from '@eous/api-client-http'
+import { streamSSE, type SSEEvent } from '@eous/api-client'
 import { api } from '../lib/api'
 
 export interface AgentStreamState {

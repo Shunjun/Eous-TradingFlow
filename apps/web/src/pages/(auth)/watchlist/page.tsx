@@ -10,7 +10,7 @@ import type {
   GetIntervalsFn,
   GetProvidersFn,
 } from '@eous/chart'
-import type { DataSourceInstance, SymbolSearchResult } from '@eous/types'
+import type { DataSourceInstance, SymbolSearchResult } from '@eous/api-client'
 import { api } from '../../../lib/api.js'
 
 const PAGE_SIZE = 50

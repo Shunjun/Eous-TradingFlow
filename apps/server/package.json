@@ -14,7 +14,7 @@
     "@eous/data-sources": "workspace:*",
     "@eous/db": "workspace:*",
     "@eous/nodes": "workspace:*",
-    "@eous/types": "workspace:*",
+    "@eous/api-client": "workspace:*",
     "@hono/node-server": "^1.13.0",
     "hono": "^4.6.0"
   },

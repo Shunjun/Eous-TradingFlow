@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { nodeRegistry } from '@eous/nodes'
-import type { NodeType, WorkflowNode } from '@eous/types'
+import type { NodeType, WorkflowNode } from '@eous/api-client'
 import { useWorkflowStore } from '../../stores/workflow'
 import { useWorkflow, publishWorkflow, saveWorkflow } from '../../hooks/use-workflows'
 import { WorkflowCanvas, WorkflowOverlay, type CanvasInteractionMode } from './canvas'

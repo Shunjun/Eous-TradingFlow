@@ -1,7 +1,7 @@
-import { createHttpClient } from '@eous/api-client-http'
-import type { ApiClient } from '@eous/api-client-http'
+import { createHttpClient } from '@eous/api-client'
+import type { ApiClient } from '@eous/api-client'
 
-export { ApiError } from '@eous/api-client-http'
+export { ApiError } from '@eous/api-client'
 
 export const api: ApiClient = createHttpClient({
   baseURL: '/api',

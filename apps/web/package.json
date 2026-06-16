@@ -10,12 +10,11 @@
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@eous/api-client-http": "workspace:*",
+    "@eous/api-client": "workspace:*",
     "@eous/chart": "workspace:*",
     "@eous/nodes": "workspace:*",
     "@eous/stores": "workspace:*",
     "@eous/tailwind": "workspace:*",
-    "@eous/types": "workspace:*",
     "@eous/ui": "workspace:*",
     "@xyflow/react": "^12.0.0",
     "dockview": "^6.6.1",

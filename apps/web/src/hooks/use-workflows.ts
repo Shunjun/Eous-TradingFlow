@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { WorkflowDefinition } from '@eous/types'
+import type { WorkflowDefinition } from '@eous/api-client'
 import { api } from '../lib/api'
 
 export function useWorkflowList() {
@@ -64,9 +64,7 @@ export function useWorkflow(id: string | undefined) {
   return { workflow, loading, error }
 }
 
-export async function saveWorkflow(
-  workflow: WorkflowDefinition,
-): Promise<void> {
+export async function saveWorkflow(workflow: WorkflowDefinition): Promise<void> {
   await api.saveWorkflow(workflow)
 }
 

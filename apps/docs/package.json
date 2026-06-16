@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@eous/tailwind": "workspace:*",
-    "@eous/types": "workspace:*",
     "@eous/ui": "workspace:*",
     "lucide-react": "^0.460.0",
     "react": "^19.0.0",

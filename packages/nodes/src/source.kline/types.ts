@@ -1,4 +1,4 @@
-import type { OHLCVBar } from '@eous/types'
+import type { OHLCVBar } from '@eous/api-client'
 
 interface ExecuteInput {
   dataSourceInstanceId: string

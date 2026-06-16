@@ -36,7 +36,7 @@ import {
   Pencil,
   Save,
 } from 'lucide-react'
-import type { Provider, ProviderModel, ProviderTemplate, TestResult } from '@eous/types'
+import type { Provider, ProviderModel, ProviderTemplate, TestResult } from '@eous/api-client'
 import { api } from '@/lib/api'
 
 /* ── Capability color map ──────────────────────────────── */

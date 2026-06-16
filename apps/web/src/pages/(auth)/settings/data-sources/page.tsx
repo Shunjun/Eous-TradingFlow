@@ -32,7 +32,7 @@ import type {
   SymbolSearchResult,
   ConfigFieldSchema,
   DataSourceProvider,
-} from '@eous/types'
+} from '@eous/api-client'
 import { api } from '@/lib/api'
 
 /* ── Dynamic Config Field ──────────────────────────────── */

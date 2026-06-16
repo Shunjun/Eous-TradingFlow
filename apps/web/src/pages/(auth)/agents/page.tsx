@@ -6,7 +6,7 @@ import type {
   AgentSummary,
   Provider,
   ProviderModel,
-} from '@eous/types'
+} from '@eous/api-client'
 import { Badge, Button, CardPanel, CardPanelBody, Input, Label, Textarea, cn } from '@eous/ui'
 import {
   BrainCircuit,

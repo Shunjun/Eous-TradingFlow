@@ -6,7 +6,7 @@
     "jsx": "react-jsx",
     "noEmit": true,
     "paths": {
-      "@eous/types": ["../../packages/types/src"]
+      "@eous/api-client": ["../../packages/api-client/src"]
     }
   },
   "include": ["src"]
