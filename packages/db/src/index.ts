@@ -6,6 +6,8 @@ export type {
   ProviderModel,
   DataSourceInstance,
   TrackedSymbol,
+  ChartDrawing,
+  UserChartConfig,
   Workflow,
   WorkflowVersion,
   WorkflowNodeExecution,

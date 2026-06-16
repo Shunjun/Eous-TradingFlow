@@ -9,7 +9,7 @@ import { router } from './router.js'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider defaultTheme="dark">
-      <TooltipProvider>
+      <TooltipProvider delayDuration={2000}>
         <RouterProvider router={router} />
       </TooltipProvider>
     </ThemeProvider>

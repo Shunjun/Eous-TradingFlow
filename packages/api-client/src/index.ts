@@ -232,6 +232,16 @@ export interface AgentMemory {
   updatedAt: string
 }
 
+export interface ChartDrawingPayload {
+  symbol: string
+  payload: string
+  updatedAt?: string | null
+}
+
+export interface ChartConfig {
+  autoSaveDrawings: boolean
+}
+
 /* ── API Client Interface ─────────────────────────────── */
 
 export interface ApiClient {
@@ -392,6 +402,16 @@ export interface ApiClient {
       to?: number
     },
   ): Promise<{ klines: unknown[] }>
+  getDataSourceDrawings(
+    instanceId: string,
+    symbol: string,
+  ): Promise<{ drawing: ChartDrawingPayload }>
+  saveDataSourceDrawings(
+    instanceId: string,
+    params: { drawings: { symbol: string; payload: string }[] },
+  ): Promise<{ saved: number }>
+  getChartConfig(): Promise<{ config: ChartConfig }>
+  updateChartConfig(params: Partial<ChartConfig>): Promise<{ config: ChartConfig }>
 
   listWorkspaceLayouts(): Promise<{
     layouts: WorkspaceLayoutSummary[]
@@ -718,6 +738,16 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       post(`/data-source-instances/${encodeURIComponent(instanceId)}/symbols`, params, true),
     getDataSourceKlines: (instanceId, params) =>
       post(`/data-source-instances/${encodeURIComponent(instanceId)}/klines`, params),
+    getDataSourceDrawings: (instanceId, symbol) => {
+      const params = new URLSearchParams({ symbol })
+      return get(
+        `/data-source-instances/${encodeURIComponent(instanceId)}/drawings?${params.toString()}`,
+      )
+    },
+    saveDataSourceDrawings: (instanceId, params) =>
+      put(`/data-source-instances/${encodeURIComponent(instanceId)}/drawings`, params),
+    getChartConfig: () => get('/chart/config'),
+    updateChartConfig: (params) => patch('/chart/config', params),
 
     listWorkspaceLayouts: () => get('/workspace/layouts'),
     getWorkspaceLayout: (id: string) => get(`/workspace/layouts/${encodeURIComponent(id)}`),

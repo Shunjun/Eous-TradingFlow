@@ -60,6 +60,17 @@ export interface KlineChartProps {
   getIntervals: GetIntervalsFn
   /** Fetch available data providers */
   getProviders: GetProvidersFn
+  /** Fetch saved drawing payload for the active provider+symbol */
+  getDrawings?: (params: { providerId: string; symbol: string }) => Promise<string | null>
+  /** Save changed drawing payloads for one provider instance */
+  saveDrawings?: (params: {
+    providerId: string
+    drawings: { symbol: string; payload: string }[]
+  }) => Promise<void>
+  /** Fetch chart-level user config */
+  getChartConfig?: () => Promise<{ autoSaveDrawings: boolean }>
+  /** Persist chart-level user config */
+  saveChartConfig?: (config: { autoSaveDrawings: boolean }) => Promise<void>
 
   /** Default symbol to display on mount */
   defaultSymbol?: string

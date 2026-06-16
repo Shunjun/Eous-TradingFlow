@@ -133,6 +133,32 @@ dataSourceInstanceRouter.post('/data-source-instances/:id/klines', async (c) => 
   return c.json({ klines })
 })
 
+dataSourceInstanceRouter.get('/data-source-instances/:id/drawings', async (c) => {
+  const drawing = await dataSourceService.getChartDrawing(
+    c.get('userId'),
+    c.req.param('id'),
+    c.req.query('symbol') ?? '',
+  )
+  return c.json({ drawing })
+})
+
+dataSourceInstanceRouter.put('/data-source-instances/:id/drawings', async (c) => {
+  const body = await c.req.json<{ drawings: { symbol: string; payload: string }[] }>()
+  const result = await dataSourceService.saveChartDrawings(c.get('userId'), c.req.param('id'), body)
+  return c.json(result)
+})
+
+dataSourceInstanceRouter.get('/chart/config', async (c) => {
+  const config = await dataSourceService.getChartConfig(c.get('userId'))
+  return c.json({ config })
+})
+
+dataSourceInstanceRouter.patch('/chart/config', async (c) => {
+  const body = await c.req.json<{ autoSaveDrawings?: boolean }>()
+  const config = await dataSourceService.updateChartConfig(c.get('userId'), body)
+  return c.json({ config })
+})
+
 // ── Tracked symbols ────────────────────────────────────────────────────────
 
 dataSourceInstanceRouter.post('/data-source-instances/:id/tracked-symbols', async (c) => {

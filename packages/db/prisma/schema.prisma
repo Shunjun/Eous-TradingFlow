@@ -21,6 +21,8 @@ model User {
   sessions       Session[]
   providers      Provider[]
   dataSourceInstances DataSourceInstance[]
+  chartDrawings  ChartDrawing[]
+  chartConfigs   UserChartConfig[]
   workspaceLayouts WorkspaceLayout[]
   workflows      Workflow[]
   agents         Agent[]
@@ -104,6 +106,7 @@ model DataSourceInstance {
   userId           String
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   trackedSymbols   TrackedSymbol[]
+  chartDrawings     ChartDrawing[]
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
@@ -123,6 +126,35 @@ model TrackedSymbol {
 
   @@unique([instanceId, symbol])
   @@map("tracked_symbols")
+}
+
+model ChartDrawing {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  instanceId  String   @map("instance_id")
+  symbol      String
+  payload     String   @default("[]")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  instance    DataSourceInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, instanceId, symbol])
+  @@index([instanceId, symbol])
+  @@map("chart_drawings")
+}
+
+model UserChartConfig {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  scope             String   @default("default")
+  autoSaveDrawings  Boolean  @default(false) @map("auto_save_drawings")
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, scope])
+  @@map("user_chart_configs")
 }
 
 model Workflow {

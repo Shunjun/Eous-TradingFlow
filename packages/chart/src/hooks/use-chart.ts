@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useMemo } from 'react'
+import { useEffect, useRef, useCallback, useMemo, useState } from 'react'
 import type { ChartTheme, IndicatorConfig } from '../types'
 import type { LineToolType } from 'lightweight-charts-line-tools-core'
 import { EventBus } from '../core/event-bus'
@@ -16,6 +16,7 @@ export function useChart(containerRef: React.RefObject<HTMLDivElement | null>, t
   const indicatorEngineRef = useRef<IndicatorEngine | null>(null)
   const lineToolsEngineRef = useRef<LineToolsEngine | null>(null)
   const themeRef = useRef(theme)
+  const [readyVersion, setReadyVersion] = useState(0)
 
   themeRef.current = theme
 
@@ -40,6 +41,7 @@ export function useChart(containerRef: React.RefObject<HTMLDivElement | null>, t
     chartEngineRef.current = chartEngine
     indicatorEngineRef.current = indicatorEngine
     lineToolsEngineRef.current = lineToolsEngine
+    setReadyVersion((value) => value + 1)
 
     const observer = new ResizeObserver(() => chartEngine.resize())
     observer.observe(container)
@@ -126,6 +128,22 @@ export function useChart(containerRef: React.RefObject<HTMLDivElement | null>, t
     lineToolsEngineRef.current?.deleteSelected()
   }, [])
 
+  const activateDrawingSet = useCallback((key: string, remotePayload: string | null) => {
+    lineToolsEngineRef.current?.activateDrawingSet(key, remotePayload)
+  }, [])
+
+  const getDirtyDrawings = useCallback(() => {
+    return lineToolsEngineRef.current?.getDirtyDrawings() ?? []
+  }, [])
+
+  const markDrawingsSaved = useCallback((keys: string[]) => {
+    lineToolsEngineRef.current?.markDrawingsSaved(keys)
+  }, [])
+
+  const subscribeDrawingsDirtyChange = useCallback((handler: (dirtyCount: number) => void) => {
+    return lineToolsEngineRef.current?.onDirtyChange(handler) ?? (() => {})
+  }, [])
+
   const getActiveDrawingTool = useCallback((): LineToolType | 'none' => {
     return lineToolsEngineRef.current?.activeTool ?? 'none'
   }, [])
@@ -138,6 +156,7 @@ export function useChart(containerRef: React.RefObject<HTMLDivElement | null>, t
         indicator: indicatorEngineRef,
         lineTools: lineToolsEngineRef,
       },
+      readyVersion,
       addIndicator,
       removeIndicator,
       switchMode,
@@ -153,9 +172,14 @@ export function useChart(containerRef: React.RefObject<HTMLDivElement | null>, t
       setActiveDrawingTool,
       toggleDrawingTool,
       deleteSelectedDrawing,
+      activateDrawingSet,
+      getDirtyDrawings,
+      markDrawingsSaved,
+      subscribeDrawingsDirtyChange,
       getActiveDrawingTool,
     }),
     [
+      readyVersion,
       addIndicator,
       removeIndicator,
       switchMode,
@@ -171,6 +195,10 @@ export function useChart(containerRef: React.RefObject<HTMLDivElement | null>, t
       setActiveDrawingTool,
       toggleDrawingTool,
       deleteSelectedDrawing,
+      activateDrawingSet,
+      getDirtyDrawings,
+      markDrawingsSaved,
+      subscribeDrawingsDirtyChange,
       getActiveDrawingTool,
     ],
   )

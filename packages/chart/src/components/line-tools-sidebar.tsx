@@ -12,7 +12,14 @@ import {
   TooltipTrigger,
 } from '@eous/ui'
 import { useCallback, useState } from 'react'
-import { GripVertical, MousePointer2, Shapes, Trash2 } from 'lucide-react'
+import {
+  ChartNoAxesCombined,
+  GripVertical,
+  MessageSquare,
+  MousePointer2,
+  PencilLine,
+  Ruler,
+} from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { LINE_TOOL_GROUPS } from '../line-tools/registry'
 import type { LineToolDefinition } from '../line-tools/types'
@@ -29,20 +36,23 @@ const POINTER_TOOL: ToolItem = {
   icon: MousePointer2,
 }
 
+const GROUP_ICONS: Record<string, LucideIcon> = {
+  lines: PencilLine,
+  levels: Ruler,
+  annotations: MessageSquare,
+  fibonacci: ChartNoAxesCombined,
+}
+
 interface LineToolsSidebarProps {
   activeTool: string
   tools: LineToolDefinition[]
   onSelectTool: (id: string) => void
-  onDeleteSelected: () => void
-  hasSelected: boolean
 }
 
 export function LineToolsSidebar({
   activeTool,
   tools: _tools,
   onSelectTool,
-  onDeleteSelected,
-  hasSelected,
 }: LineToolsSidebarProps) {
   const activeGroup = LINE_TOOL_GROUPS.find((group) =>
     group.tools.some((tool) => tool.type === activeTool),
@@ -73,10 +83,7 @@ export function LineToolsSidebar({
   )
 
   return (
-    <div
-      className="relative flex shrink-0 flex-col gap-0.5 border-r border-border py-1.5"
-      style={{ width }}
-    >
+    <div className="relative flex shrink-0 flex-col gap-0.5 py-1.5" style={{ width }}>
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
@@ -92,13 +99,15 @@ export function LineToolsSidebar({
             {showLabels && <span className="truncate text-xs">{POINTER_TOOL.label}</span>}
           </Button>
         </TooltipTrigger>
-        <TooltipContent>{POINTER_TOOL.label}</TooltipContent>
+        <TooltipContent side="right" sideOffset={8}>
+          {POINTER_TOOL.label}
+        </TooltipContent>
       </Tooltip>
 
       {LINE_TOOL_GROUPS.map((group) => {
         const groupIsActive = group.id === activeGroup?.id
         const activeDefinition = group.tools.find((tool) => tool.type === activeTool)
-        const GroupIcon = activeDefinition?.icon ?? Shapes
+        const GroupIcon = activeDefinition?.icon ?? GROUP_ICONS[group.id] ?? PencilLine
 
         return (
           <DropdownMenu key={group.id}>
@@ -118,7 +127,9 @@ export function LineToolsSidebar({
                   </Button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
-              <TooltipContent>{activeDefinition?.label ?? group.label}</TooltipContent>
+              <TooltipContent side="right" sideOffset={8}>
+                {activeDefinition?.label ?? group.label}
+              </TooltipContent>
             </Tooltip>
             <DropdownMenuContent side="right" align="start" className="min-w-[190px]">
               <DropdownMenuLabel>{group.label}</DropdownMenuLabel>
@@ -144,25 +155,6 @@ export function LineToolsSidebar({
       })}
 
       <div className="flex-1" />
-
-      {hasSelected && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost-icon"
-              className={cn(
-                'mx-1 justify-start text-red-400 hover:text-red-300',
-                !showLabels && 'justify-center px-0',
-              )}
-              onClick={onDeleteSelected}
-            >
-              <Trash2 size={14} />
-              {showLabels && <span className="truncate text-xs">Delete</span>}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Delete selected</TooltipContent>
-        </Tooltip>
-      )}
 
       <div
         className="absolute right-0 top-0 flex h-full w-2 translate-x-1 cursor-col-resize items-center justify-center text-muted-foreground/60 hover:text-primary"

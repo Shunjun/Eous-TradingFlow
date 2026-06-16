@@ -3,7 +3,16 @@ import { useKlineData } from './use-kline-data.js'
 import type { KlineViewProps } from './use-kline-view-state.js'
 
 export function KlineView(props: KlineViewProps) {
-  const { fetchKlines, getSymbols, getIntervals, getProviders } = useKlineData()
+  const {
+    fetchKlines,
+    getSymbols,
+    getIntervals,
+    getProviders,
+    getDrawings,
+    saveDrawings,
+    getChartConfig,
+    saveChartConfig,
+  } = useKlineData()
 
   return (
     <div className="h-full">
@@ -12,6 +21,10 @@ export function KlineView(props: KlineViewProps) {
         getSymbols={getSymbols}
         getIntervals={getIntervals}
         getProviders={getProviders}
+        getDrawings={getDrawings}
+        saveDrawings={saveDrawings}
+        getChartConfig={getChartConfig}
+        saveChartConfig={saveChartConfig}
         {...props}
       />
     </div>

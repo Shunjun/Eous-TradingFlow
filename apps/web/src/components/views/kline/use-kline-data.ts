@@ -61,5 +61,46 @@ export function useKlineData() {
     }
   }, [])
 
-  return { getProviders, getIntervals, getSymbols, fetchKlines }
+  const getDrawings = useMemo(() => {
+    return async ({ providerId, symbol }: { providerId: string; symbol: string }) => {
+      const data = await api.getDataSourceDrawings(providerId, symbol)
+      return data.drawing.payload
+    }
+  }, [])
+
+  const saveDrawings = useMemo(() => {
+    return async ({
+      providerId,
+      drawings,
+    }: {
+      providerId: string
+      drawings: { symbol: string; payload: string }[]
+    }) => {
+      await api.saveDataSourceDrawings(providerId, { drawings })
+    }
+  }, [])
+
+  const getChartConfig = useMemo(() => {
+    return async () => {
+      const data = await api.getChartConfig()
+      return data.config
+    }
+  }, [])
+
+  const saveChartConfig = useMemo(() => {
+    return async (config: { autoSaveDrawings: boolean }) => {
+      await api.updateChartConfig(config)
+    }
+  }, [])
+
+  return {
+    getProviders,
+    getIntervals,
+    getSymbols,
+    fetchKlines,
+    getDrawings,
+    saveDrawings,
+    getChartConfig,
+    saveChartConfig,
+  }
 }

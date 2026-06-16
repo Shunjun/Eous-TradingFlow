@@ -12,6 +12,7 @@ import { useChartStore } from './hooks/use-chart-store'
 import { useChart } from './hooks/use-chart'
 import { useResolvedTheme } from './hooks/use-resolved-theme'
 import { ChartToolbar } from './components/chart-toolbar'
+import { DrawingStyleToolbar } from './components/drawing-style-toolbar'
 import { IndicatorConfigPanel } from './components/indicator-config-panel'
 import { IndicatorLegend } from './components/indicator-legend'
 import { LineToolsSidebar } from './components/line-tools-sidebar'
@@ -19,6 +20,7 @@ import { ResizablePanelHeader } from './components/resizable-panel-header'
 import { LINE_TOOL_DEFINITIONS } from './line-tools/registry'
 import { getIndicatorDefinition } from './indicators/registry'
 import type { LineToolType } from 'lightweight-charts-line-tools-core'
+import type { DrawingStyle } from './core/line-tools-engine'
 
 const EMPTY_CONFIGS: IndicatorConfig[] = []
 
@@ -29,6 +31,10 @@ export function KlineChart({
   getSymbols,
   getIntervals,
   getProviders,
+  getDrawings,
+  saveDrawings,
+  getChartConfig,
+  saveChartConfig,
   defaultSymbol,
   defaultProviderId,
   defaultInterval = '1d',
@@ -58,14 +64,32 @@ export function KlineChart({
       onProviderChange={onProviderChange}
       onIntervalChange={onIntervalChange}
     >
-      <KlineChartInner fetchKlines={fetchKlines} />
+      <KlineChartInner
+        fetchKlines={fetchKlines}
+        getDrawings={getDrawings}
+        saveDrawings={saveDrawings}
+        getChartConfig={getChartConfig}
+        saveChartConfig={saveChartConfig}
+      />
     </ChartStoreProvider>
   )
 }
 
 // ── Inner component (accesses store) ────────────────────────────────────────
 
-function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
+function KlineChartInner({
+  fetchKlines,
+  getDrawings,
+  saveDrawings,
+  getChartConfig,
+  saveChartConfig,
+}: {
+  fetchKlines: FetchKlinesFn
+  getDrawings?: KlineChartProps['getDrawings']
+  saveDrawings?: KlineChartProps['saveDrawings']
+  getChartConfig?: KlineChartProps['getChartConfig']
+  saveChartConfig?: KlineChartProps['saveChartConfig']
+}) {
   const chartTheme = useResolvedTheme()
   const containerRef = useRef<HTMLDivElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -89,7 +113,12 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
     loadEarlier,
     getKlineData,
     subscribeDataStatus,
+    activateDrawingSet,
+    getDirtyDrawings,
+    markDrawingsSaved,
+    subscribeDrawingsDirtyChange,
     deleteSelectedDrawing,
+    readyVersion,
   } = useChart(containerRef, chartTheme)
 
   // ── ProviderId ref (synced from store subscription, not reactive) ────
@@ -117,8 +146,28 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
   const [panelOpen, setPanelOpen] = useState(false)
   const [selectedIndicatorId, setSelectedIndicatorId] = useState<string | null>(null)
   const [dataStatus, setDataStatus] = useState<ChartDataStatus>('idle')
+  const [dirtyDrawingCount, setDirtyDrawingCount] = useState(0)
+  const [drawingsSaving, setDrawingsSaving] = useState(false)
+  const [autoSaveDrawings, setAutoSaveDrawings] = useState(false)
 
   useEffect(() => subscribeDataStatus(setDataStatus), [subscribeDataStatus])
+  useEffect(
+    () => subscribeDrawingsDirtyChange(setDirtyDrawingCount),
+    [readyVersion, subscribeDrawingsDirtyChange],
+  )
+
+  useEffect(() => {
+    if (!getChartConfig) return
+    let cancelled = false
+    getChartConfig()
+      .then((config) => {
+        if (!cancelled) setAutoSaveDrawings(config.autoSaveDrawings)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [getChartConfig])
 
   // Series map for legend (indicator ID -> series refs)
   const seriesMapRef = useRef<Map<string, ISeriesApi<'Line' | 'Histogram'>[]>>(new Map())
@@ -220,6 +269,31 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
     }
   }, [activeProviderId, symbol, interval, clearKlines, loadKlines, switchInterval])
 
+  useEffect(() => {
+    if (!activeProviderId || !symbol) return
+
+    const currentProviderId = activeProviderId
+    const currentSymbol = symbol
+    const key = createDrawingKey(currentProviderId, currentSymbol)
+    let cancelled = false
+
+    async function loadDrawings() {
+      const payload = getDrawings
+        ? await getDrawings({ providerId: currentProviderId, symbol: currentSymbol })
+        : null
+      if (cancelled) return
+      activateDrawingSet(key, payload)
+    }
+
+    loadDrawings().catch(() => {
+      if (!cancelled) activateDrawingSet(key, null)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeProviderId, symbol, getDrawings, activateDrawingSet, readyVersion])
+
   // ── Indicator configs (persisted per symbol via Zustand store) ────────
   const indicatorConfigs = useIndicatorStore((s) =>
     symbol ? (s.configsBySymbol[symbol] ?? EMPTY_CONFIGS) : EMPTY_CONFIGS,
@@ -239,17 +313,23 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
   // ── Drawing tools state ───────────────────────────────────────────────
   const [activeDrawingTool, setActiveDrawingTool] = useState<LineToolType | 'none'>('none')
   const [hasSelectedDrawing, setHasSelectedDrawing] = useState(false)
+  const [selectedDrawingStyle, setSelectedDrawingStyle] = useState<DrawingStyle | null>(null)
 
   useEffect(() => {
-    if (!lineToolsEngine) return
-    return lineToolsEngine.onSelectionChange(setHasSelectedDrawing)
-  }, [lineToolsEngine])
+    const engine = engines.lineTools.current
+    if (!engine) return
+    return engine.onSelectionChange((hasSelection, style) => {
+      setHasSelectedDrawing(hasSelection)
+      setSelectedDrawingStyle(style)
+    })
+  }, [engines.lineTools, readyVersion])
 
   useEffect(() => {
-    if (!lineToolsEngine) return
-    setActiveDrawingTool(lineToolsEngine.activeTool)
-    return lineToolsEngine.onActiveToolChange(setActiveDrawingTool)
-  }, [lineToolsEngine])
+    const engine = engines.lineTools.current
+    if (!engine) return
+    setActiveDrawingTool(engine.activeTool)
+    return engine.onActiveToolChange(setActiveDrawingTool)
+  }, [engines.lineTools, readyVersion])
 
   // ── Keyboard shortcuts ────────────────────────────────────────────────
   useEffect(() => {
@@ -275,6 +355,56 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
     [setIntervalAction],
   )
 
+  const handleSaveDrawings = useCallback(async () => {
+    if (!saveDrawings) return
+    const dirty = getDirtyDrawings()
+    if (dirty.length === 0) return
+
+    const groups = new Map<string, { key: string; symbol: string; payload: string }[]>()
+    for (const drawing of dirty) {
+      const parsed = parseDrawingKey(drawing.key)
+      if (!parsed) continue
+      const group = groups.get(parsed.providerId) ?? []
+      group.push({ key: drawing.key, symbol: parsed.symbol, payload: drawing.payload })
+      groups.set(parsed.providerId, group)
+    }
+
+    if (groups.size === 0) return
+
+    setDrawingsSaving(true)
+    try {
+      const savedKeys: string[] = []
+      for (const [providerId, drawings] of groups) {
+        await saveDrawings({
+          providerId,
+          drawings: drawings.map(({ symbol, payload }) => ({ symbol, payload })),
+        })
+        savedKeys.push(...drawings.map((drawing) => drawing.key))
+      }
+      markDrawingsSaved(savedKeys)
+    } finally {
+      setDrawingsSaving(false)
+    }
+  }, [getDirtyDrawings, markDrawingsSaved, saveDrawings])
+
+  useEffect(() => {
+    if (!autoSaveDrawings || dirtyDrawingCount === 0 || !saveDrawings) return
+    const timer = setTimeout(() => {
+      handleSaveDrawings().catch(() => {})
+    }, 5000)
+    return () => clearTimeout(timer)
+  }, [autoSaveDrawings, dirtyDrawingCount, handleSaveDrawings, saveDrawings])
+
+  const handleAutoSaveChange = useCallback(
+    async (enabled: boolean) => {
+      setAutoSaveDrawings(enabled)
+      if (saveChartConfig) {
+        await saveChartConfig({ autoSaveDrawings: enabled })
+      }
+    },
+    [saveChartConfig],
+  )
+
   const handleDoubleClickIndicator = useCallback((id: string) => {
     setSelectedIndicatorId(id)
     setPanelOpen(true)
@@ -292,6 +422,14 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
       } else {
         lineToolsEngine?.setActiveTool(id as LineToolType)
       }
+    },
+    [lineToolsEngine],
+  )
+
+  const handleDrawingStyleChange = useCallback(
+    (updates: Partial<DrawingStyle>) => {
+      const nextStyle = lineToolsEngine?.applySelectedDrawingStyle(updates)
+      if (nextStyle) setSelectedDrawingStyle(nextStyle)
     },
     [lineToolsEngine],
   )
@@ -344,7 +482,15 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
       className="flex h-full w-full min-h-0 flex-col overflow-hidden bg-background"
     >
       {/* Toolbar — always visible */}
-      <ChartToolbar onAddIndicator={handleAddIndicator} containerRef={wrapperRef} />
+      <ChartToolbar
+        onAddIndicator={handleAddIndicator}
+        containerRef={wrapperRef}
+        drawingDirtyCount={dirtyDrawingCount}
+        drawingsSaving={drawingsSaving}
+        autoSaveDrawings={autoSaveDrawings}
+        onSaveDrawings={saveDrawings ? handleSaveDrawings : undefined}
+        onAutoSaveDrawingsChange={saveChartConfig ? handleAutoSaveChange : undefined}
+      />
 
       {/* Chart area with sidebar */}
       <div className="relative flex-1 flex min-h-0">
@@ -353,8 +499,6 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
           activeTool={activeDrawingTool}
           tools={LINE_TOOL_DEFINITIONS}
           onSelectTool={handleSelectTool}
-          onDeleteSelected={deleteSelectedDrawing}
-          hasSelected={hasSelectedDrawing}
         />
 
         <ResizablePanelGroup orientation="horizontal" className="min-h-0 flex-1">
@@ -362,6 +506,13 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
             <div className="relative flex-1 min-h-0 h-full" data-chart-container>
               <div ref={containerRef} className="h-full w-full" />
               {overlayStatus && <ChartEmptyState status={overlayStatus} />}
+
+              <DrawingStyleToolbar
+                visible={hasSelectedDrawing}
+                style={selectedDrawingStyle}
+                onStyleChange={handleDrawingStyleChange}
+                onDelete={deleteSelectedDrawing}
+              />
 
               {/* Indicator legend */}
               {engines.chart.current?.chart && (
@@ -410,6 +561,19 @@ function KlineChartInner({ fetchKlines }: { fetchKlines: FetchKlinesFn }) {
       </div>
     </div>
   )
+}
+
+function createDrawingKey(providerId: string, symbol: string): string {
+  return `${providerId}\u001f${symbol}`
+}
+
+function parseDrawingKey(key: string): { providerId: string; symbol: string } | null {
+  const index = key.indexOf('\u001f')
+  if (index <= 0) return null
+  return {
+    providerId: key.slice(0, index),
+    symbol: key.slice(index + 1),
+  }
 }
 
 function ChartEmptyState({ status }: { status: Exclude<ChartDataStatus, 'ready'> }) {

@@ -6,9 +6,10 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuCheckboxItem,
   Separator,
 } from '@eous/ui'
-import { Plus } from 'lucide-react'
+import { ChevronDown, Loader2, Plus, Save, SaveAll } from 'lucide-react'
 import { SymbolSelector } from './symbol-selector'
 import { IntervalSelector } from './interval-selector'
 import { getAllIndicatorDefinitions, getIndicatorDefinition } from '../indicators/registry'
@@ -36,12 +37,26 @@ function formatIndicatorLabel(type: string, params: Record<string, number>): str
 interface ChartToolbarProps {
   onAddIndicator?: (config: IndicatorConfig) => void
   containerRef?: React.RefObject<HTMLElement | null>
+  drawingDirtyCount?: number
+  drawingsSaving?: boolean
+  autoSaveDrawings?: boolean
+  onSaveDrawings?: () => void | Promise<void>
+  onAutoSaveDrawingsChange?: (enabled: boolean) => void | Promise<void>
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-export function ChartToolbar({ onAddIndicator, containerRef }: ChartToolbarProps) {
+export function ChartToolbar({
+  onAddIndicator,
+  containerRef,
+  drawingDirtyCount = 0,
+  drawingsSaving = false,
+  autoSaveDrawings = false,
+  onSaveDrawings,
+  onAutoSaveDrawingsChange,
+}: ChartToolbarProps) {
   const [indicatorOpen, setIndicatorOpen] = useState(false)
+  const [saveMenuOpen, setSaveMenuOpen] = useState(false)
 
   const interval = useChartStore((s) => s.interval)
   const unsupportedIntervals = useChartStore((s) => s.unsupportedIntervals)
@@ -68,6 +83,7 @@ export function ChartToolbar({ onAddIndicator, containerRef }: ChartToolbarProps
   )
 
   const availableIndicators = getAllIndicatorDefinitions()
+  const SaveIcon = autoSaveDrawings ? SaveAll : Save
 
   return (
     <div className="flex items-center px-3 py-2 border-b border-border shrink-0 gap-0">
@@ -85,7 +101,56 @@ export function ChartToolbar({ onAddIndicator, containerRef }: ChartToolbarProps
       {/* Right spacer + indicator add */}
       <div className="flex-1" />
 
-      {onAddIndicator && <Separator orientation="vertical" className="h-4 mx-2" />}
+      {onSaveDrawings && (
+        <>
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="xs"
+              className={cn(
+                drawingDirtyCount > 0
+                  ? 'text-foreground hover:bg-muted/60'
+                  : 'text-muted-foreground hover:bg-muted/40',
+              )}
+              disabled={drawingsSaving}
+              onClick={() => onSaveDrawings()}
+              aria-label="Save drawings"
+            >
+              {drawingsSaving ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <SaveIcon size={12} strokeWidth={2.3} />
+              )}
+            </Button>
+            {drawingDirtyCount > 0 && (
+              <span className="absolute right-0.5 top-0.5 h-1.5 w-1.5 rounded-full bg-primary" />
+            )}
+          </div>
+
+          {onAutoSaveDrawingsChange && (
+            <DropdownMenu open={saveMenuOpen} onOpenChange={setSaveMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="xs" className="w-3">
+                  <ChevronDown size={12} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[180px]">
+                <DropdownMenuCheckboxItem
+                  checked={autoSaveDrawings}
+                  onCheckedChange={(checked) => onAutoSaveDrawingsChange(Boolean(checked))}
+                  className="font-mono text-xs"
+                >
+                  5s auto-save
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </>
+      )}
+
+      {onSaveDrawings && onAddIndicator && (
+        <Separator orientation="vertical" className="h-4 mx-2" />
+      )}
 
       {onAddIndicator && (
         <DropdownMenu open={indicatorOpen} onOpenChange={setIndicatorOpen}>

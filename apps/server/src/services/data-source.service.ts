@@ -3,6 +3,7 @@ import type { ConfigFieldOption, ConfigFieldSchema } from '@eous/api-client'
 import { AppError } from '../lib/app-error.js'
 import { encrypt, decrypt, getEncryptionKey } from '../lib/crypto-utils.js'
 import { parseIntervalMs } from '../lib/interval-utils.js'
+import * as chartRepo from '../repositories/chart.repo.js'
 import * as dsRepo from '../repositories/data-source.repo.js'
 
 // ── Provider metadata (no ccxt import) ─────────────────────────────────────
@@ -297,6 +298,69 @@ export async function getIntervalsForInstance(userId: string, id: string) {
     return await provider.getSupportedIntervals(config)
   } catch (e) {
     throw new AppError(`Failed to fetch data source intervals: ${providerErrorMessage(e)}`, 502)
+  }
+}
+
+export async function getChartDrawing(userId: string, id: string, symbol: string) {
+  if (!symbol) {
+    throw new AppError('Missing required query: symbol', 400)
+  }
+
+  const instance = await dsRepo.findByIdAndUser(id, userId)
+  if (!instance) {
+    throw new AppError('Instance not found', 404)
+  }
+
+  const drawing = await chartRepo.findDrawing(userId, id, symbol)
+  return { symbol, payload: drawing?.payload ?? '[]', updatedAt: drawing?.updatedAt ?? null }
+}
+
+export async function saveChartDrawings(
+  userId: string,
+  id: string,
+  body: { drawings: { symbol: string; payload: string }[] },
+) {
+  const instance = await dsRepo.findByIdAndUser(id, userId)
+  if (!instance) {
+    throw new AppError('Instance not found', 404)
+  }
+
+  const drawings = body.drawings
+    .map((drawing) => ({
+      symbol: drawing.symbol?.trim(),
+      payload: drawing.payload ?? '[]',
+    }))
+    .filter((drawing) => drawing.symbol)
+
+  if (drawings.length === 0) {
+    return { saved: 0 }
+  }
+
+  for (const drawing of drawings) {
+    try {
+      JSON.parse(drawing.payload)
+    } catch {
+      throw new AppError(`Invalid drawing payload for symbol: ${drawing.symbol}`, 400)
+    }
+  }
+
+  await chartRepo.upsertDrawings(userId, id, drawings)
+  return { saved: drawings.length }
+}
+
+export async function getChartConfig(userId: string) {
+  const config = await chartRepo.getChartConfig(userId)
+  return {
+    autoSaveDrawings: config.autoSaveDrawings,
+  }
+}
+
+export async function updateChartConfig(userId: string, body: { autoSaveDrawings?: boolean }) {
+  const config = await chartRepo.updateChartConfig(userId, {
+    autoSaveDrawings: body.autoSaveDrawings,
+  })
+  return {
+    autoSaveDrawings: config.autoSaveDrawings,
   }
 }
 
