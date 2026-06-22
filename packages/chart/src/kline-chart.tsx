@@ -4,7 +4,7 @@ import { useIndicatorStore } from '@eous/stores'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@eous/ui'
 import { BarChart3, Loader2 } from 'lucide-react'
 import type { KlineChartProps, IndicatorConfig } from './types'
-import type { FetchKlinesFn } from './core/kline-data'
+import type { FetchKlinesFn, SubscribeKlineUpdatesFn } from './core/kline-data'
 import type { ChartDataStatus } from './core/event-bus'
 import { createChartStore } from './stores/chart-store'
 import { ChartStoreProvider, ChartStoreContext } from './stores/chart-provider'
@@ -28,6 +28,7 @@ const EMPTY_CONFIGS: IndicatorConfig[] = []
 
 export function KlineChart({
   fetchKlines,
+  subscribeKlineUpdates,
   getSymbols,
   getIntervals,
   getProviders,
@@ -66,6 +67,7 @@ export function KlineChart({
     >
       <KlineChartInner
         fetchKlines={fetchKlines}
+        subscribeKlineUpdates={subscribeKlineUpdates}
         getDrawings={getDrawings}
         saveDrawings={saveDrawings}
         getChartConfig={getChartConfig}
@@ -79,12 +81,14 @@ export function KlineChart({
 
 function KlineChartInner({
   fetchKlines,
+  subscribeKlineUpdates,
   getDrawings,
   saveDrawings,
   getChartConfig,
   saveChartConfig,
 }: {
   fetchKlines: FetchKlinesFn
+  subscribeKlineUpdates?: SubscribeKlineUpdatesFn
   getDrawings?: KlineChartProps['getDrawings']
   saveDrawings?: KlineChartProps['saveDrawings']
   getChartConfig?: KlineChartProps['getChartConfig']
@@ -111,6 +115,7 @@ function KlineChartInner({
     switchInterval,
     clearKlines,
     loadEarlier,
+    upsertLatestKline,
     getKlineData,
     subscribeDataStatus,
     activateDrawingSet,
@@ -268,6 +273,17 @@ function KlineChartInner({
       switchInterval(wrappedFetch, symbol, interval)
     }
   }, [activeProviderId, symbol, interval, clearKlines, loadKlines, switchInterval])
+
+  useEffect(() => {
+    if (!subscribeKlineUpdates || !activeProviderId || !symbol) return
+
+    return subscribeKlineUpdates({
+      providerId: activeProviderId,
+      symbol,
+      interval,
+      onData: upsertLatestKline,
+    })
+  }, [activeProviderId, interval, subscribeKlineUpdates, symbol, upsertLatestKline])
 
   useEffect(() => {
     if (!activeProviderId || !symbol) return

@@ -8,7 +8,7 @@ import type {
   KlineDataPoint,
 } from '@eous/chart'
 import type { DataSourceInstance, SymbolSearchResult } from '@eous/api-client'
-import { api } from '../../../lib/api.js'
+import { api, marketData } from '../../../lib/api.js'
 
 const PAGE_SIZE = 50
 
@@ -98,6 +98,7 @@ export function useKlineData() {
     getIntervals,
     getSymbols,
     fetchKlines,
+    subscribeKlineUpdates: marketData.subscribeKlineUpdates,
     getDrawings,
     saveDrawings,
     getChartConfig,

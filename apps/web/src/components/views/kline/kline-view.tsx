@@ -8,6 +8,7 @@ export function KlineView(props: KlineViewProps) {
     getSymbols,
     getIntervals,
     getProviders,
+    subscribeKlineUpdates,
     getDrawings,
     saveDrawings,
     getChartConfig,
@@ -21,6 +22,7 @@ export function KlineView(props: KlineViewProps) {
         getSymbols={getSymbols}
         getIntervals={getIntervals}
         getProviders={getProviders}
+        subscribeKlineUpdates={subscribeKlineUpdates}
         getDrawings={getDrawings}
         saveDrawings={saveDrawings}
         getChartConfig={getChartConfig}

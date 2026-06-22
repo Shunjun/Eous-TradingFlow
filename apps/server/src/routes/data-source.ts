@@ -117,6 +117,14 @@ dataSourceInstanceRouter.get('/data-source-instances/:id/intervals', async (c) =
   return c.json({ intervals })
 })
 
+dataSourceInstanceRouter.get('/data-source-instances/:id/realtime-capabilities', async (c) => {
+  const capabilities = await dataSourceService.getRealtimeCapabilities(
+    c.get('userId'),
+    c.req.param('id'),
+  )
+  return c.json({ capabilities })
+})
+
 dataSourceInstanceRouter.post('/data-source-instances/:id/test', async (c) => {
   const result = await dataSourceService.testConnection(c.get('userId'), c.req.param('id'))
   return c.json(result)

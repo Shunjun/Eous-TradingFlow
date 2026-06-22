@@ -1,5 +1,5 @@
 import type { Time } from 'lightweight-charts'
-import type { FetchKlinesFn } from './core/kline-data'
+import type { FetchKlinesFn, SubscribeKlineUpdatesFn } from './core/kline-data'
 import type { GetSymbolsFn, GetIntervalsFn, GetProvidersFn } from './stores/chart-store'
 
 // ── Data ────────────────────────────────────────────────────────────────────
@@ -54,6 +54,8 @@ export interface IntervalOption {
 export interface KlineChartProps {
   /** Data fetching function for kline data */
   fetchKlines: FetchKlinesFn
+  /** Optional realtime kline update subscription. REST remains the source for initial/history data. */
+  subscribeKlineUpdates?: SubscribeKlineUpdatesFn
   /** Fetch available symbols for a provider (with optional search/pagination) */
   getSymbols: GetSymbolsFn
   /** Fetch available intervals for a provider */

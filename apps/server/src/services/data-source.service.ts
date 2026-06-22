@@ -1,4 +1,9 @@
-import { getDataSourceProvider, listDataSourceProviders, type SymbolInfo } from '@eous/data-sources'
+import {
+  getDataSourceProvider,
+  listDataSourceProviders,
+  type RealtimeCapabilities,
+  type SymbolInfo,
+} from '@eous/data-sources'
 import type { ConfigFieldOption, ConfigFieldSchema } from '@eous/api-client'
 import { AppError } from '../lib/app-error.js'
 import { encrypt, decrypt, getEncryptionKey } from '../lib/crypto-utils.js'
@@ -248,6 +253,35 @@ export async function testConnection(userId: string, id: string) {
 }
 
 const DEFAULT_BAR_COUNT = 365
+export const DEFAULT_REALTIME_POLL_INTERVAL_MS = 10_000
+
+export const DEFAULT_REALTIME_CAPABILITIES: RealtimeCapabilities = {
+  quote: { modes: ['poll'], minPollIntervalMs: DEFAULT_REALTIME_POLL_INTERVAL_MS },
+  kline: { modes: ['poll'], minPollIntervalMs: DEFAULT_REALTIME_POLL_INTERVAL_MS },
+}
+
+export async function getRealtimeCapabilities(userId: string, id: string) {
+  const instance = await dsRepo.findByIdAndUser(id, userId)
+  if (!instance) {
+    throw new AppError('Instance not found', 404)
+  }
+
+  const { config, provider } = await decryptInstance(instance)
+  const capabilities = provider.getRealtimeCapabilities
+    ? await provider.getRealtimeCapabilities(config)
+    : DEFAULT_REALTIME_CAPABILITIES
+
+  return {
+    quote: {
+      ...DEFAULT_REALTIME_CAPABILITIES.quote,
+      ...capabilities.quote,
+    },
+    kline: {
+      ...DEFAULT_REALTIME_CAPABILITIES.kline,
+      ...capabilities.kline,
+    },
+  } satisfies RealtimeCapabilities
+}
 
 export async function getKlines(
   userId: string,

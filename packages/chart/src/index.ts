@@ -9,7 +9,7 @@ export type {
   ProviderOption,
   SymbolItem,
 } from './types'
-export type { KlineDataPoint, FetchKlinesFn } from './core/kline-data'
+export type { KlineDataPoint, FetchKlinesFn, SubscribeKlineUpdatesFn } from './core/kline-data'
 export type {
   GetSymbolsFn,
   GetSymbolsParams,

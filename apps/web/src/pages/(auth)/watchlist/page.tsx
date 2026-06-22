@@ -11,7 +11,7 @@ import type {
   GetProvidersFn,
 } from '@eous/chart'
 import type { DataSourceInstance, SymbolSearchResult } from '@eous/api-client'
-import { api } from '../../../lib/api.js'
+import { api, marketData } from '../../../lib/api.js'
 
 const PAGE_SIZE = 50
 
@@ -108,6 +108,7 @@ export default function WatchlistPage() {
           getSymbols={getSymbols}
           getIntervals={getIntervals}
           getProviders={getProviders}
+          subscribeKlineUpdates={marketData.subscribeKlineUpdates}
           defaultInterval="1d"
           onSymbolChange={handleSymbolChange}
         />

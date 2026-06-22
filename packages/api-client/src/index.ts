@@ -1,5 +1,15 @@
 /* ── Shared DTOs ─────────────────────────────────────── */
 
+export { createMarketDataSocketClient } from './market-data.js'
+export type {
+  KlineDataPoint,
+  MarketDataSocketClient,
+  MarketDataSocketOptions,
+  MarketDataSubscribeParams,
+  RealtimeMode,
+  RealtimeSubscribeMode,
+} from './market-data.js'
+
 export type AssetType = 'stock' | 'crypto' | 'forex' | 'etf' | 'index'
 
 export interface AssetRef {

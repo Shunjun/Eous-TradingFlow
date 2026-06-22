@@ -26,6 +26,13 @@ export type FetchKlinesFn = (params: {
   providerId?: string
 }) => Promise<KlineDataPoint[]>
 
+export type SubscribeKlineUpdatesFn = (params: {
+  providerId: string
+  symbol: string
+  interval: string
+  onData: (kline: KlineDataPoint) => void
+}) => () => void
+
 /* ── KLineData ─────────────────────────────────────────── */
 
 export class KLineData {
@@ -64,6 +71,22 @@ export class KLineData {
   updateTheme(theme: ChartTheme) {
     this.theme = theme
     this.eventBus.emit('theme:changed', { theme })
+  }
+
+  upsertLatest(kline: KlineDataPoint): void {
+    const last = this.klines.at(-1)
+    if (!last || kline.timestamp > last.timestamp) {
+      this.klines = [...this.klines, kline]
+    } else if (kline.timestamp === last.timestamp) {
+      this.klines = [...this.klines.slice(0, -1), kline]
+    } else {
+      const index = this.klines.findIndex((item) => item.timestamp === kline.timestamp)
+      if (index === -1) return
+      this.klines = [...this.klines.slice(0, index), kline, ...this.klines.slice(index + 1)]
+    }
+
+    this.eventBus.emit('data:updated', { klines: this.klines, fit: false })
+    this.eventBus.emit('data:status', { status: 'ready' })
   }
 
   clear(): void {

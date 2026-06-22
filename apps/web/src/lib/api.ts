@@ -1,4 +1,4 @@
-import { createHttpClient } from '@eous/api-client'
+import { createHttpClient, createMarketDataSocketClient } from '@eous/api-client'
 import type { ApiClient } from '@eous/api-client'
 
 export { ApiError } from '@eous/api-client'
@@ -12,3 +12,5 @@ export const api: ApiClient = createHttpClient({
     }
   },
 })
+
+export const marketData = createMarketDataSocketClient()

@@ -6,6 +6,7 @@ import type {
   KlinesRequest,
   IntervalDef,
   ConfigField,
+  RealtimeCapabilities,
 } from '../../types.js'
 import { isNetworkError, isRateLimitError } from '../utils.js'
 
@@ -125,6 +126,17 @@ export class YahooFinanceProvider implements DataSourceProvider<YahooFinanceConf
 
   getSupportedIntervals(): IntervalDef[] {
     return SUPPORTED_INTERVALS
+  }
+
+  getRealtimeCapabilities(_config: YahooFinanceConfig): RealtimeCapabilities {
+    return {
+      quote: { modes: ['poll'], minPollIntervalMs: 10_000 },
+      kline: {
+        modes: ['poll'],
+        minPollIntervalMs: 10_000,
+        supportedIntervals: SUPPORTED_INTERVALS.map((item) => item.value),
+      },
+    }
   }
 
   resolveIdentity(_config: YahooFinanceConfig): { displayName: string; key: string } {

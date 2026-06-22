@@ -9,6 +9,7 @@ import type {
   KlinesRequest,
   IntervalDef,
   ConfigField,
+  RealtimeCapabilities,
 } from '../../types.js'
 import { parseIntervalMs } from '../../utils.js'
 import { isNetworkError, isRateLimitError } from '../utils.js'
@@ -127,6 +128,18 @@ export class CCXTProvider implements DataSourceProvider<CCXTConfig> {
   async getSupportedIntervals(config: CCXTConfig): Promise<IntervalDef[]> {
     const plans = await this.getIntervalPlans(config.exchange)
     return plans.map((plan) => ({ label: plan.label, value: plan.value }))
+  }
+
+  async getRealtimeCapabilities(config: CCXTConfig): Promise<RealtimeCapabilities> {
+    const intervals = await this.getSupportedIntervals(config)
+    return {
+      quote: { modes: ['poll'], minPollIntervalMs: 10_000 },
+      kline: {
+        modes: ['poll'],
+        minPollIntervalMs: 10_000,
+        supportedIntervals: intervals.map((item) => item.value),
+      },
+    }
   }
 
   resolveIdentity(config: CCXTConfig): { displayName: string; key: string } {

@@ -4,7 +4,7 @@ import type { LineToolType } from 'lightweight-charts-line-tools-core'
 import { EventBus } from '../core/event-bus'
 import type { ChartDataStatus } from '../core/event-bus'
 import { KLineData } from '../core/kline-data'
-import type { FetchKlinesFn } from '../core/kline-data'
+import type { FetchKlinesFn, KlineDataPoint } from '../core/kline-data'
 import { ChartEngine } from '../core/chart-engine'
 import { IndicatorEngine } from '../core/indicator-engine'
 import { LineToolsEngine } from '../core/line-tools-engine'
@@ -110,6 +110,10 @@ export function useChart(containerRef: React.RefObject<HTMLDivElement | null>, t
     [],
   )
 
+  const upsertLatestKline = useCallback((kline: KlineDataPoint) => {
+    klineDataRef.current?.upsertLatest(kline)
+  }, [])
+
   const getKlineData = useCallback(() => klineDataRef.current, [])
 
   const subscribeDataStatus = useCallback((handler: (status: ChartDataStatus) => void) => {
@@ -167,6 +171,7 @@ export function useChart(containerRef: React.RefObject<HTMLDivElement | null>, t
       switchInterval,
       clearKlines,
       loadEarlier,
+      upsertLatestKline,
       getKlineData,
       subscribeDataStatus,
       setActiveDrawingTool,
@@ -190,6 +195,7 @@ export function useChart(containerRef: React.RefObject<HTMLDivElement | null>, t
       switchInterval,
       clearKlines,
       loadEarlier,
+      upsertLatestKline,
       getKlineData,
       subscribeDataStatus,
       setActiveDrawingTool,

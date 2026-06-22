@@ -53,6 +53,54 @@ export interface KlinesRequest {
   to: number // unix ms
 }
 
+// ── Realtime data ──
+export type RealtimeMode = 'stream' | 'poll'
+export type RealtimeSubscribeMode = 'auto' | RealtimeMode
+
+export interface RealtimeChannelCapabilities {
+  /** Available realtime delivery modes. Poll is backed by getQuote/getKlines. */
+  modes: RealtimeMode[]
+  /** Provider-specific minimum poll interval. Server must enforce this floor. */
+  minPollIntervalMs?: number
+  /** Optional interval allowlist for kline realtime delivery. */
+  supportedIntervals?: string[]
+}
+
+export interface RealtimeCapabilities {
+  quote: RealtimeChannelCapabilities
+  kline: RealtimeChannelCapabilities
+}
+
+export interface QuoteSubscribeRequest {
+  symbol: string
+  mode?: RealtimeSubscribeMode
+  pollIntervalMs?: number
+}
+
+export interface KlineSubscribeRequest extends QuoteSubscribeRequest {
+  interval: string
+}
+
+export interface RealtimeQuoteEvent {
+  type: 'quote'
+  symbol: string
+  data: Quote
+  source: RealtimeMode
+  timestamp: number
+}
+
+export interface RealtimeKlineEvent {
+  type: 'kline'
+  symbol: string
+  interval: string
+  data: Kline
+  isFinal?: boolean
+  source: RealtimeMode
+  timestamp: number
+}
+
+export type RealtimeUnsubscribe = () => void | Promise<void>
+
 // ── Interval 定义 ──
 export interface IntervalDef {
   /** 显示标签，如 "1m", "5m", "1h", "1d" */
@@ -91,4 +139,16 @@ export interface DataSourceProvider<TConfig extends DataSourceConfig = DataSourc
   searchSymbols(query: string, config: TConfig): Promise<SymbolInfo[]>
   getQuote(symbol: string, config: TConfig): Promise<Quote>
   getKlines(request: KlinesRequest, config: TConfig): Promise<Kline[]>
+
+  getRealtimeCapabilities?(config: TConfig): Promise<RealtimeCapabilities> | RealtimeCapabilities
+  subscribeQuote?(
+    request: QuoteSubscribeRequest,
+    config: TConfig,
+    emit: (event: RealtimeQuoteEvent) => void,
+  ): Promise<RealtimeUnsubscribe> | RealtimeUnsubscribe
+  subscribeKlines?(
+    request: KlineSubscribeRequest,
+    config: TConfig,
+    emit: (event: RealtimeKlineEvent) => void,
+  ): Promise<RealtimeUnsubscribe> | RealtimeUnsubscribe
 }
