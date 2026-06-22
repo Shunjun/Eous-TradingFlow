@@ -53,6 +53,26 @@ export interface KlinesRequest {
   to: number // unix ms
 }
 
+export type IntervalSupportMode = 'native' | 'derived'
+export type IntervalAggregation = 'duration' | 'calendar'
+
+export interface IntervalSupportRequest {
+  intervals: string[]
+}
+
+export interface IntervalSupport {
+  /** Requested interval as received by the provider/service. */
+  requestedInterval: string
+  /** Canonical interval used by the chart and data requests. */
+  interval: string
+  supported: boolean
+  mode?: IntervalSupportMode
+  /** Present when mode is derived. Server should request this interval from provider. */
+  baseInterval?: string
+  aggregation?: IntervalAggregation
+  reason?: string
+}
+
 // ── Realtime data ──
 export type RealtimeMode = 'stream' | 'poll'
 export type RealtimeSubscribeMode = 'auto' | RealtimeMode
@@ -123,7 +143,12 @@ export interface DataSourceProvider<TSettings extends DataSourceSettings = DataS
   configSchema: ConfigField[] // 配置表单定义
 
   /** 返回该 provider 支持的时间周期列表 */
-  getSupportedIntervals(settings: TSettings): Promise<IntervalDef[]> | IntervalDef[]
+  getSupportedIntervals?(settings: TSettings): Promise<IntervalDef[]> | IntervalDef[]
+  /** Batch-query whether requested intervals are native or server-derivable. */
+  getIntervalSupport?(
+    request: IntervalSupportRequest,
+    settings: TSettings,
+  ): Promise<IntervalSupport[]> | IntervalSupport[]
 
   /**
    * 根据用户配置生成 provider 的唯一标识。

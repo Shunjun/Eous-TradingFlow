@@ -1,7 +1,6 @@
 import { createContext, useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import type { ChartStore, ChartFetchFns } from './chart-store'
-import { ALL_INTERVAL_VALUES } from './chart-store'
 
 // ── Context ────────────────────────────────────────────────────────────────
 
@@ -94,21 +93,33 @@ export function ChartStoreProvider({
         store.setState({ symbol: provider.defaultSymbol })
       }
 
-      // Load intervals
+      // Load support for the chart-configured intervals
+      const requestedIntervals = store.getState().intervals.map((item) => item.value)
+      if (requestedIntervals.length === 0) return
       fns
-        .getIntervals(providerId)
+        .getIntervals(providerId, requestedIntervals)
         .then((intervals) => {
           if (store.getState().activeProviderId !== providerId) return
-          const supported = new Set(intervals.map((iv) => iv.value))
-          const filtered = intervals.filter((iv) => supported.has(iv.value))
-          const unsupportedIntervals = ALL_INTERVAL_VALUES.filter((v) => !supported.has(v))
-          store.setState({ intervals: filtered, unsupportedIntervals })
+          const supportByValue = new Map(intervals.map((iv) => [iv.value, iv]))
+          const nextIntervals = store.getState().intervals.map((item) => {
+            const support = supportByValue.get(item.value)
+            return {
+              ...item,
+              supported: support?.supported ?? false,
+              mode: support?.mode,
+              baseInterval: support?.baseInterval,
+              reason: support?.reason,
+            }
+          })
+          const unsupportedIntervals = nextIntervals
+            .filter((item) => !item.supported)
+            .map((item) => item.value)
+          store.setState({ intervals: nextIntervals, unsupportedIntervals })
 
           // Reset to default interval if current is unsupported
           const currentInterval = store.getState().interval
-          const unsupported = ALL_INTERVAL_VALUES.filter((v) => !supported.has(v))
-          if (unsupported.includes(currentInterval)) {
-            const fallback = filtered[0]?.value ?? currentInterval
+          if (unsupportedIntervals.includes(currentInterval)) {
+            const fallback = nextIntervals.find((item) => item.supported)?.value ?? currentInterval
             store.setState({ interval: fallback })
             onIntervalChangeRef.current?.(fallback)
           }

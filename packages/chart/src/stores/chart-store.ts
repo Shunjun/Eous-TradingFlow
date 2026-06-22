@@ -2,6 +2,7 @@ import { createStore } from 'zustand/vanilla'
 import type { RefObject } from 'react'
 import type { IntervalOption, ProviderOption, SymbolItem } from '../types'
 import type { FetchKlinesFn } from '../core/kline-data'
+import { ALL_DEFAULT_INTERVAL_VALUES } from '../components/interval-selector/defaults'
 
 // ── Fetch function signatures ──────────────────────────────────────────────
 
@@ -18,7 +19,17 @@ export interface GetSymbolsResult {
 }
 
 export type GetSymbolsFn = (params: GetSymbolsParams) => Promise<GetSymbolsResult>
-export type GetIntervalsFn = (providerId: string) => Promise<IntervalOption[]>
+export interface IntervalSupportOption extends IntervalOption {
+  supported: boolean
+  mode?: 'native' | 'derived'
+  baseInterval?: string
+  reason?: string
+}
+
+export type GetIntervalsFn = (
+  providerId: string,
+  intervals: string[],
+) => Promise<IntervalSupportOption[]>
 export type GetProvidersFn = () => Promise<ProviderOption[]>
 
 // ── Fetch functions bundle ─────────────────────────────────────────────────
@@ -38,7 +49,7 @@ export interface ChartState {
   activeProviderId: string
 
   // Intervals
-  intervals: IntervalOption[]
+  intervals: IntervalSupportOption[]
   unsupportedIntervals: string[]
   interval: string
 
@@ -70,7 +81,9 @@ export interface ChartState {
   // Actions
   setActiveProviderId: (id: string) => void
   setIntervals: (
-    intervals: IntervalOption[] | ((prev: IntervalOption[]) => IntervalOption[]),
+    intervals:
+      | IntervalSupportOption[]
+      | ((prev: IntervalSupportOption[]) => IntervalSupportOption[]),
   ) => void
   setInterval: (interval: string) => void
   setSymbol: (symbol: string | null) => void
@@ -84,29 +97,7 @@ export interface ChartState {
 
 // ── All known interval values (for computing unsupported intervals) ────────
 
-const ALL_INTERVAL_VALUES = [
-  '1m',
-  '3m',
-  '5m',
-  '15m',
-  '30m',
-  '1h',
-  '2h',
-  '4h',
-  '6h',
-  '12h',
-  '1d',
-  '3d',
-  '7d',
-  '1w',
-  '2w',
-  '1M',
-  '3M',
-  '6M',
-  '1y',
-]
-
-export { ALL_INTERVAL_VALUES }
+export const ALL_INTERVAL_VALUES = ALL_DEFAULT_INTERVAL_VALUES
 
 // ── Store factory ──────────────────────────────────────────────────────────
 

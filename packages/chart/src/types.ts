@@ -1,6 +1,7 @@
 import type { Time } from 'lightweight-charts'
 import type { FetchKlinesFn, SubscribeKlineUpdatesFn } from './core/kline-data'
 import type { GetSymbolsFn, GetIntervalsFn, GetProvidersFn } from './stores/chart-store'
+import type { IntervalSettings } from './components/interval-selector/types'
 
 // ── Data ────────────────────────────────────────────────────────────────────
 
@@ -70,9 +71,11 @@ export interface KlineChartProps {
     drawings: { symbol: string; payload: string }[]
   }) => Promise<void>
   /** Fetch chart-level user config */
-  getChartConfig?: () => Promise<{ autoSaveDrawings: boolean }>
+  getChartConfig?: () => Promise<{ autoSaveDrawings: boolean; intervalSettings: IntervalSettings }>
   /** Persist chart-level user config */
-  saveChartConfig?: (config: { autoSaveDrawings: boolean }) => Promise<void>
+  saveChartConfig?: (
+    config: Partial<{ autoSaveDrawings: boolean; intervalSettings: IntervalSettings }>,
+  ) => Promise<void>
 
   /** Default symbol to display on mount */
   defaultSymbol?: string

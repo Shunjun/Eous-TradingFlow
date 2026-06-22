@@ -4,7 +4,6 @@ import { KlineChart } from '@eous/chart'
 import type {
   FetchKlinesFn,
   KlineDataPoint,
-  IntervalOption,
   SymbolItem,
   GetSymbolsFn,
   GetIntervalsFn,
@@ -37,9 +36,16 @@ export default function WatchlistPage() {
   }, [])
 
   const getIntervals = useMemo<GetIntervalsFn>(() => {
-    return async (providerId: string) => {
-      const d = await api.getDataSourceInstanceIntervals(providerId)
-      return d.intervals as IntervalOption[]
+    return async (providerId: string, intervals: string[]) => {
+      const d = await api.getDataSourceInstanceIntervalSupport(providerId, intervals)
+      return d.intervals.map((item) => ({
+        label: item.interval,
+        value: item.interval,
+        supported: item.supported,
+        mode: item.mode,
+        baseInterval: item.baseInterval,
+        reason: item.reason,
+      }))
     }
   }, [])
 

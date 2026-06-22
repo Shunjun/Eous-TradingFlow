@@ -158,6 +158,7 @@ export function SymbolSelector({ containerRef }: SymbolSelectorProps) {
         <DialogContent
           container={containerRef?.current ?? null}
           noOverlay
+          variant="contained"
           className="max-w-md p-0 gap-0"
           onKeyDown={handleKeyDown}
         >

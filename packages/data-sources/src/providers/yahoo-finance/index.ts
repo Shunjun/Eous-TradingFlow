@@ -8,7 +8,10 @@ import type {
   ConfigField,
   RealtimeCapabilities,
   DataSourceProviderOptions,
+  IntervalSupport,
+  IntervalSupportRequest,
 } from '../../types.js'
+import { resolveIntervalSupport } from '../../intervals.js'
 import { isNetworkError, isRateLimitError } from '../utils.js'
 
 // ── Yahoo 支持的时间周期 ──
@@ -129,6 +132,13 @@ export class YahooFinanceProvider implements DataSourceProvider<YahooFinanceConf
 
   getSupportedIntervals(): IntervalDef[] {
     return SUPPORTED_INTERVALS
+  }
+
+  getIntervalSupport(request: IntervalSupportRequest): IntervalSupport[] {
+    return resolveIntervalSupport({
+      requestedIntervals: request.intervals,
+      nativeIntervals: SUPPORTED_INTERVALS.map((item) => item.value),
+    })
   }
 
   getRealtimeCapabilities(_config: YahooFinanceConfig): RealtimeCapabilities {

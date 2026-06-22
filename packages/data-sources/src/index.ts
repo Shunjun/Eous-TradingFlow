@@ -5,6 +5,7 @@ export type {
   Quote,
   Kline,
   KlinesRequest,
+  IntervalAggregation,
   RealtimeMode,
   RealtimeSubscribeMode,
   RealtimeChannelCapabilities,
@@ -15,10 +16,25 @@ export type {
   RealtimeKlineEvent,
   RealtimeUnsubscribe,
   IntervalDef,
+  IntervalSupportMode,
+  IntervalSupportRequest,
+  IntervalSupport,
   DataSourceSettings,
   DataSourceProviderOptions,
   DataSourceProvider,
 } from './types.js'
+
+export {
+  aggregateKlines,
+  canonicalizeInterval,
+  compareIntervals,
+  getDefaultKlineBarCount,
+  getIntervalAggregation,
+  intervalToMs,
+  parseInterval,
+  resolveIntervalSupport,
+  subtractIntervals,
+} from './intervals.js'
 
 export {
   registerDataSourceProvider,

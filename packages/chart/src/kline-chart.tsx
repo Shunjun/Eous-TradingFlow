@@ -12,6 +12,11 @@ import { useChartStore } from './hooks/use-chart-store'
 import { useChart } from './hooks/use-chart'
 import { useResolvedTheme } from './hooks/use-resolved-theme'
 import { ChartToolbar } from './components/chart-toolbar'
+import {
+  DEFAULT_INTERVAL_ITEMS,
+  DEFAULT_VISIBLE_INTERVAL_VALUES,
+} from './components/interval-selector/defaults'
+import type { IntervalItem, IntervalSettings } from './components/interval-selector/types'
 import { DrawingStyleToolbar } from './components/drawing-style-toolbar'
 import { IndicatorConfigPanel } from './components/indicator-config-panel'
 import { IndicatorLegend } from './components/indicator-legend'
@@ -154,6 +159,7 @@ function KlineChartInner({
   const [dirtyDrawingCount, setDirtyDrawingCount] = useState(0)
   const [drawingsSaving, setDrawingsSaving] = useState(false)
   const [autoSaveDrawings, setAutoSaveDrawings] = useState(false)
+  const [intervalItems, setIntervalItems] = useState<IntervalItem[]>(DEFAULT_INTERVAL_ITEMS)
 
   useEffect(() => subscribeDataStatus(setDataStatus), [subscribeDataStatus])
   useEffect(
@@ -166,13 +172,58 @@ function KlineChartInner({
     let cancelled = false
     getChartConfig()
       .then((config) => {
-        if (!cancelled) setAutoSaveDrawings(config.autoSaveDrawings)
+        if (cancelled) return
+        setAutoSaveDrawings(config.autoSaveDrawings)
+        setIntervalItems(mergeIntervalSettings(config.intervalSettings))
       })
       .catch(() => {})
     return () => {
       cancelled = true
     }
   }, [getChartConfig])
+
+  useEffect(() => {
+    store.setState({ intervals: intervalItems })
+    const providerId = store.getState().activeProviderId
+    const fns = store.getState().fetchFnsRef.current
+    if (!providerId || !fns) return
+
+    let cancelled = false
+    fns
+      .getIntervals(
+        providerId,
+        intervalItems.map((item) => item.value),
+      )
+      .then((supports) => {
+        if (cancelled || store.getState().activeProviderId !== providerId) return
+        const supportByValue = new Map(supports.map((item) => [item.value, item]))
+        const nextIntervals = intervalItems.map((item) => {
+          const support = supportByValue.get(item.value)
+          return {
+            ...item,
+            supported: support?.supported ?? false,
+            mode: support?.mode,
+            baseInterval: support?.baseInterval,
+            reason: support?.reason,
+          }
+        })
+        const unsupportedIntervals = nextIntervals
+          .filter((item) => !item.supported)
+          .map((item) => item.value)
+        store.setState({ intervals: nextIntervals, unsupportedIntervals })
+
+        const currentInterval = store.getState().interval
+        if (unsupportedIntervals.includes(currentInterval)) {
+          const fallback = nextIntervals.find((item) => item.supported)?.value
+          if (fallback) setIntervalAction(fallback)
+        }
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [activeProviderId, intervalItems, setIntervalAction, store])
 
   // Series map for legend (indicator ID -> series refs)
   const seriesMapRef = useRef<Map<string, ISeriesApi<'Line' | 'Histogram'>[]>>(new Map())
@@ -421,6 +472,16 @@ function KlineChartInner({
     [saveChartConfig],
   )
 
+  const handleIntervalsChange = useCallback(
+    async (items: IntervalItem[]) => {
+      setIntervalItems(items)
+      if (saveChartConfig) {
+        await saveChartConfig({ intervalSettings: toIntervalSettings(items) })
+      }
+    },
+    [saveChartConfig],
+  )
+
   const handleDoubleClickIndicator = useCallback((id: string) => {
     setSelectedIndicatorId(id)
     setPanelOpen(true)
@@ -495,7 +556,7 @@ function KlineChartInner({
   return (
     <div
       ref={wrapperRef}
-      className="flex h-full w-full min-h-0 flex-col overflow-hidden bg-background"
+      className="relative flex h-full w-full min-h-0 flex-col overflow-hidden bg-background"
     >
       {/* Toolbar — always visible */}
       <ChartToolbar
@@ -506,6 +567,8 @@ function KlineChartInner({
         autoSaveDrawings={autoSaveDrawings}
         onSaveDrawings={saveDrawings ? handleSaveDrawings : undefined}
         onAutoSaveDrawingsChange={saveChartConfig ? handleAutoSaveChange : undefined}
+        intervals={intervalItems}
+        onIntervalsChange={handleIntervalsChange}
       />
 
       {/* Chart area with sidebar */}
@@ -589,6 +652,42 @@ function parseDrawingKey(key: string): { providerId: string; symbol: string } | 
   return {
     providerId: key.slice(0, index),
     symbol: key.slice(index + 1),
+  }
+}
+
+function mergeIntervalSettings(settings?: IntervalSettings): IntervalItem[] {
+  const visibleValues = settings?.visible?.length
+    ? new Set(settings.visible)
+    : new Set(DEFAULT_VISIBLE_INTERVAL_VALUES)
+  const defaultByValue = new Set(DEFAULT_INTERVAL_ITEMS.map((item) => item.value))
+  const result = DEFAULT_INTERVAL_ITEMS.map((item) => ({
+    ...item,
+    visible: visibleValues.has(item.value),
+  }))
+
+  for (const custom of settings?.custom ?? []) {
+    if (!custom.value || defaultByValue.has(custom.value)) continue
+    result.push({
+      label: custom.label ?? custom.value,
+      value: custom.value,
+      visible: visibleValues.has(custom.value),
+      supported: true,
+    })
+  }
+
+  return result
+}
+
+function toIntervalSettings(items: IntervalItem[]): IntervalSettings {
+  const defaultByValue = new Set(DEFAULT_INTERVAL_ITEMS.map((item) => item.value))
+  return {
+    visible: items.filter((item) => item.visible).map((item) => item.value),
+    custom: items
+      .filter((item) => !defaultByValue.has(item.value))
+      .map((item) => ({
+        value: item.value,
+        ...(item.label !== item.value ? { label: item.label } : {}),
+      })),
   }
 }
 

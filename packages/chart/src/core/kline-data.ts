@@ -1,10 +1,7 @@
 import type { Time } from 'lightweight-charts'
 import type { ChartTheme } from '../types'
-import { parseIntervalMs } from '../utils/interval'
+import { getDefaultKlineBarCount, subtractIntervals } from '../utils/interval'
 import type { EventBus } from './event-bus'
-
-/** Default number of bars to load per request */
-const LOAD_BAR_COUNT = 365
 
 /* ── Types ─────────────────────────────────────────────── */
 
@@ -131,13 +128,13 @@ export class KLineData {
     if (Date.now() - this.lastLoadTime < cooldownMs) return
 
     const ms = oldestTimestamp * 1000
-    const intervalMs = parseIntervalMs(interval)
+    const barCount = getDefaultKlineBarCount(interval)
     await this.fetch(
       fetchFn,
       symbol,
       interval,
       {
-        from: ms - LOAD_BAR_COUNT * intervalMs,
+        from: Math.max(0, subtractIntervals(ms, interval, barCount)),
         to: ms - 1,
       },
       false,
@@ -205,5 +202,3 @@ export class KLineData {
     this.clear()
   }
 }
-
-export { LOAD_BAR_COUNT }

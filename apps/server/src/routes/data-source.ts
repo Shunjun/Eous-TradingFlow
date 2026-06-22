@@ -117,6 +117,16 @@ dataSourceInstanceRouter.get('/data-source-instances/:id/intervals', async (c) =
   return c.json({ intervals })
 })
 
+dataSourceInstanceRouter.post('/data-source-instances/:id/interval-support', async (c) => {
+  const body = await c.req.json<{ intervals: string[] }>()
+  const intervals = await dataSourceService.getIntervalSupportForInstance(
+    c.get('userId'),
+    c.req.param('id'),
+    body.intervals,
+  )
+  return c.json({ intervals })
+})
+
 dataSourceInstanceRouter.get('/data-source-instances/:id/realtime-capabilities', async (c) => {
   const capabilities = await dataSourceService.getRealtimeCapabilities(
     c.get('userId'),
@@ -162,7 +172,10 @@ dataSourceInstanceRouter.get('/chart/config', async (c) => {
 })
 
 dataSourceInstanceRouter.patch('/chart/config', async (c) => {
-  const body = await c.req.json<{ autoSaveDrawings?: boolean }>()
+  const body = await c.req.json<{
+    autoSaveDrawings?: boolean
+    intervalSettings?: { visible: string[]; custom: { value: string; label?: string }[] }
+  }>()
   const config = await dataSourceService.updateChartConfig(c.get('userId'), body)
   return c.json({ config })
 })

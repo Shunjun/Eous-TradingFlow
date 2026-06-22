@@ -1,13 +1,18 @@
 import {
+  aggregateKlines,
+  canonicalizeInterval,
+  getDefaultKlineBarCount,
   getDataSourceProvider,
   listDataSourceProviders,
+  resolveIntervalSupport,
+  subtractIntervals,
   type RealtimeCapabilities,
+  type IntervalSupport,
   type SymbolInfo,
 } from '@eous/data-sources'
 import type { ConfigFieldOption, ConfigFieldSchema } from '@eous/api-client'
 import { AppError } from '../lib/app-error.js'
 import { encrypt, decrypt, getEncryptionKey } from '../lib/crypto-utils.js'
-import { parseIntervalMs } from '../lib/interval-utils.js'
 import * as chartRepo from '../repositories/chart.repo.js'
 import * as dsRepo from '../repositories/data-source.repo.js'
 
@@ -252,8 +257,48 @@ export async function testConnection(userId: string, id: string) {
   return { ok: true }
 }
 
-const DEFAULT_BAR_COUNT = 365
 export const DEFAULT_REALTIME_POLL_INTERVAL_MS = 10_000
+
+const DEFAULT_INTERVAL_SETTINGS_JSON = '{"visible":[],"custom":[]}'
+
+interface ChartIntervalSettings {
+  visible: string[]
+  custom: { value: string; label?: string }[]
+}
+
+function parseChartIntervalSettings(raw: string | null | undefined): ChartIntervalSettings {
+  if (!raw) return { visible: [], custom: [] }
+  try {
+    const parsed = JSON.parse(raw) as Partial<ChartIntervalSettings>
+    return {
+      visible: Array.isArray(parsed.visible)
+        ? parsed.visible.filter((item): item is string => typeof item === 'string')
+        : [],
+      custom: Array.isArray(parsed.custom)
+        ? parsed.custom
+            .filter((item) => item && typeof item.value === 'string')
+            .map((item) => ({
+              value: item.value,
+              label: typeof item.label === 'string' ? item.label : undefined,
+            }))
+        : [],
+    }
+  } catch {
+    return { visible: [], custom: [] }
+  }
+}
+
+function serializeChartIntervalSettings(value: ChartIntervalSettings): string {
+  return JSON.stringify({
+    visible: value.visible.filter((item) => typeof item === 'string'),
+    custom: value.custom
+      .filter((item) => item && typeof item.value === 'string')
+      .map((item) => ({
+        value: item.value,
+        ...(item.label ? { label: item.label } : {}),
+      })),
+  })
+}
 
 export const DEFAULT_REALTIME_CAPABILITIES: RealtimeCapabilities = {
   quote: { modes: ['poll'], minPollIntervalMs: DEFAULT_REALTIME_POLL_INTERVAL_MS },
@@ -307,15 +352,55 @@ export async function getKlines(
   const { config, provider } = await decryptInstance(instance)
 
   const now = Date.now()
-  const intervalMs = parseIntervalMs(interval)
-  const defaultFrom = now - DEFAULT_BAR_COUNT * intervalMs
+  const normalizedInterval = canonicalizeInterval(interval)
+  if (!normalizedInterval) {
+    throw new AppError(`Invalid interval: ${interval}`, 400)
+  }
+
+  const defaultBarCount = getDefaultKlineBarCount(normalizedInterval)
+  const requestFrom = Math.max(
+    0,
+    from ?? subtractIntervals(now, normalizedInterval, defaultBarCount),
+  )
+  const requestTo = Math.max(requestFrom + 1, to ?? now)
 
   try {
-    return await provider.getKlines(
-      { symbol, interval, from: from ?? defaultFrom, to: to ?? now },
+    const support = (await getProviderIntervalSupport(provider, config, [normalizedInterval]))[0]
+    if (!support?.supported) {
+      throw new AppError(
+        `Unsupported interval for data source: ${support?.reason ?? normalizedInterval}`,
+        400,
+      )
+    }
+
+    const requestInterval =
+      support.mode === 'derived' ? (support.baseInterval ?? normalizedInterval) : normalizedInterval
+    console.info('[kline interval support]', {
+      instanceId: id,
+      providerKind: instance.providerKind,
+      symbol,
+      requestedInterval: interval,
+      canonicalInterval: normalizedInterval,
+      mode: support.mode,
+      baseInterval: support.baseInterval,
+      aggregation: support.aggregation,
+      providerRequestInterval: requestInterval,
+      barCount: defaultBarCount,
+      from: requestFrom,
+      to: requestTo,
+    })
+    const klines = await provider.getKlines(
+      { symbol, interval: requestInterval, from: requestFrom, to: requestTo },
       config,
     )
+
+    if (support.mode === 'derived') {
+      return aggregateKlines(klines, normalizedInterval, support.aggregation)
+    }
+
+    return klines
   } catch (e) {
+    if (e instanceof AppError) throw e
     throw new AppError(`Failed to fetch K-line data: ${providerErrorMessage(e)}`, 502)
   }
 }
@@ -329,10 +414,50 @@ export async function getIntervalsForInstance(userId: string, id: string) {
   const { config, provider } = await decryptInstance(instance)
 
   try {
+    if (!provider.getSupportedIntervals) return []
     return await provider.getSupportedIntervals(config)
   } catch (e) {
     throw new AppError(`Failed to fetch data source intervals: ${providerErrorMessage(e)}`, 502)
   }
+}
+
+export async function getIntervalSupportForInstance(
+  userId: string,
+  id: string,
+  intervals: string[],
+): Promise<IntervalSupport[]> {
+  const instance = await dsRepo.findByIdAndUser(id, userId)
+  if (!instance) {
+    throw new AppError('Instance not found', 404)
+  }
+
+  if (!Array.isArray(intervals) || intervals.length === 0) {
+    throw new AppError('Missing required field: intervals', 400)
+  }
+
+  const { config, provider } = await decryptInstance(instance)
+
+  try {
+    return await getProviderIntervalSupport(provider, config, intervals)
+  } catch (e) {
+    throw new AppError(`Failed to check interval support: ${providerErrorMessage(e)}`, 502)
+  }
+}
+
+async function getProviderIntervalSupport(
+  provider: Awaited<ReturnType<typeof decryptInstance>>['provider'],
+  config: Record<string, string>,
+  intervals: string[],
+): Promise<IntervalSupport[]> {
+  if (provider.getIntervalSupport) {
+    return provider.getIntervalSupport({ intervals }, config)
+  }
+
+  const nativeIntervals = provider.getSupportedIntervals
+    ? (await provider.getSupportedIntervals(config)).map((item) => item.value)
+    : []
+
+  return resolveIntervalSupport({ requestedIntervals: intervals, nativeIntervals })
 }
 
 export async function getChartDrawing(userId: string, id: string, symbol: string) {
@@ -386,15 +511,26 @@ export async function getChartConfig(userId: string) {
   const config = await chartRepo.getChartConfig(userId)
   return {
     autoSaveDrawings: config.autoSaveDrawings,
+    intervalSettings: parseChartIntervalSettings(config.intervalSettings),
   }
 }
 
-export async function updateChartConfig(userId: string, body: { autoSaveDrawings?: boolean }) {
+export async function updateChartConfig(
+  userId: string,
+  body: { autoSaveDrawings?: boolean; intervalSettings?: ChartIntervalSettings },
+) {
   const config = await chartRepo.updateChartConfig(userId, {
     autoSaveDrawings: body.autoSaveDrawings,
+    intervalSettings:
+      body.intervalSettings === undefined
+        ? undefined
+        : serializeChartIntervalSettings(body.intervalSettings),
   })
   return {
     autoSaveDrawings: config.autoSaveDrawings,
+    intervalSettings: parseChartIntervalSettings(
+      config.intervalSettings ?? DEFAULT_INTERVAL_SETTINGS_JSON,
+    ),
   }
 }
 

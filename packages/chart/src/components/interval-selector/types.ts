@@ -10,7 +10,8 @@ export interface IntervalItem {
 
 /** Persisted user settings — the full ordered list with visibility flags */
 export interface IntervalSettings {
-  intervals: IntervalItem[]
+  visible: string[]
+  custom: { value: string; label?: string }[]
 }
 
 // ── Props ───────────────────────────────────────────────────────────────────
@@ -22,11 +23,10 @@ export interface IntervalSelectorProps {
   onChange: (interval: string) => void
   /** Interval values that the current provider does NOT support */
   unsupportedValues?: string[]
-  /** Custom storage key for persistence (default uses a chart-global key) */
-  storageKey?: string
-  /** Override default intervals (useful for testing or custom deployments) */
-  defaultVisible?: IntervalItem[]
-  defaultHidden?: IntervalItem[]
+  /** Full interval configuration for the chart. */
+  intervals: IntervalItem[]
+  /** Persist visibility/custom interval changes. */
+  onIntervalsChange: (intervals: IntervalItem[]) => void | Promise<void>
 }
 
 // ── State machine ───────────────────────────────────────────────────────────

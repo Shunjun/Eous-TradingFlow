@@ -15,6 +15,7 @@ import { IntervalSelector } from './interval-selector'
 import { getAllIndicatorDefinitions, getIndicatorDefinition } from '../indicators/registry'
 import { useChartStore } from '../hooks/use-chart-store'
 import type { IndicatorConfig } from '../types'
+import type { IntervalItem } from './interval-selector/types'
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -42,6 +43,8 @@ interface ChartToolbarProps {
   autoSaveDrawings?: boolean
   onSaveDrawings?: () => void | Promise<void>
   onAutoSaveDrawingsChange?: (enabled: boolean) => void | Promise<void>
+  intervals: IntervalItem[]
+  onIntervalsChange: (intervals: IntervalItem[]) => void | Promise<void>
 }
 
 // ── Component ───────────────────────────────────────────────────────────────
@@ -54,6 +57,8 @@ export function ChartToolbar({
   autoSaveDrawings = false,
   onSaveDrawings,
   onAutoSaveDrawingsChange,
+  intervals,
+  onIntervalsChange,
 }: ChartToolbarProps) {
   const [indicatorOpen, setIndicatorOpen] = useState(false)
   const [saveMenuOpen, setSaveMenuOpen] = useState(false)
@@ -96,6 +101,8 @@ export function ChartToolbar({
         value={interval}
         onChange={setIntervalAction}
         unsupportedValues={unsupportedIntervals}
+        intervals={intervals}
+        onIntervalsChange={onIntervalsChange}
       />
 
       {/* Right spacer + indicator add */}

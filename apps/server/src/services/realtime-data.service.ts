@@ -1,14 +1,19 @@
-import type {
-  DataSourceSettings,
-  DataSourceProvider,
-  Kline,
-  Quote,
-  RealtimeCapabilities,
-  RealtimeKlineEvent,
-  RealtimeMode,
-  RealtimeQuoteEvent,
-  RealtimeSubscribeMode,
-  RealtimeUnsubscribe,
+import {
+  aggregateKlines,
+  canonicalizeInterval,
+  intervalToMs,
+  resolveIntervalSupport,
+  type DataSourceSettings,
+  type DataSourceProvider,
+  type IntervalSupport,
+  type Kline,
+  type Quote,
+  type RealtimeCapabilities,
+  type RealtimeKlineEvent,
+  type RealtimeMode,
+  type RealtimeQuoteEvent,
+  type RealtimeSubscribeMode,
+  type RealtimeUnsubscribe,
 } from '@eous/data-sources'
 import { AppError } from '../lib/app-error.js'
 import { parseIntervalMs } from '../lib/interval-utils.js'
@@ -87,6 +92,11 @@ type Emit = (message: RealtimeServerEvent) => void
 interface ResolvedProvider {
   settings: DataSourceSettings
   provider: DataSourceProvider<DataSourceSettings>
+}
+
+interface ResolvedIntervalSupport {
+  requestedInterval: string
+  support: IntervalSupport
 }
 
 interface UpstreamTask {
@@ -219,20 +229,22 @@ export class RealtimeDataService {
     )
 
     const channelCapabilities = capabilities[message.channel]
+    let intervalSupport: ResolvedIntervalSupport | undefined
     if (message.channel === 'kline') {
-      const supportedIntervals = channelCapabilities.supportedIntervals
-      if (
-        supportedIntervals &&
-        supportedIntervals.length > 0 &&
-        !supportedIntervals.includes(message.interval!)
-      ) {
-        throw new AppError(`Realtime kline interval is not supported: ${message.interval}`, 400)
+      intervalSupport = await this.resolveIntervalSupport(resolved, message.interval!)
+      if (!intervalSupport.support.supported) {
+        throw new AppError(
+          `Realtime kline interval is not supported: ${intervalSupport.support.reason ?? message.interval}`,
+          400,
+        )
       }
     }
 
     let source = chooseMode(
       message.mode,
-      channelCapabilities.modes,
+      intervalSupport?.support.mode === 'derived'
+        ? channelCapabilities.modes.filter((mode) => mode === 'poll')
+        : channelCapabilities.modes,
       message.channel === 'quote'
         ? typeof resolved.provider.subscribeQuote === 'function'
         : typeof resolved.provider.subscribeKlines === 'function',
@@ -248,6 +260,7 @@ export class RealtimeDataService {
         upstream = await this.startUpstream({
           key,
           message,
+          intervalSupport,
           source,
           pollIntervalMs,
           resolved,
@@ -278,6 +291,7 @@ export class RealtimeDataService {
           upstream = await this.startUpstream({
             key,
             message,
+            intervalSupport,
             source,
             pollIntervalMs,
             resolved,
@@ -337,11 +351,12 @@ export class RealtimeDataService {
   private async startUpstream(params: {
     key: string
     message: RealtimeSubscribeMessage
+    intervalSupport?: ResolvedIntervalSupport
     source: RealtimeMode
     pollIntervalMs?: number
     resolved: ResolvedProvider
   }): Promise<UpstreamTask> {
-    const { key, message, source, pollIntervalMs, resolved } = params
+    const { key, message, intervalSupport, source, pollIntervalMs, resolved } = params
     const listeners = new Map<string, Emit>()
     const emitToListeners = (event: RealtimeQuoteEvent | RealtimeKlineEvent) => {
       for (const [subscriptionId, listener] of listeners) {
@@ -356,7 +371,7 @@ export class RealtimeDataService {
     const stop =
       source === 'stream'
         ? await this.startStream(message, resolved, emitToListeners)
-        : this.startPoll(message, pollIntervalMs!, resolved, emitToListeners)
+        : this.startPoll(message, intervalSupport, pollIntervalMs!, resolved, emitToListeners)
 
     return {
       key,
@@ -404,6 +419,7 @@ export class RealtimeDataService {
 
   private startPoll(
     message: RealtimeSubscribeMessage,
+    intervalSupport: ResolvedIntervalSupport | undefined,
     pollIntervalMs: number,
     resolved: ResolvedProvider,
     emit: (event: RealtimeQuoteEvent | RealtimeKlineEvent) => void,
@@ -432,19 +448,28 @@ export class RealtimeDataService {
           return
         }
 
-        const intervalMs = parseIntervalMs(message.interval!)
+        const requestedInterval = intervalSupport?.support.interval ?? message.interval!
+        const requestInterval =
+          intervalSupport?.support.mode === 'derived'
+            ? intervalSupport.support.baseInterval!
+            : requestedInterval
+        const intervalMs = intervalToMs(requestedInterval) ?? parseIntervalMs(requestedInterval)
+        const requestIntervalMs = intervalToMs(requestInterval) ?? parseIntervalMs(requestInterval)
         const now = Date.now()
-        const kline = latestKline(
-          await resolved.provider.getKlines(
-            {
-              symbol: message.symbol,
-              interval: message.interval!,
-              from: now - Math.max(intervalMs * 3, pollIntervalMs),
-              to: now,
-            },
-            resolved.settings,
-          ),
+        const sourceKlines = await resolved.provider.getKlines(
+          {
+            symbol: message.symbol,
+            interval: requestInterval,
+            from: now - Math.max(intervalMs * 3, requestIntervalMs * 6, pollIntervalMs),
+            to: now,
+          },
+          resolved.settings,
         )
+        const klines =
+          intervalSupport?.support.mode === 'derived'
+            ? aggregateKlines(sourceKlines, requestedInterval, intervalSupport.support.aggregation)
+            : sourceKlines
+        const kline = latestKline(klines)
         if (!kline) return
 
         const signature = klineSignature(kline)
@@ -453,7 +478,7 @@ export class RealtimeDataService {
           emit({
             type: 'kline',
             symbol: message.symbol,
-            interval: message.interval!,
+            interval: requestedInterval,
             data: kline,
             isFinal: kline.timestamp + intervalMs <= now,
             source: 'poll',
@@ -496,6 +521,45 @@ export class RealtimeDataService {
       source,
       pollIntervalMs ?? '',
     ].join(':')
+  }
+
+  private async resolveIntervalSupport(
+    resolved: ResolvedProvider,
+    interval: string,
+  ): Promise<ResolvedIntervalSupport> {
+    const normalized = canonicalizeInterval(interval)
+    if (!normalized) {
+      return {
+        requestedInterval: interval,
+        support: {
+          requestedInterval: interval,
+          interval,
+          supported: false,
+          reason: 'Invalid interval format',
+        },
+      }
+    }
+
+    const supports = resolved.provider.getIntervalSupport
+      ? await resolved.provider.getIntervalSupport({ intervals: [normalized] }, resolved.settings)
+      : resolveIntervalSupport({
+          requestedIntervals: [normalized],
+          nativeIntervals: resolved.provider.getSupportedIntervals
+            ? (await resolved.provider.getSupportedIntervals(resolved.settings)).map(
+                (item) => item.value,
+              )
+            : [],
+        })
+
+    return {
+      requestedInterval: interval,
+      support: supports[0] ?? {
+        requestedInterval: interval,
+        interval: normalized,
+        supported: false,
+        reason: 'Provider did not return interval support',
+      },
+    }
   }
 }
 

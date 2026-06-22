@@ -248,8 +248,27 @@ export interface ChartDrawingPayload {
   updatedAt?: string | null
 }
 
+export type IntervalSupportMode = 'native' | 'derived'
+export type IntervalAggregation = 'duration' | 'calendar'
+
+export interface IntervalSupport {
+  requestedInterval: string
+  interval: string
+  supported: boolean
+  mode?: IntervalSupportMode
+  baseInterval?: string
+  aggregation?: IntervalAggregation
+  reason?: string
+}
+
+export interface ChartIntervalSettings {
+  visible: string[]
+  custom: { value: string; label?: string }[]
+}
+
 export interface ChartConfig {
   autoSaveDrawings: boolean
+  intervalSettings: ChartIntervalSettings
 }
 
 /* ── API Client Interface ─────────────────────────────── */
@@ -394,6 +413,10 @@ export interface ApiClient {
   getDataSourceInstanceIntervals(
     instanceId: string,
   ): Promise<{ intervals: { value: string; label: string }[] }>
+  getDataSourceInstanceIntervalSupport(
+    instanceId: string,
+    intervals: string[],
+  ): Promise<{ intervals: IntervalSupport[] }>
   addDataSourceSymbol(
     instanceId: string,
     params: {
@@ -744,6 +767,10 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       post(`/data-source-instances/${encodeURIComponent(instanceId)}/symbols`, { query }),
     getDataSourceInstanceIntervals: (instanceId: string) =>
       get(`/data-source-instances/${encodeURIComponent(instanceId)}/intervals`),
+    getDataSourceInstanceIntervalSupport: (instanceId: string, intervals: string[]) =>
+      post(`/data-source-instances/${encodeURIComponent(instanceId)}/interval-support`, {
+        intervals,
+      }),
     addDataSourceSymbol: (instanceId, params) =>
       post(`/data-source-instances/${encodeURIComponent(instanceId)}/symbols`, params, true),
     getDataSourceKlines: (instanceId, params) =>

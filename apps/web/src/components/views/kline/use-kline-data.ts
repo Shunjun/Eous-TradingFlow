@@ -4,7 +4,6 @@ import type {
   GetIntervalsFn,
   GetProvidersFn,
   GetSymbolsFn,
-  IntervalOption,
   KlineDataPoint,
 } from '@eous/chart'
 import type { DataSourceInstance, SymbolSearchResult } from '@eous/api-client'
@@ -25,9 +24,16 @@ export function useKlineData() {
   }, [])
 
   const getIntervals = useMemo<GetIntervalsFn>(() => {
-    return async (providerId: string) => {
-      const d = await api.getDataSourceInstanceIntervals(providerId)
-      return d.intervals as IntervalOption[]
+    return async (providerId: string, intervals: string[]) => {
+      const d = await api.getDataSourceInstanceIntervalSupport(providerId, intervals)
+      return d.intervals.map((item) => ({
+        label: item.interval,
+        value: item.interval,
+        supported: item.supported,
+        mode: item.mode,
+        baseInterval: item.baseInterval,
+        reason: item.reason,
+      }))
     }
   }, [])
 
@@ -88,7 +94,7 @@ export function useKlineData() {
   }, [])
 
   const saveChartConfig = useMemo(() => {
-    return async (config: { autoSaveDrawings: boolean }) => {
+    return async (config: Parameters<typeof api.updateChartConfig>[0]) => {
       await api.updateChartConfig(config)
     }
   }, [])

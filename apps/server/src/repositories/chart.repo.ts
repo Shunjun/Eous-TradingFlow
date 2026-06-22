@@ -49,11 +49,16 @@ export function getChartConfig(userId: string): Promise<UserChartConfig> {
 
 export function updateChartConfig(
   userId: string,
-  data: { autoSaveDrawings?: boolean },
+  data: { autoSaveDrawings?: boolean; intervalSettings?: string },
 ): Promise<UserChartConfig> {
   return prisma.userChartConfig.upsert({
     where: { userId_scope: { userId, scope: CHART_CONFIG_SCOPE } },
     update: data,
-    create: { userId, scope: CHART_CONFIG_SCOPE, autoSaveDrawings: data.autoSaveDrawings ?? false },
+    create: {
+      userId,
+      scope: CHART_CONFIG_SCOPE,
+      autoSaveDrawings: data.autoSaveDrawings ?? false,
+      intervalSettings: data.intervalSettings,
+    },
   })
 }

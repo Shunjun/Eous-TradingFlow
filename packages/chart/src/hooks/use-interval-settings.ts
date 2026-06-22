@@ -5,10 +5,10 @@ import {
   createIntervalSettingsStore,
   DEFAULT_INTERVAL_SETTINGS,
 } from '../stores/interval-settings-store'
-import type { IntervalItem, IntervalSettings } from '../components/interval-selector/types'
+import type { IntervalSettings } from '../components/interval-selector/types'
 
-// Module-level cache: one store per storage key
 const storeCache = new Map<string, ReturnType<typeof createIntervalSettingsStore>>()
+const DEFAULT_KEY = 'eous:chart:interval-settings'
 
 function getStore(storageKey: string) {
   if (!storeCache.has(storageKey)) {
@@ -16,8 +16,6 @@ function getStore(storageKey: string) {
   }
   return storeCache.get(storageKey)!
 }
-
-const DEFAULT_KEY = 'eous:chart:interval-settings'
 
 export function useIntervalSettings(storageKey?: string) {
   const key = storageKey ?? DEFAULT_KEY
@@ -30,7 +28,10 @@ export function useIntervalSettings(storageKey?: string) {
   )
 
   return {
-    settings: { intervals: settings.intervals } satisfies IntervalSettings,
-    updateIntervals: (intervals: IntervalItem[]) => store.getState().updateIntervals(intervals),
+    settings: {
+      visible: settings.visible,
+      custom: settings.custom,
+    } satisfies IntervalSettings,
+    updateSettings: (next: IntervalSettings) => store.getState().updateSettings(next),
   }
 }

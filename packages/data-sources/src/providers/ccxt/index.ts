@@ -14,17 +14,23 @@ import type {
   RealtimeUnsubscribe,
   DataSourceProviderOptions,
   DataSourceSettings,
+  IntervalSupportRequest,
+  IntervalSupport,
 } from '../../types.js'
 import { parseIntervalMs } from '../../utils.js'
+import {
+  canonicalizeInterval,
+  compareIntervals,
+  intervalToMs,
+  resolveIntervalSupport,
+} from '../../intervals.js'
 import { isNetworkError, isRateLimitError } from '../utils.js'
 
 type CCXTSettings = DataSourceSettings & {
   exchange: string
 }
 
-type IntervalPlan =
-  | { value: string; label: string; source: 'native'; timeframe: string }
-  | { value: string; label: string; source: 'derived'; baseInterval: string; factor: 2 }
+type IntervalPlan = { value: string; label: string; timeframe: string }
 
 type CCXTNamespace = typeof ccxt & {
   pro?: Record<string, new (opts?: Record<string, unknown>) => StreamingExchange>
@@ -64,28 +70,8 @@ function toProviderError(action: string, e: any): Error {
   return e instanceof Error ? e : new Error(message)
 }
 
-function normalizeInterval(interval: string): string | null {
-  const match = interval.match(/^(\d+)([mhdw])$/)
-  if (!match) return null
-
-  const value = Number(match[1])
-  const unit = match[2]
-  if (!Number.isFinite(value) || value <= 0) return null
-
-  if (unit === 'm' && value % 60 === 0) return `${value / 60}h`
-  if (unit === 'h' && value % 24 === 0) return `${value / 24}d`
-  if (unit === 'd' && value % 7 === 0) return `${value / 7}w`
-  return `${value}${unit}`
-}
-
-function doubleInterval(interval: string): string | null {
-  const match = interval.match(/^(\d+)([mhdw])$/)
-  if (!match) return null
-  return normalizeInterval(`${Number(match[1]) * 2}${match[2]}`)
-}
-
 function sortIntervals(a: IntervalPlan, b: IntervalPlan): number {
-  return parseIntervalMs(a.value) - parseIntervalMs(b.value)
+  return compareIntervals(a.value, b.value)
 }
 
 function toKline(bar: OHLCV): Kline {
@@ -97,37 +83,6 @@ function toKline(bar: OHLCV): Kline {
     close: bar[4] as number,
     volume: bar[5] as number | undefined,
   }
-}
-
-function aggregateKlines(klines: Kline[], interval: string): Kline[] {
-  const intervalMs = parseIntervalMs(interval)
-  const buckets = new Map<number, Kline[]>()
-
-  for (const kline of klines) {
-    const bucketTime = Math.floor(kline.timestamp / intervalMs) * intervalMs
-    const bucket = buckets.get(bucketTime)
-    if (bucket) {
-      bucket.push(kline)
-    } else {
-      buckets.set(bucketTime, [kline])
-    }
-  }
-
-  return Array.from(buckets.entries())
-    .sort(([a], [b]) => a - b)
-    .map(([timestamp, bucket]) => {
-      const sorted = bucket.sort((a, b) => a.timestamp - b.timestamp)
-      const first = sorted[0]
-      const last = sorted[sorted.length - 1]
-      return {
-        timestamp,
-        open: first.open,
-        high: Math.max(...sorted.map((item) => item.high)),
-        low: Math.min(...sorted.map((item) => item.low)),
-        close: last.close,
-        volume: sorted.reduce((sum, item) => (item.volume == null ? sum : sum + item.volume), 0),
-      }
-    })
 }
 
 function klineSignature(kline: Kline): string {
@@ -171,6 +126,17 @@ export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
   async getSupportedIntervals(settings: CCXTSettings): Promise<IntervalDef[]> {
     const plans = await this.getIntervalPlans(settings.exchange)
     return plans.map((plan) => ({ label: plan.label, value: plan.value }))
+  }
+
+  async getIntervalSupport(
+    request: IntervalSupportRequest,
+    settings: CCXTSettings,
+  ): Promise<IntervalSupport[]> {
+    const plans = await this.getIntervalPlans(settings.exchange)
+    return resolveIntervalSupport({
+      requestedIntervals: request.intervals,
+      nativeIntervals: plans.map((plan) => plan.value),
+    })
   }
 
   async getRealtimeCapabilities(settings: CCXTSettings): Promise<RealtimeCapabilities> {
@@ -277,18 +243,12 @@ export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
         throw new Error(`Unsupported interval for ${settings.exchange}: ${request.interval}`)
       }
 
-      const timeframe = plan.source === 'native' ? plan.timeframe : plan.baseInterval
-      const since = request.from
-      const limit = this.estimateLimit(
-        request,
-        timeframe,
-        plan.source === 'derived' ? plan.factor : 1,
-      )
+      const timeframe = plan.timeframe
+      const since = Math.max(0, Math.floor(request.from))
+      const limit = this.estimateLimit(request, timeframe)
 
       const ohlcv = await ex.fetchOHLCV(request.symbol, timeframe, since, limit)
-      const klines = ohlcv.map(toKline)
-
-      return plan.source === 'derived' ? aggregateKlines(klines, request.interval) : klines
+      return ohlcv.map(toKline)
     } catch (e: any) {
       console.error('[ccxt getKlines] error', {
         message: e?.message,
@@ -310,17 +270,14 @@ export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
       throw new Error(`Unsupported interval for ${settings.exchange}: ${request.interval}`)
     }
 
-    const timeframe = plan.source === 'native' ? plan.timeframe : plan.baseInterval
-    const intervalMs = parseIntervalMs(request.interval)
+    const timeframe = plan.timeframe
+    const intervalMs = intervalToMs(request.interval) ?? parseIntervalMs(request.interval)
     let stopped = false
     let lastSignature: string | null = null
 
     const publish = (ohlcv: OHLCV[]) => {
       const klines = ohlcv.map(toKline)
-      const latest =
-        plan.source === 'derived'
-          ? latestKline(aggregateKlines(klines, request.interval))
-          : latestKline(klines)
+      const latest = latestKline(klines)
       if (!latest) return
 
       const signature = klineSignature(latest)
@@ -425,7 +382,7 @@ export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
     exchangeId: string,
     interval: string,
   ): Promise<IntervalPlan | undefined> {
-    const normalized = normalizeInterval(interval)
+    const normalized = canonicalizeInterval(interval)
     if (!normalized) return undefined
     const plans = await this.getIntervalPlans(exchangeId)
     return plans.find((plan) => plan.value === normalized)
@@ -442,7 +399,7 @@ export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
 
     const nativeTimeframes = new Map<string, string>()
     for (const timeframe of Object.keys(ex.timeframes ?? {})) {
-      const value = normalizeInterval(timeframe)
+      const value = canonicalizeInterval(timeframe)
       if (value && !nativeTimeframes.has(value)) {
         nativeTimeframes.set(value, timeframe)
       }
@@ -452,34 +409,28 @@ export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
       throw new Error(`Exchange does not expose OHLCV timeframes: ${exchangeId}`)
     }
 
-    const nativeValues = Array.from(nativeTimeframes.keys())
-    const nativeSet = new Set(nativeValues)
     const plans = new Map<string, IntervalPlan>()
 
     for (const [value, timeframe] of nativeTimeframes) {
-      plans.set(value, { label: value, value, source: 'native', timeframe })
-    }
-
-    for (const value of nativeValues) {
-      const doubled = doubleInterval(value)
-      if (!doubled || nativeSet.has(doubled) || plans.has(doubled)) continue
-      plans.set(doubled, {
-        label: doubled,
-        value: doubled,
-        source: 'derived',
-        baseInterval: value,
-        factor: 2,
-      })
+      plans.set(value, { label: value, value, timeframe })
     }
 
     const result = Array.from(plans.values()).sort(sortIntervals)
+    console.info('[ccxt intervals]', {
+      exchange: exchangeId,
+      rawTimeframes: Object.keys(ex.timeframes ?? {}),
+      intervals: result.map((plan) => ({
+        value: plan.value,
+        timeframe: plan.timeframe,
+      })),
+    })
     this.intervalPlanCache.set(exchangeId, result)
     return result
   }
 
-  private estimateLimit(request: KlinesRequest, timeframe: string, factor = 1): number {
-    const ms = parseIntervalMs(timeframe)
-    const count = Math.ceil((request.to - request.from) / ms) * factor
+  private estimateLimit(request: KlinesRequest, timeframe: string): number {
+    const ms = intervalToMs(timeframe) ?? parseIntervalMs(timeframe)
+    const count = Math.ceil((request.to - request.from) / ms)
     return Math.min(Math.max(count, 1), 1000)
   }
 
