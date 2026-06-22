@@ -1,6 +1,5 @@
 import ccxt from 'ccxt'
 import type { Exchange, Market, OHLCV } from 'ccxt'
-import { HttpsProxyAgent } from 'https-proxy-agent'
 import type {
   DataSourceProvider,
   SymbolInfo,
@@ -10,17 +9,42 @@ import type {
   IntervalDef,
   ConfigField,
   RealtimeCapabilities,
+  KlineSubscribeRequest,
+  RealtimeKlineEvent,
+  RealtimeUnsubscribe,
+  DataSourceProviderOptions,
+  DataSourceSettings,
 } from '../../types.js'
 import { parseIntervalMs } from '../../utils.js'
 import { isNetworkError, isRateLimitError } from '../utils.js'
 
-type CCXTConfig = Record<string, string> & {
+type CCXTSettings = DataSourceSettings & {
   exchange: string
 }
 
 type IntervalPlan =
   | { value: string; label: string; source: 'native'; timeframe: string }
   | { value: string; label: string; source: 'derived'; baseInterval: string; factor: 2 }
+
+type CCXTNamespace = typeof ccxt & {
+  pro?: Record<string, new (opts?: Record<string, unknown>) => StreamingExchange>
+}
+
+type StreamingExchange = Exchange & {
+  loadProxyModules?(): Promise<unknown>
+  watchOHLCV(
+    symbol: string,
+    timeframe?: string,
+    since?: number,
+    limit?: number,
+    params?: Record<string, unknown>,
+  ): Promise<OHLCV[]>
+  unWatchOHLCV?(
+    symbol: string,
+    timeframe?: string,
+    params?: Record<string, unknown>,
+  ): Promise<unknown>
+}
 
 const TIMEOUT_MS = 15_000
 
@@ -106,11 +130,30 @@ function aggregateKlines(klines: Kline[], interval: string): Kline[] {
     })
 }
 
-export class CCXTProvider implements DataSourceProvider<CCXTConfig> {
+function klineSignature(kline: Kline): string {
+  return JSON.stringify([
+    kline.timestamp,
+    kline.open,
+    kline.high,
+    kline.low,
+    kline.close,
+    kline.volume,
+  ])
+}
+
+function latestKline(klines: Kline[]): Kline | null {
+  if (klines.length === 0) return null
+  return klines.reduce((latest, item) => (item.timestamp > latest.timestamp ? item : latest))
+}
+
+export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
   readonly id = 'ccxt'
   readonly name = 'CCXT'
   private readonly exchangeCache = new Map<string, Exchange>()
+  private readonly streamingExchangeCache = new Map<string, StreamingExchange>()
   private readonly intervalPlanCache = new Map<string, IntervalPlan[]>()
+
+  constructor(private readonly options: DataSourceProviderOptions = {}) {}
 
   readonly configSchema: ConfigField[] = [
     {
@@ -125,25 +168,26 @@ export class CCXTProvider implements DataSourceProvider<CCXTConfig> {
     },
   ]
 
-  async getSupportedIntervals(config: CCXTConfig): Promise<IntervalDef[]> {
-    const plans = await this.getIntervalPlans(config.exchange)
+  async getSupportedIntervals(settings: CCXTSettings): Promise<IntervalDef[]> {
+    const plans = await this.getIntervalPlans(settings.exchange)
     return plans.map((plan) => ({ label: plan.label, value: plan.value }))
   }
 
-  async getRealtimeCapabilities(config: CCXTConfig): Promise<RealtimeCapabilities> {
-    const intervals = await this.getSupportedIntervals(config)
+  async getRealtimeCapabilities(settings: CCXTSettings): Promise<RealtimeCapabilities> {
+    const intervals = await this.getSupportedIntervals(settings)
+    const supportsKlineStream = this.supportsKlineStream(settings.exchange)
     return {
       quote: { modes: ['poll'], minPollIntervalMs: 10_000 },
       kline: {
-        modes: ['poll'],
+        modes: supportsKlineStream ? ['stream', 'poll'] : ['poll'],
         minPollIntervalMs: 10_000,
         supportedIntervals: intervals.map((item) => item.value),
       },
     }
   }
 
-  resolveIdentity(config: CCXTConfig): { displayName: string; key: string } {
-    return { displayName: `CCXT - ${config.exchange}`, key: config.exchange }
+  resolveIdentity(settings: CCXTSettings): { displayName: string; key: string } {
+    return { displayName: `CCXT - ${settings.exchange}`, key: settings.exchange }
   }
 
   async getConfigFieldOptions(fieldKey: string, query?: string) {
@@ -159,9 +203,9 @@ export class CCXTProvider implements DataSourceProvider<CCXTConfig> {
   async getDefaultSymbols(
     offset: number,
     limit: number,
-    config: CCXTConfig,
+    settings: CCXTSettings,
   ): Promise<{ symbols: SymbolInfo[]; total: number }> {
-    const ex = this.getExchange(config.exchange)
+    const ex = this.getExchange(settings.exchange)
 
     try {
       const markets = (await ex.fetchMarkets()).filter(isSupportedMarket)
@@ -182,8 +226,8 @@ export class CCXTProvider implements DataSourceProvider<CCXTConfig> {
     }
   }
 
-  async searchSymbols(query: string, config: CCXTConfig): Promise<SymbolInfo[]> {
-    const ex = this.getExchange(config.exchange)
+  async searchSymbols(query: string, settings: CCXTSettings): Promise<SymbolInfo[]> {
+    const ex = this.getExchange(settings.exchange)
 
     try {
       const markets = (await ex.fetchMarkets()).filter(isSupportedMarket)
@@ -207,8 +251,8 @@ export class CCXTProvider implements DataSourceProvider<CCXTConfig> {
     }
   }
 
-  async getQuote(symbol: string, config: CCXTConfig): Promise<Quote> {
-    const ex = this.getExchange(config.exchange)
+  async getQuote(symbol: string, settings: CCXTSettings): Promise<Quote> {
+    const ex = this.getExchange(settings.exchange)
     const ticker = await ex.fetchTicker(symbol)
 
     return {
@@ -224,13 +268,13 @@ export class CCXTProvider implements DataSourceProvider<CCXTConfig> {
     }
   }
 
-  async getKlines(request: KlinesRequest, config: CCXTConfig): Promise<Kline[]> {
-    const ex = this.getExchange(config.exchange)
+  async getKlines(request: KlinesRequest, settings: CCXTSettings): Promise<Kline[]> {
+    const ex = this.getExchange(settings.exchange)
 
     try {
-      const plan = await this.getIntervalPlan(config.exchange, request.interval)
+      const plan = await this.getIntervalPlan(settings.exchange, request.interval)
       if (!plan) {
-        throw new Error(`Unsupported interval for ${config.exchange}: ${request.interval}`)
+        throw new Error(`Unsupported interval for ${settings.exchange}: ${request.interval}`)
       }
 
       const timeframe = plan.source === 'native' ? plan.timeframe : plan.baseInterval
@@ -255,9 +299,81 @@ export class CCXTProvider implements DataSourceProvider<CCXTConfig> {
     }
   }
 
+  async subscribeKlines(
+    request: KlineSubscribeRequest,
+    settings: CCXTSettings,
+    emit: (event: RealtimeKlineEvent) => void,
+  ): Promise<RealtimeUnsubscribe> {
+    const ex = this.getStreamingExchange(settings.exchange)
+    const plan = await this.getIntervalPlan(settings.exchange, request.interval)
+    if (!plan) {
+      throw new Error(`Unsupported interval for ${settings.exchange}: ${request.interval}`)
+    }
+
+    const timeframe = plan.source === 'native' ? plan.timeframe : plan.baseInterval
+    const intervalMs = parseIntervalMs(request.interval)
+    let stopped = false
+    let lastSignature: string | null = null
+
+    const publish = (ohlcv: OHLCV[]) => {
+      const klines = ohlcv.map(toKline)
+      const latest =
+        plan.source === 'derived'
+          ? latestKline(aggregateKlines(klines, request.interval))
+          : latestKline(klines)
+      if (!latest) return
+
+      const signature = klineSignature(latest)
+      if (signature === lastSignature) return
+      lastSignature = signature
+
+      const now = Date.now()
+      emit({
+        type: 'kline',
+        symbol: request.symbol,
+        interval: request.interval,
+        data: latest,
+        isFinal: latest.timestamp + intervalMs <= now,
+        source: 'stream',
+        timestamp: now,
+      })
+    }
+
+    try {
+      await ex.loadProxyModules?.()
+      publish(await ex.watchOHLCV(request.symbol, timeframe))
+    } catch (e) {
+      throw toProviderError('watchOHLCV', e)
+    }
+
+    void (async () => {
+      while (!stopped) {
+        try {
+          publish(await ex.watchOHLCV(request.symbol, timeframe))
+        } catch (e) {
+          if (stopped) return
+          console.error('[ccxt subscribeKlines] stream failed', {
+            exchange: settings.exchange,
+            symbol: request.symbol,
+            interval: request.interval,
+            error: e instanceof Error ? e.message : String(e),
+          })
+          return
+        }
+      }
+    })()
+
+    return async () => {
+      stopped = true
+      if (ex.unWatchOHLCV) {
+        await ex.unWatchOHLCV(request.symbol, timeframe).catch(() => undefined)
+      }
+    }
+  }
+
   private getExchange(exchangeId: string): Exchange {
-    const proxyUrl = this.resolveProxy()
-    const cacheKey = `${exchangeId}:${proxyUrl ?? ''}`
+    const proxy = this.resolveProxy()
+    const cacheKey = `${exchangeId}:${proxy.cacheKey}`
     const cached = this.exchangeCache.get(cacheKey)
     if (cached) return cached
 
@@ -267,15 +383,42 @@ export class CCXTProvider implements DataSourceProvider<CCXTConfig> {
     if (!ExClass) {
       throw new Error(`Unsupported exchange: ${exchangeId}`)
     }
-    const opts: Record<string, unknown> = { timeout: TIMEOUT_MS }
-
-    if (proxyUrl) {
-      opts.agent = new HttpsProxyAgent(proxyUrl)
-    }
+    const opts = this.getExchangeOptions(exchangeId, proxy.options)
 
     const exchange = new ExClass(opts)
     this.exchangeCache.set(cacheKey, exchange)
     return exchange
+  }
+
+  private getStreamingExchange(exchangeId: string): StreamingExchange {
+    const proxy = this.resolveProxy()
+    const cacheKey = `${exchangeId}:${proxy.cacheKey}`
+    const cached = this.streamingExchangeCache.get(cacheKey)
+    if (cached) return cached
+
+    const ExClass = (ccxt as CCXTNamespace).pro?.[exchangeId]
+    if (!ExClass) {
+      throw new Error(`Exchange does not expose CCXT websocket support: ${exchangeId}`)
+    }
+
+    const opts = this.getExchangeOptions(exchangeId, proxy.options)
+
+    const exchange = new ExClass(opts)
+    if (exchange.has?.watchOHLCV !== true) {
+      throw new Error(`Exchange does not support realtime OHLCV stream: ${exchangeId}`)
+    }
+
+    this.streamingExchangeCache.set(cacheKey, exchange)
+    return exchange
+  }
+
+  private supportsKlineStream(exchangeId: string): boolean {
+    const ExClass = (ccxt as CCXTNamespace).pro?.[exchangeId]
+
+    if (!ExClass) return false
+
+    const exchange = new ExClass({ timeout: TIMEOUT_MS })
+    return exchange.has?.watchOHLCV === true && typeof exchange.watchOHLCV === 'function'
   }
 
   private async getIntervalPlan(
@@ -340,15 +483,46 @@ export class CCXTProvider implements DataSourceProvider<CCXTConfig> {
     return Math.min(Math.max(count, 1), 1000)
   }
 
-  private resolveProxy(): string | undefined {
-    return (
-      process.env.HTTPS_PROXY ||
-      process.env.https_proxy ||
-      process.env.HTTP_PROXY ||
-      process.env.http_proxy ||
-      process.env.ALL_PROXY ||
-      process.env.all_proxy ||
-      undefined
-    )
+  private resolveProxy(): { cacheKey: string; options: Record<string, string> } {
+    const proxy = this.options.proxyUrl?.trim()
+    if (!proxy) return { cacheKey: '', options: {} }
+
+    if (/^socks/i.test(proxy)) {
+      return {
+        cacheKey: `socks:${proxy}`,
+        options: {
+          socksProxy: proxy,
+          wsSocksProxy: proxy,
+        },
+      }
+    }
+
+    return {
+      cacheKey: `http:${proxy}`,
+      options: {
+        httpsProxy: proxy,
+        wssProxy: proxy,
+      },
+    }
+  }
+
+  private getExchangeOptions(
+    exchangeId: string,
+    proxyOptions: Record<string, string>,
+  ): Record<string, unknown> {
+    const options: Record<string, unknown> = { timeout: TIMEOUT_MS, ...proxyOptions }
+
+    if (exchangeId === 'binance') {
+      options.urls = {
+        api: {
+          ws: {
+            spot: 'wss://stream.binance.com/ws',
+            margin: 'wss://stream.binance.com/ws',
+          },
+        },
+      }
+    }
+
+    return options
   }
 }

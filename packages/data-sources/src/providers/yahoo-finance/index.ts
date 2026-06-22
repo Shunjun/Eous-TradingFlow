@@ -7,6 +7,7 @@ import type {
   IntervalDef,
   ConfigField,
   RealtimeCapabilities,
+  DataSourceProviderOptions,
 } from '../../types.js'
 import { isNetworkError, isRateLimitError } from '../utils.js'
 
@@ -105,6 +106,8 @@ interface YahooChartResponse {
 export class YahooFinanceProvider implements DataSourceProvider<YahooFinanceConfig> {
   readonly id = 'yahoo-finance'
   readonly name = 'Yahoo Finance'
+
+  constructor(private readonly _options: DataSourceProviderOptions = {}) {}
 
   readonly configSchema: ConfigField[] = [
     {

@@ -1,5 +1,5 @@
 import type {
-  DataSourceConfig,
+  DataSourceSettings,
   DataSourceProvider,
   Kline,
   Quote,
@@ -85,8 +85,8 @@ export type RealtimeServerMessage =
 type Emit = (message: RealtimeServerEvent) => void
 
 interface ResolvedProvider {
-  config: DataSourceConfig
-  provider: DataSourceProvider<DataSourceConfig>
+  settings: DataSourceSettings
+  provider: DataSourceProvider<DataSourceSettings>
 }
 
 interface UpstreamTask {
@@ -204,8 +204,6 @@ export class RealtimeDataService {
     message: RealtimeSubscribeMessage,
     emit: Emit,
   ): Promise<RealtimeSubscription> {
-    console.log(222)
-
     if (!message.providerId || !message.symbol) {
       throw new AppError('Missing required realtime subscription fields', 400)
     }
@@ -216,7 +214,7 @@ export class RealtimeDataService {
     const resolved = await this.resolveProvider(userId, message.providerId)
     const capabilities = mergeCapabilities(
       resolved.provider.getRealtimeCapabilities
-        ? await resolved.provider.getRealtimeCapabilities(resolved.config)
+        ? await resolved.provider.getRealtimeCapabilities(resolved.settings)
         : undefined,
     )
 
@@ -232,27 +230,60 @@ export class RealtimeDataService {
       }
     }
 
-    const source = chooseMode(
+    let source = chooseMode(
       message.mode,
       channelCapabilities.modes,
       message.channel === 'quote'
         ? typeof resolved.provider.subscribeQuote === 'function'
         : typeof resolved.provider.subscribeKlines === 'function',
     )
-    const pollIntervalMs =
+    let pollIntervalMs =
       source === 'poll'
         ? normalizePollInterval(message.pollIntervalMs, channelCapabilities.minPollIntervalMs)
         : undefined
-    const key = this.getUpstreamKey(userId, message, source, pollIntervalMs)
+    let key = this.getUpstreamKey(userId, message, source, pollIntervalMs)
     let upstream = this.upstreams.get(key)
     if (!upstream) {
-      upstream = await this.startUpstream({
-        key,
-        message,
-        source,
-        pollIntervalMs,
-        resolved,
-      })
+      try {
+        upstream = await this.startUpstream({
+          key,
+          message,
+          source,
+          pollIntervalMs,
+          resolved,
+        })
+      } catch (e) {
+        const canFallbackToPoll =
+          (message.mode == null || message.mode === 'auto') &&
+          source === 'stream' &&
+          channelCapabilities.modes.includes('poll')
+        if (!canFallbackToPoll) throw e
+
+        console.warn('[realtime] stream unavailable, falling back to poll', {
+          providerId: message.providerId,
+          channel: message.channel,
+          symbol: message.symbol,
+          interval: message.interval,
+          error: e instanceof Error ? e.message : String(e),
+        })
+
+        source = 'poll'
+        pollIntervalMs = normalizePollInterval(
+          message.pollIntervalMs,
+          channelCapabilities.minPollIntervalMs,
+        )
+        key = this.getUpstreamKey(userId, message, source, pollIntervalMs)
+        upstream = this.upstreams.get(key)
+        if (!upstream) {
+          upstream = await this.startUpstream({
+            key,
+            message,
+            source,
+            pollIntervalMs,
+            resolved,
+          })
+        }
+      }
       this.upstreams.set(key, upstream)
     }
 
@@ -299,8 +330,8 @@ export class RealtimeDataService {
       throw new AppError('Instance not found', 404)
     }
 
-    const { config, provider } = await decryptInstance(instance)
-    return { config, provider: provider as DataSourceProvider<DataSourceConfig> }
+    const { config: settings, provider } = await decryptInstance(instance)
+    return { settings, provider: provider as DataSourceProvider<DataSourceSettings> }
   }
 
   private async startUpstream(params: {
@@ -351,7 +382,7 @@ export class RealtimeDataService {
       }
       return resolved.provider.subscribeQuote(
         { symbol: message.symbol, mode: 'stream', pollIntervalMs: message.pollIntervalMs },
-        resolved.config,
+        resolved.settings,
         emit,
       )
     }
@@ -366,7 +397,7 @@ export class RealtimeDataService {
         mode: 'stream',
         pollIntervalMs: message.pollIntervalMs,
       },
-      resolved.config,
+      resolved.settings,
       emit,
     )
   }
@@ -381,14 +412,12 @@ export class RealtimeDataService {
     let inFlight = false
     let stopped = false
 
-    console.log(111)
-
     const tick = async () => {
       if (inFlight || stopped) return
       inFlight = true
       try {
         if (message.channel === 'quote') {
-          const quote = await resolved.provider.getQuote(message.symbol, resolved.config)
+          const quote = await resolved.provider.getQuote(message.symbol, resolved.settings)
           const signature = quoteSignature(quote)
           if (signature !== lastSignature) {
             lastSignature = signature
@@ -413,7 +442,7 @@ export class RealtimeDataService {
               from: now - Math.max(intervalMs * 3, pollIntervalMs),
               to: now,
             },
-            resolved.config,
+            resolved.settings,
           ),
         )
         if (!kline) return

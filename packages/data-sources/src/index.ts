@@ -15,7 +15,8 @@ export type {
   RealtimeKlineEvent,
   RealtimeUnsubscribe,
   IntervalDef,
-  DataSourceConfig,
+  DataSourceSettings,
+  DataSourceProviderOptions,
   DataSourceProvider,
 } from './types.js'
 

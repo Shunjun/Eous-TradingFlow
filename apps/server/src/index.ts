@@ -4,7 +4,7 @@ import { app } from './app.js'
 import { prisma } from '@eous/db'
 import { seedInitialUser } from './lib/seed.js'
 import { migrateWorkspaceLayouts } from './lib/migrate-workspace.js'
-import { registerDataSourceProvider } from '@eous/data-sources'
+import { registerDataSourceProvider, type DataSourceProviderOptions } from '@eous/data-sources'
 import { YahooFinanceProvider } from '@eous/data-sources/providers/yahoo-finance'
 import { CCXTProvider } from '@eous/data-sources/providers/ccxt'
 import { installMarketDataSocket } from './ws/market-data-socket.js'
@@ -18,8 +18,13 @@ async function main() {
   await prisma.$connect()
   console.log('[db] connected')
 
-  registerDataSourceProvider(new YahooFinanceProvider())
-  registerDataSourceProvider(new CCXTProvider())
+  const providerProxyUrl = process.env.EOUS_PROVIDER_PROXY_URL?.trim()
+  const dataSourceProviderOptions: DataSourceProviderOptions = providerProxyUrl
+    ? { proxyUrl: providerProxyUrl }
+    : {}
+
+  registerDataSourceProvider(new YahooFinanceProvider(dataSourceProviderOptions))
+  registerDataSourceProvider(new CCXTProvider(dataSourceProviderOptions))
   console.log('[data-sources] registered: yahoo-finance, ccxt')
 
   await seedInitialUser()

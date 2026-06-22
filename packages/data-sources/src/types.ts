@@ -110,22 +110,27 @@ export interface IntervalDef {
 }
 
 // ── Provider 接口 ──
-export type DataSourceConfig = Record<string, string>
+export type DataSourceSettings = Record<string, string>
 
-export interface DataSourceProvider<TConfig extends DataSourceConfig = DataSourceConfig> {
+export interface DataSourceProviderOptions {
+  /** Optional outbound proxy URL for provider network traffic. */
+  proxyUrl?: string
+}
+
+export interface DataSourceProvider<TSettings extends DataSourceSettings = DataSourceSettings> {
   id: string // 唯一标识，如 "yahoo-finance"
   name: string // 显示名 "Yahoo Finance"
   configSchema: ConfigField[] // 配置表单定义
 
   /** 返回该 provider 支持的时间周期列表 */
-  getSupportedIntervals(config: TConfig): Promise<IntervalDef[]> | IntervalDef[]
+  getSupportedIntervals(settings: TSettings): Promise<IntervalDef[]> | IntervalDef[]
 
   /**
    * 根据用户配置生成 provider 的唯一标识。
    * 例：CCXT exchange=binance → { displayName: "CCXT - Binance", key: "binance" }
    * 无需区分的 provider 返回 key="" 即可。
    */
-  resolveIdentity(config: TConfig): { displayName: string; key: string }
+  resolveIdentity(settings: TSettings): { displayName: string; key: string }
 
   /** 返回配置字段的动态选项，例如 CCXT exchange 列表。 */
   getConfigFieldOptions?(fieldKey: string, query?: string): Promise<ConfigFieldOption[]>
@@ -133,22 +138,24 @@ export interface DataSourceProvider<TConfig extends DataSourceConfig = DataSourc
   getDefaultSymbols(
     offset: number,
     limit: number,
-    config: TConfig,
+    settings: TSettings,
   ): Promise<{ symbols: SymbolInfo[]; total: number }>
 
-  searchSymbols(query: string, config: TConfig): Promise<SymbolInfo[]>
-  getQuote(symbol: string, config: TConfig): Promise<Quote>
-  getKlines(request: KlinesRequest, config: TConfig): Promise<Kline[]>
+  searchSymbols(query: string, settings: TSettings): Promise<SymbolInfo[]>
+  getQuote(symbol: string, settings: TSettings): Promise<Quote>
+  getKlines(request: KlinesRequest, settings: TSettings): Promise<Kline[]>
 
-  getRealtimeCapabilities?(config: TConfig): Promise<RealtimeCapabilities> | RealtimeCapabilities
+  getRealtimeCapabilities?(
+    settings: TSettings,
+  ): Promise<RealtimeCapabilities> | RealtimeCapabilities
   subscribeQuote?(
     request: QuoteSubscribeRequest,
-    config: TConfig,
+    settings: TSettings,
     emit: (event: RealtimeQuoteEvent) => void,
   ): Promise<RealtimeUnsubscribe> | RealtimeUnsubscribe
   subscribeKlines?(
     request: KlineSubscribeRequest,
-    config: TConfig,
+    settings: TSettings,
     emit: (event: RealtimeKlineEvent) => void,
   ): Promise<RealtimeUnsubscribe> | RealtimeUnsubscribe
 }
