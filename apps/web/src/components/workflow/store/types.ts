@@ -2,7 +2,7 @@ import type { Edge, Node } from '@xyflow/react'
 import type { StateCreator, StoreApi } from 'zustand/vanilla'
 import type { WorkflowEditOp } from '@eous/api-client'
 import type { CanvasInteractionMode } from '../canvas'
-import type { WorkflowNodeData } from '../canvas/node-types'
+import type { WorkflowNodeData } from '../nodes/node-types'
 
 interface WorkflowHistoryEntry {
   id: string

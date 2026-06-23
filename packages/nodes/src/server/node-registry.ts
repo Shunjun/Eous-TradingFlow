@@ -1,12 +1,12 @@
 import { readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import type { NodeDef, NodeComponentProps, ExecuteContext, NodeRegistryEntry } from '../types'
+import type { NodeCanvasViewFactory, NodeDef, ExecuteContext, NodeRegistryEntry } from '../types'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const srcDir = join(__dirname, '..')
+const nodesDir = join(__dirname, '..', 'nodes')
 
-const nodeDirs = readdirSync(srcDir, { withFileTypes: true })
+const nodeDirs = readdirSync(nodesDir, { withFileTypes: true })
   .filter((d) => d.isDirectory())
   .map((d) => d.name)
 
@@ -14,8 +14,8 @@ const registry: Record<string, NodeRegistryEntry> = {}
 
 await Promise.all(
   nodeDirs.map(async (dir) => {
-    const defPath = join(srcDir, dir, 'def.ts')
-    const serverPath = join(srcDir, dir, 'server.ts')
+    const defPath = join(nodesDir, dir, 'def.ts')
+    const serverPath = join(nodesDir, dir, 'server.ts')
 
     try {
       const defMod = await import(defPath)
@@ -24,8 +24,8 @@ await Promise.all(
       if (defMod.def && serverMod.execute) {
         registry[dir] = {
           def: defMod.def as NodeDef,
-          canvas: (defMod.CanvasNode ?? (() => null)) as (props: NodeComponentProps) => unknown,
           execute: serverMod.execute as NodeRegistryEntry['execute'],
+          getCanvasView: defMod.getCanvasView as NodeCanvasViewFactory | undefined,
         }
       }
     } catch {

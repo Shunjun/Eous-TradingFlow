@@ -1,4 +1,4 @@
-import type { ExecuteContext } from '../types'
+import type { ExecuteContext } from '../../types'
 import type { ExecuteInput, ExecuteOutput } from './types'
 
 const SIGNAL_SCHEMA = `{

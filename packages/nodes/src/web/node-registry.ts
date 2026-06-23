@@ -1,12 +1,12 @@
-import type { NodeDef, NodeComponentProps, WebNodeRegistryEntry } from '../types'
+import type { NodeCanvasViewFactory, NodeDef, WebNodeRegistryEntry } from '../types'
 
 const defModules = import.meta.glob<{
   def: NodeDef
-  CanvasNode: (props: NodeComponentProps) => unknown
-}>('../*/def.ts', { eager: true })
+  getCanvasView?: NodeCanvasViewFactory
+}>('../nodes/*/def.ts', { eager: true })
 
 function extractTypeFromPath(path: string): string {
-  const match = path.match(/^\.\.\/(.+)\/def\.ts$/)
+  const match = path.match(/^\.\.\/nodes\/(.+)\/def\.ts$/)
   return match?.[1] ?? ''
 }
 
@@ -18,7 +18,7 @@ for (const [defPath, defMod] of Object.entries(defModules)) {
 
   nodeRegistry[nodeType] = {
     def: defMod.def,
-    canvas: defMod.CanvasNode,
+    getCanvasView: defMod.getCanvasView,
   }
 }
 

@@ -1,6 +1,10 @@
-import type { NodeComponentProps } from '../types'
-import { NodeCard, emptyValue } from '../ui/node-card'
+import type { NodeCanvasViewInput } from '../../types'
 import { def } from './def'
+
+function emptyValue(value: string | number | undefined | null): string | number {
+  if (value === undefined || value === null || value === '') return '--'
+  return value
+}
 
 function formatChangePercent(value: unknown): string {
   if (typeof value !== 'number' || Number.isNaN(value)) return '--'
@@ -8,25 +12,23 @@ function formatChangePercent(value: unknown): string {
   return `${sign}${value.toFixed(2)}%`
 }
 
-function CanvasNode({ data }: NodeComponentProps) {
+function getCanvasView({ data }: NodeCanvasViewInput) {
   const symbol = typeof data.symbol === 'string' ? data.symbol : '--'
   const price = typeof data.price === 'number' ? data.price.toFixed(2) : '--'
   const changePercent = formatChangePercent(data.changePercent)
   const label = typeof data.label === 'string' ? data.label : def.meta.label
   const color = typeof data.color === 'string' ? data.color : undefined
 
-  return (
-    <NodeCard
-      icon={def.meta.icon}
-      title={label}
-      color={color}
-      details={[
-        { label: 'Symbol', value: emptyValue(symbol) },
-        { label: 'Price', value: price },
-        { label: 'Change', value: changePercent },
-      ]}
-    />
-  )
+  return {
+    icon: def.meta.icon,
+    title: label,
+    color,
+    rows: [
+      { label: 'Symbol', value: emptyValue(symbol) },
+      { label: 'Price', value: price },
+      { label: 'Change', value: changePercent },
+    ],
+  }
 }
 
-export { CanvasNode }
+export { getCanvasView }

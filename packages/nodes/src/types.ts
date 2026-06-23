@@ -68,7 +68,13 @@ export interface NodeMeta {
   color: string
 }
 
-export type FieldUIType = 'text' | 'number' | 'select' | 'code' | 'toggle'
+export type FieldUIType = 'text' | 'number' | 'select' | 'code' | 'toggle' | 'branches'
+
+export interface BranchCondition {
+  id: string
+  type: 'if' | 'else-if' | 'else'
+  condition?: string
+}
 
 export type OptionsSource =
   | { source: 'dataSourceInstances' }
@@ -115,23 +121,43 @@ export interface NodeDef {
   meta: NodeMeta
   executeInput: Record<string, ParamDef>
   executeOutput: Record<string, OutputField>
+  connection?: {
+    target?: boolean
+    source?: boolean
+  }
 }
 
-export interface NodeComponentProps {
+export interface NodeCanvasViewRow {
+  field?: string
+  label: string
+  value: string | number
+  source?: boolean
+  target?: boolean
+}
+
+export interface NodeCanvasView {
+  icon: string
+  title: string
+  color?: string
+  rows: NodeCanvasViewRow[]
+}
+
+export interface NodeCanvasViewInput {
   id: string
   data: Record<string, unknown>
   selected: boolean
   status?: 'idle' | 'running' | 'completed' | 'failed'
-  onChange?: (data: Record<string, unknown>) => void
 }
+
+export type NodeCanvasViewFactory = (input: NodeCanvasViewInput) => NodeCanvasView
 
 export interface NodeRegistryEntry {
   def: NodeDef
-  canvas: (props: NodeComponentProps) => unknown
   execute: (input: Record<string, unknown>, ctx: ExecuteContext) => Promise<Record<string, unknown>>
+  getCanvasView?: NodeCanvasViewFactory
 }
 
 export interface WebNodeRegistryEntry {
   def: NodeDef
-  canvas: (props: NodeComponentProps) => unknown
+  getCanvasView?: NodeCanvasViewFactory
 }

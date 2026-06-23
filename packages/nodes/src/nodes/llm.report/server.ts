@@ -1,4 +1,4 @@
-import type { ExecuteContext } from '../types'
+import type { ExecuteContext } from '../../types'
 import type { ExecuteInput, ExecuteOutput } from './types'
 
 async function execute(input: ExecuteInput, ctx: ExecuteContext): Promise<ExecuteOutput> {

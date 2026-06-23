@@ -1,14 +1,14 @@
-import type { NodeDef } from '../types'
-export { CanvasNode } from './canvas'
+import type { NodeDef } from '../../types'
+export { getCanvasView } from './canvas'
 
 export const def: NodeDef = {
   meta: {
-    type: 'llm.signal',
+    type: 'llm.free',
     category: 'llm',
-    label: 'LLM 信号',
-    icon: 'brain',
-    description: '调用 LLM 生成交易信号，输出 JSON 格式的 signal / confidence / reasoning。',
-    color: '#F59E0B',
+    label: 'LLM 自由',
+    icon: 'message-square',
+    description: '调用 LLM 生成自定义内容，透传 LLM 返回的原始文本。',
+    color: '#8B5CF6',
   },
   executeInput: {
     providerId: {
@@ -30,8 +30,7 @@ export const def: NodeDef = {
     systemPrompt: {
       type: 'string',
       from: 'panel',
-      required: true,
-      default: '你是一个专业的量化交易分析师。根据用户提供的市场数据，输出交易信号。',
+      default: '',
       label: 'System Prompt',
       ui: 'code',
     },
@@ -69,34 +68,22 @@ export const def: NodeDef = {
     temperature: {
       type: 'number',
       from: 'panel',
-      default: 0.3,
+      default: 0.7,
       label: 'Temperature',
     },
     maxTokens: {
       type: 'number',
       from: 'panel',
-      default: 1024,
+      default: 2048,
       label: 'Max Tokens',
     },
   },
   executeOutput: {
-    signal: {
-      name: 'signal',
+    content: {
+      name: 'content',
       type: 'string',
-      source: { field: 'signal' },
-      description: '交易信号: buy / sell / hold',
-    },
-    confidence: {
-      name: 'confidence',
-      type: 'number',
-      source: { field: 'confidence' },
-      description: '信号置信度 0-1',
-    },
-    reasoning: {
-      name: 'reasoning',
-      type: 'string',
-      source: { field: 'reasoning' },
-      description: '推理过程',
+      source: { field: 'content' },
+      description: 'LLM 返回的原始文本',
     },
   },
 }

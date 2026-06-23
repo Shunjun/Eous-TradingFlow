@@ -1,14 +1,14 @@
-import type { NodeDef } from '../types'
-export { CanvasNode } from './canvas'
+import type { NodeDef } from '../../types'
+export { getCanvasView } from './canvas'
 
 export const def: NodeDef = {
   meta: {
-    type: 'llm.free',
+    type: 'llm.report',
     category: 'llm',
-    label: 'LLM 自由',
-    icon: 'message-square',
-    description: '调用 LLM 生成自定义内容，透传 LLM 返回的原始文本。',
-    color: '#8B5CF6',
+    label: 'LLM 报告',
+    icon: 'file-text',
+    description: '调用 LLM 生成 Markdown 格式的分析报告。',
+    color: '#10B981',
   },
   executeInput: {
     providerId: {
@@ -30,7 +30,8 @@ export const def: NodeDef = {
     systemPrompt: {
       type: 'string',
       from: 'panel',
-      default: '',
+      required: true,
+      default: '你是一个专业的金融分析师。请根据用户提供的数据生成详细的 Markdown 分析报告。',
       label: 'System Prompt',
       ui: 'code',
     },
@@ -79,11 +80,11 @@ export const def: NodeDef = {
     },
   },
   executeOutput: {
-    content: {
-      name: 'content',
+    report: {
+      name: 'report',
       type: 'string',
-      source: { field: 'content' },
-      description: 'LLM 返回的原始文本',
+      source: { field: 'report' },
+      description: 'Markdown 格式的分析报告',
     },
   },
 }

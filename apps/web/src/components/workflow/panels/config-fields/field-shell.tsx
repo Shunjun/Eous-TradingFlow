@@ -34,6 +34,7 @@ function FieldShell({
   const [variablePickerOpen, setVariablePickerOpen] = useState(false)
   const hasVariable = isVariableRef(value)
   const label = param.label ?? param.description ?? fieldKey
+  const canUseVariable = param.ui !== 'branches'
 
   const handleVariableSelect = useCallback(
     (ref: VariableRef) => {
@@ -53,18 +54,20 @@ function FieldShell({
           {label}
           {param.required && <span className="ml-0.5 text-destructive">*</span>}
         </Label>
-        <VariablePicker
-          nodeId={nodeId}
-          acceptTypes={param.acceptTypes}
-          upstreamOutputs={upstreamOutputs}
-          onSelect={handleVariableSelect}
-          open={variablePickerOpen}
-          onOpenChange={setVariablePickerOpen}
-          currentValue={hasVariable ? (parseVariableRef(String(value)) ?? undefined) : undefined}
-        />
+        {canUseVariable && (
+          <VariablePicker
+            nodeId={nodeId}
+            acceptTypes={param.acceptTypes}
+            upstreamOutputs={upstreamOutputs}
+            onSelect={handleVariableSelect}
+            open={variablePickerOpen}
+            onOpenChange={setVariablePickerOpen}
+            currentValue={hasVariable ? (parseVariableRef(String(value)) ?? undefined) : undefined}
+          />
+        )}
       </div>
 
-      {hasVariable && (
+      {canUseVariable && hasVariable && (
         <div className="flex items-center gap-1.5">
           <Badge variant="secondary" className="text-[10px]">
             {displayVariableRef(String(value))}

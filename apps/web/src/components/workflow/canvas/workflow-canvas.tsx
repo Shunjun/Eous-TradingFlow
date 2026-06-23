@@ -9,14 +9,14 @@ import {
   useReactFlow,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { nodeRegistry, type NodeComponentProps } from '@eous/nodes'
+import { nodeRegistry } from '@eous/nodes'
 import { useWorkflowStore, useWorkflowStoreApi } from '../store/workflow-store'
 import { toWorkflowNode } from '../store/workflow-ops'
 import { WorkflowNodeSelectorPopover } from '../nodes'
 import { WorkflowContextMenu } from './context-menu'
 import { useWorkflowChangeHandlers, useWorkflowContextMenu, useWorkflowNodeActions } from '../hooks'
 import { WORKFLOW_FIT_VIEW_OPTIONS, WORKFLOW_MAX_ZOOM } from './viewport'
-import { createNodeComponent, createWorkflowNode } from './node-types'
+import { createNodeComponent, createWorkflowNode } from '../nodes/node-types'
 
 const defaultEdgeOptions = {
   animated: true,
@@ -75,8 +75,8 @@ function WorkflowCanvas() {
       Object.fromEntries(
         Object.entries(nodeRegistry).map(([type, entry]) => [
           type,
-          createNodeComponent(entry.canvas as (props: NodeComponentProps) => React.ReactNode, {
-            hideHandles: type === 'control.branch',
+          createNodeComponent(entry.getCanvasView, entry.def, {
+            connection: entry.def.connection ?? { target: true, source: true },
             onRun: handleRunNode,
             onToggleLock: handleToggleLockNode,
             onDuplicate: handleDuplicateNode,

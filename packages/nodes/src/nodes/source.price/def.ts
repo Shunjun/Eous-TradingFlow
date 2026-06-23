@@ -1,5 +1,5 @@
-import type { NodeDef } from '../types'
-export { CanvasNode } from './canvas'
+import type { NodeDef } from '../../types'
+export { getCanvasView } from './canvas'
 
 export const def: NodeDef = {
   meta: {

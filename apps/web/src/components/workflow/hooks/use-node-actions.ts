@@ -4,7 +4,7 @@ import type { WorkflowEditOp } from '@eous/api-client'
 import { api } from '../../../lib/api'
 import type { WorkflowStore } from '../store/workflow-store'
 import { toWorkflowNode } from '../store/workflow-ops'
-import { createWorkflowNode } from '../canvas/node-types'
+import { createWorkflowNode } from '../nodes/node-types'
 import { WORKFLOW_FIT_VIEW_OPTIONS } from '../canvas/viewport'
 import { layoutNodes } from '../utils'
 
@@ -91,35 +91,29 @@ function useWorkflowNodeActions({
   const addConnectedNode = useCallback(
     ({
       sourceNodeId,
-      sourcePosition,
+      sourceHandle,
       nodeType,
     }: {
       sourceNodeId: string
-      sourcePosition: 'left' | 'right'
+      sourceHandle: string
       nodeType: string
     }) => {
       const currentNodes = workflowStore.getState().nodes
       const sourceNode = currentNodes.find((node) => node.id === sourceNodeId)
       if (!sourceNode) return
 
-      const xOffset = sourcePosition === 'right' ? 280 : -280
       const nextNode = createWorkflowNode(nodeType, {
-        x: sourceNode.position.x + xOffset,
+        x: sourceNode.position.x + 280,
         y: sourceNode.position.y,
       })
 
-      const edge =
-        sourcePosition === 'right'
-          ? {
-              id: `${sourceNodeId}-${nextNode.id}`,
-              source: sourceNodeId,
-              target: nextNode.id,
-            }
-          : {
-              id: `${nextNode.id}-${sourceNodeId}`,
-              source: nextNode.id,
-              target: sourceNodeId,
-            }
+      const edge = {
+        id: `${sourceNodeId}-${nextNode.id}`,
+        source: sourceNodeId,
+        sourceHandle,
+        target: nextNode.id,
+        targetHandle: 'target',
+      }
       commitOps(
         [
           { type: 'node.add', node: toWorkflowNode(nextNode) },

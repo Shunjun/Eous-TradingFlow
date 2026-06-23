@@ -1,6 +1,6 @@
 import type { Node } from '@xyflow/react'
 import { toWorkflowNode } from './workflow-ops'
-import type { WorkflowNodeData } from '../canvas/node-types'
+import type { WorkflowNodeData } from '../nodes/node-types'
 import type { WorkflowSliceCreator, WorkflowUiSlice } from './types'
 
 const createUiSlice: WorkflowSliceCreator<WorkflowUiSlice> = (set, get) => ({

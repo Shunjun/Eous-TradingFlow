@@ -12,16 +12,11 @@
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
-  "peerDependencies": {
-    "react": "^19.0.0"
-  },
   "dependencies": {
     "@eous/api-client": "workspace:*",
-    "@eous/data-sources": "workspace:*",
-    "@eous/ui": "workspace:*"
+    "@eous/data-sources": "workspace:*"
   },
   "devDependencies": {
-    "@types/react": "^19.0.0",
     "install": "^0.13.0",
     "typescript": "^5.7.0",
     "vite": "^6.4.2"

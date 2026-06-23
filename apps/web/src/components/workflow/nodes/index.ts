@@ -1,4 +1,6 @@
 export { BaseNode } from './base-node'
+export { createNodeComponent, createWorkflowNode } from './node-types'
+export type { WorkflowNodeComponentOptions, WorkflowNodeData } from './node-types'
 export { NodeSelector } from './node-selector'
 export type { NodeSelectorProps } from './node-selector'
 export { WorkflowNodeSelectorPopover } from './node-selector-popover'

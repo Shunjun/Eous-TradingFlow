@@ -1,8 +1,11 @@
 export { nodeRegistry, allNodeMetas, getNodeOutputs, getNodeDef } from './node-registry'
-
 export type {
-  NodeComponentProps,
+  NodeCanvasView,
+  NodeCanvasViewFactory,
+  NodeCanvasViewInput,
+  NodeCanvasViewRow,
   ParamDef,
+  BranchCondition,
   OutputField,
   OutputDef,
   CustomOutputDef,

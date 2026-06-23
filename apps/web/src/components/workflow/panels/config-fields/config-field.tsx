@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react'
 import type { VariableRef } from '../../variables'
+import { BranchesField } from './branches-field'
 import { CodeField } from './code-field'
 import { FieldShell } from './field-shell'
 import { formatVariableRef } from './variable-utils'
@@ -77,7 +78,9 @@ function ConfigField({
       onChange={handleValueChange}
       onVariableSelect={handleVariableSelect}
     >
-      {ui === 'select' ? (
+      {ui === 'branches' ? (
+        <BranchesField param={param} value={value} onChange={handleValueChange} />
+      ) : ui === 'select' ? (
         <SelectField
           param={param}
           value={value}
