@@ -307,7 +307,7 @@ WorkflowEditService 至少包含以下校验：
 | 2    | 已完成 | 实现 `workflow-edit.service.ts`：parse、serialize、validate、apply ops | 单元测试覆盖 add/update/delete/connect/insert/conflict |
 | 3    | 已完成 | 新增 `PATCH /api/workflows/:id`                                        | 前端或 curl 可局部修改 workflow                        |
 | 4    | 已完成 | api-client 增加 `applyWorkflowOps`                                     | web 端可调用 patch API                                 |
-| 5    | 待开始 | 前端逐步接入局部编辑 API                                               | 添加/删除/连线可局部保存                               |
+| 5    | 进行中 | 前端逐步接入局部编辑 API                                               | 添加/删除/连线可局部保存                               |
 | 6    | 待开始 | MCP tools 接入 service                                                 | Agent 可创建 workflow、添加节点、连线、修改节点        |
 | 7    | 待开始 | Agent prompt / skill 文档补充工具使用约束                              | Agent 不直接输出整份 JSON，优先调用工具                |
 | 8    | 待开始 | 完善审计与冲突提示                                                     | UI 可展示 conflict 并要求刷新或合并                    |
@@ -323,7 +323,8 @@ WorkflowEditService 至少包含以下校验：
 - [x] api-client 增加 `applyWorkflowOps`
 - [x] `WorkflowEditService` 从 `@eous/nodes/server` registry 动态读取节点类型和默认配置，不写死节点清单
 - [ ] 实现 MCP tools
-- [ ] 前端接入局部编辑
+- [x] 前端引入 patch-based history：本地 undo/redo 和保存都基于 `WorkflowEditOp`
+- [ ] 前端完整接入局部编辑 API，包括冲突提示和保存后刷新 `updatedAt`
 - [x] 补充 server 单元测试
 
 ## 10. 开放问题

@@ -1,5 +1,15 @@
 import { create } from 'zustand'
 import type { Node, Edge } from '@xyflow/react'
+import type { WorkflowEditOp } from '@eous/api-client'
+import { applyWorkflowOpsToState, invertWorkflowOps } from './workflow-ops'
+
+interface WorkflowHistoryEntry {
+  id: string
+  label: string
+  ops: WorkflowEditOp[]
+  inverseOps: WorkflowEditOp[]
+  createdAt: number
+}
 
 interface WorkflowEditorState {
   nodes: Node[]
@@ -8,6 +18,9 @@ interface WorkflowEditorState {
   workflowName: string
   isDirty: boolean
   lastModified: number
+  past: WorkflowHistoryEntry[]
+  future: WorkflowHistoryEntry[]
+  pendingOps: WorkflowEditOp[]
 
   setNodes: (nodes: Node[]) => void
   setEdges: (edges: Edge[]) => void
@@ -15,6 +28,11 @@ interface WorkflowEditorState {
   onEdgesChange: (edges: Edge[]) => void
   addNode: (node: Node) => void
   removeNodes: (ids: string[]) => void
+  commitOps: (ops: WorkflowEditOp[], label: string) => void
+  undo: () => void
+  redo: () => void
+  clearHistory: () => void
+  markSynced: () => void
   loadWorkflow: (id: string, name: string, nodes: Node[], edges: Edge[]) => void
   markDirty: () => void
   markClean: () => void
@@ -29,6 +47,9 @@ export const useWorkflowStore = create<WorkflowEditorState>((set) => ({
   workflowName: '',
   isDirty: false,
   lastModified: 0,
+  past: [],
+  future: [],
+  pendingOps: [],
 
   setNodes: (nodes) => set({ nodes }),
   setEdges: (edges) => set({ edges }),
@@ -46,6 +67,65 @@ export const useWorkflowStore = create<WorkflowEditorState>((set) => ({
         lastModified: Date.now(),
       }
     }),
+  commitOps: (ops, label) =>
+    set((state) => {
+      if (ops.length === 0) return state
+      const inverseOps = invertWorkflowOps({ nodes: state.nodes, edges: state.edges }, ops)
+      const next = applyWorkflowOpsToState({ nodes: state.nodes, edges: state.edges }, ops)
+      return {
+        nodes: next.nodes,
+        edges: next.edges,
+        past: [
+          ...state.past,
+          {
+            id: `history-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            label,
+            ops,
+            inverseOps,
+            createdAt: Date.now(),
+          },
+        ],
+        future: [],
+        pendingOps: [...state.pendingOps, ...ops],
+        isDirty: true,
+        lastModified: Date.now(),
+      }
+    }),
+  undo: () =>
+    set((state) => {
+      const entry = state.past.at(-1)
+      if (!entry) return state
+      const next = applyWorkflowOpsToState(
+        { nodes: state.nodes, edges: state.edges },
+        entry.inverseOps,
+      )
+      return {
+        nodes: next.nodes,
+        edges: next.edges,
+        past: state.past.slice(0, -1),
+        future: [entry, ...state.future],
+        pendingOps: [...state.pendingOps, ...entry.inverseOps],
+        isDirty: true,
+        lastModified: Date.now(),
+      }
+    }),
+  redo: () =>
+    set((state) => {
+      const entry = state.future[0]
+      if (!entry) return state
+      const next = applyWorkflowOpsToState({ nodes: state.nodes, edges: state.edges }, entry.ops)
+      return {
+        nodes: next.nodes,
+        edges: next.edges,
+        past: [...state.past, entry],
+        future: state.future.slice(1),
+        pendingOps: [...state.pendingOps, ...entry.ops],
+        isDirty: true,
+        lastModified: Date.now(),
+      }
+    }),
+  clearHistory: () => set({ past: [], future: [], pendingOps: [] }),
+  markSynced: () => set({ pendingOps: [], isDirty: false }),
   loadWorkflow: (id, name, nodes, edges) =>
     set({
       activeWorkflowId: id,
@@ -54,6 +134,9 @@ export const useWorkflowStore = create<WorkflowEditorState>((set) => ({
       edges,
       isDirty: false,
       lastModified: 0,
+      past: [],
+      future: [],
+      pendingOps: [],
     }),
   markDirty: () => set({ isDirty: true, lastModified: Date.now() }),
   markClean: () => set({ isDirty: false }),
@@ -66,5 +149,10 @@ export const useWorkflowStore = create<WorkflowEditorState>((set) => ({
       workflowName: '',
       isDirty: false,
       lastModified: 0,
+      past: [],
+      future: [],
+      pendingOps: [],
     }),
 }))
+
+export type { WorkflowHistoryEntry }
