@@ -3,6 +3,7 @@ import { Hand, MousePointer2, Plus, Scan } from 'lucide-react'
 import { useReactFlow } from '@xyflow/react'
 import { Button, Separator, ToggleGroup, ToggleGroupItem } from '@eous/ui'
 import { NodeSelector } from '../nodes'
+import { WORKFLOW_FIT_VIEW_OPTIONS } from './viewport'
 
 export type CanvasInteractionMode = 'pan' | 'select'
 
@@ -16,7 +17,7 @@ function CanvasToolbar({ mode, onModeChange, onSelectNode }: CanvasToolbarProps)
   const { fitView } = useReactFlow()
 
   const handleFitView = useCallback(() => {
-    void fitView({ padding: 0.18, duration: 240 })
+    void fitView({ ...WORKFLOW_FIT_VIEW_OPTIONS, duration: 240 })
   }, [fitView])
 
   return (

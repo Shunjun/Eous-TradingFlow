@@ -37,12 +37,36 @@ function groupByCategory(nodes: NodeMeta[]) {
 
 interface NodeSelectorProps {
   onSelectNode: (nodeType: string) => void
-  children: ReactNode
+  children?: ReactNode
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  side?: 'top' | 'right' | 'bottom' | 'left'
+  align?: 'start' | 'center' | 'end'
+  sideOffset?: number
+  alignOffset?: number
 }
 
-function NodeSelector({ onSelectNode, children }: NodeSelectorProps) {
+function NodeSelector({
+  onSelectNode,
+  children,
+  open: controlledOpen,
+  onOpenChange,
+  side = 'right',
+  align = 'start',
+  sideOffset = 8,
+  alignOffset = -4,
+}: NodeSelectorProps) {
   const [search, setSearch] = useState('')
-  const [open, setOpen] = useState(false)
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
+  const open = controlledOpen ?? uncontrolledOpen
+
+  const setOpen = useCallback(
+    (nextOpen: boolean) => {
+      onOpenChange?.(nextOpen)
+      if (controlledOpen === undefined) setUncontrolledOpen(nextOpen)
+    },
+    [controlledOpen, onOpenChange],
+  )
 
   const filtered = useMemo(() => {
     if (!search.trim()) return allNodes
@@ -114,12 +138,12 @@ function NodeSelector({ onSelectNode, children }: NodeSelectorProps) {
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
+      {children ? <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger> : null}
       <DropdownMenuContent
-        side="right"
-        align="start"
-        alignOffset={-4}
-        sideOffset={8}
+        side={side}
+        align={align}
+        alignOffset={alignOffset}
+        sideOffset={sideOffset}
         className="flex w-56 h-[360px] flex-col p-0"
       >
         {nodeList}

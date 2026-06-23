@@ -1,4 +1,5 @@
 import { nodeRegistry } from './node-registry'
+export { allNodeMetas, getNodeDef, getNodeOutputs, nodeRegistry } from './node-registry'
 
 /** All registered server executors keyed by node type */
 export const executors: Record<

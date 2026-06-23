@@ -25,6 +25,7 @@ import { api } from '../../../lib/api'
 import { useWorkflowStore } from '../../../stores/workflow'
 import { BaseNode } from '../nodes/base-node'
 import type { CanvasInteractionMode } from './canvas-toolbar'
+import { WORKFLOW_FIT_VIEW_OPTIONS, WORKFLOW_MAX_ZOOM } from './viewport'
 
 function extractDefaults(input: Record<string, ParamDef>): Record<string, unknown> {
   const data: Record<string, unknown> = {}
@@ -339,6 +340,8 @@ function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) 
         selectionOnDrag={interactionMode === 'select'}
         selectionKeyCode={null}
         fitView
+        fitViewOptions={WORKFLOW_FIT_VIEW_OPTIONS}
+        maxZoom={WORKFLOW_MAX_ZOOM}
         className="bg-background [--xy-attribution-background-color:hsl(var(--card)/0.82)] [&_.react-flow__attribution]:rounded-tl-sm [&_.react-flow__attribution]:border-l [&_.react-flow__attribution]:border-t [&_.react-flow__attribution]:border-border [&_.react-flow__attribution]:backdrop-blur [&_.react-flow__attribution_a]:text-muted-foreground [&_.react-flow__attribution_a:hover]:text-foreground"
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} className="opacity-30" />

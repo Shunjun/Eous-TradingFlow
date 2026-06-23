@@ -25,7 +25,7 @@ function NodeCard({ icon, title, color, details }: NodeCardProps) {
   const iconLabel = NODE_ICON_LABELS[icon] ?? 'N'
 
   return (
-    <div className="w-[180px] overflow-hidden rounded-[10px] bg-card">
+    <div className="w-[220px] overflow-hidden rounded-[10px] bg-card">
       <div className="flex min-h-9 items-center gap-2 border-b border-border/80 px-2.5">
         <div
           className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-border bg-muted/55 text-foreground"

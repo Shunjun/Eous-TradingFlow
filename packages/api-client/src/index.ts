@@ -83,14 +83,60 @@ export interface WorkflowNode {
   type: NodeType
   position: { x: number; y: number }
   data: Record<string, unknown>
+  meta?: {
+    locked?: boolean
+    createdBy?: 'user' | 'agent'
+    updatedBy?: string
+  }
 }
 
 export interface WorkflowEdge {
   id: string
   source: string
-  sourceHandle: string
+  sourceHandle?: string
   target: string
-  targetHandle: string
+  targetHandle?: string
+}
+
+export interface WorkflowDefinitionDocument {
+  schemaVersion: 1
+  nodes: WorkflowNode[]
+  edges: WorkflowEdge[]
+  viewport?: { x: number; y: number; zoom: number }
+}
+
+export type WorkflowEditOp =
+  | { type: 'workflow.rename'; name: string; description?: string }
+  | { type: 'node.add'; node: WorkflowNode }
+  | {
+      type: 'node.update'
+      nodeId: string
+      dataPatch?: Record<string, unknown>
+      position?: { x: number; y: number }
+      metaPatch?: WorkflowNode['meta']
+      force?: boolean
+    }
+  | { type: 'node.delete'; nodeId: string; force?: boolean }
+  | { type: 'edge.add'; edge: WorkflowEdge }
+  | { type: 'edge.update'; edgeId: string; patch: Partial<WorkflowEdge> }
+  | { type: 'edge.delete'; edgeId: string }
+  | {
+      type: 'node.insertBetween'
+      edgeId: string
+      node: WorkflowNode
+      sourceToNewEdge?: Partial<WorkflowEdge>
+      newToTargetEdge?: Partial<WorkflowEdge>
+    }
+
+export interface ApplyWorkflowOpsRequest {
+  baseUpdatedAt?: string
+  ops: WorkflowEditOp[]
+}
+
+export interface ApplyWorkflowOpsResponse {
+  workflow: WorkflowDefinition
+  appliedOps: number
+  warnings: string[]
 }
 
 export interface WorkflowDefinition {
@@ -291,6 +337,10 @@ export interface ApiClient {
     definition: string
   }): Promise<{ workflow: WorkflowDefinition }>
   saveWorkflow(workflow: WorkflowDefinition): Promise<void>
+  applyWorkflowOps(
+    workflowId: string,
+    request: ApplyWorkflowOpsRequest,
+  ): Promise<ApplyWorkflowOpsResponse>
   deleteWorkflow(id: string): Promise<void>
 
   executeWorkflow(id: string): Promise<ExecutionRecord>
@@ -696,6 +746,18 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
         { name: workflow.name, definition },
         true,
       )
+    },
+    applyWorkflowOps: async (workflowId, request) => {
+      const res = await patch<{
+        workflow: RawWorkflow
+        appliedOps: number
+        warnings: string[]
+      }>(`/workflows/${encodeURIComponent(workflowId)}`, request)
+      return {
+        workflow: toWorkflowDefinition(res.workflow),
+        appliedOps: res.appliedOps,
+        warnings: res.warnings,
+      }
     },
     deleteWorkflow: (id: string) => del(`/workflows/${encodeURIComponent(id)}`, true),
     executeWorkflow: (id: string) => post(`/workflows/${encodeURIComponent(id)}/execute`),

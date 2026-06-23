@@ -1,7 +1,9 @@
 import { Hono } from 'hono'
 import { authMiddleware } from '../lib/auth-middleware.js'
 import * as workflowService from '../services/workflow.service.js'
+import * as workflowEditService from '../services/workflow-edit.service.js'
 import * as workflowRunner from '../services/workflow-runner.service.js'
+import type { ApplyWorkflowOpsRequest } from '@eous/api-client'
 
 export const workflowRouter = new Hono()
 
@@ -35,6 +37,16 @@ workflowRouter.put('/:id', async (c) => {
   }>()
   const workflow = await workflowService.updateWorkflow(c.get('userId'), c.req.param('id'), body)
   return c.json({ workflow })
+})
+
+workflowRouter.patch('/:id', async (c) => {
+  const body = await c.req.json<ApplyWorkflowOpsRequest>()
+  const result = await workflowEditService.applyWorkflowOps(
+    c.get('userId'),
+    c.req.param('id'),
+    body,
+  )
+  return c.json(result)
 })
 
 workflowRouter.delete('/:id', async (c) => {
