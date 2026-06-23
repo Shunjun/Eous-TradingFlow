@@ -2,8 +2,7 @@ import { useCallback, useEffect, useRef } from 'react'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup, cn } from '@eous/ui'
 import { CanvasToolbar, type CanvasInteractionMode } from './canvas-toolbar'
 import { FloatToolbar } from './float-toolbar'
-import { GlobalLogPanel } from './global-log-panel'
-import { SettingsPanel } from '../panels'
+import { GlobalLogPanel, SettingsPanel } from '../panels'
 
 interface WorkflowOverlayProps {
   workflowId: string

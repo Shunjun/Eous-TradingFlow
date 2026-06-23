@@ -1,5 +1,6 @@
 export { BaseNode } from './base-node'
 export { NodeSelector } from './node-selector'
 export type { NodeSelectorProps } from './node-selector'
+export { WorkflowNodeSelectorPopover } from './node-selector-popover'
 export { NodeIcon, NODE_ICON_MAP } from './node-icons'
 export type { NodeIconProps } from './node-icons'

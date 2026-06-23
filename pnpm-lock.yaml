@@ -102,6 +102,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@dagrejs/dagre':
+        specifier: ^3.0.0
+        version: 3.0.0
       '@eous/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
@@ -205,13 +208,13 @@ importers:
         version: 5.2.0
       lightweight-charts-line-tools-core:
         specifier: github:difurious/lightweight-charts-line-tools-core
-        version: git+https://git@github.com:difurious/lightweight-charts-line-tools-core.git#167a83cf8702e35b4cfbe7beb0dafec94e800a71(lightweight-charts@5.2.0)(typescript@5.9.3)
+        version: https://codeload.github.com/difurious/lightweight-charts-line-tools-core/tar.gz/167a83cf8702e35b4cfbe7beb0dafec94e800a71(lightweight-charts@5.2.0)(typescript@5.9.3)
       lightweight-charts-line-tools-lines:
         specifier: github:difurious/lightweight-charts-line-tools-lines
-        version: git+https://git@github.com:difurious/lightweight-charts-line-tools-lines.git#edb2a6ce00c8bbbe6f19e8469e378350efe6013f(lightweight-charts@5.2.0)(typescript@5.9.3)
+        version: https://codeload.github.com/difurious/lightweight-charts-line-tools-lines/tar.gz/edb2a6ce00c8bbbe6f19e8469e378350efe6013f(lightweight-charts@5.2.0)(typescript@5.9.3)
       lightweight-charts-line-tools-rectangle:
         specifier: github:difurious/lightweight-charts-line-tools-rectangle
-        version: git+https://git@github.com:difurious/lightweight-charts-line-tools-rectangle.git#8c229e62852f72936dbef5fdc198e321b9a85cc3(lightweight-charts@5.2.0)(typescript@5.9.3)
+        version: https://codeload.github.com/difurious/lightweight-charts-line-tools-rectangle/tar.gz/8c229e62852f72936dbef5fdc198e321b9a85cc3(lightweight-charts@5.2.0)(typescript@5.9.3)
       lucide-react:
         specifier: ^0.460.0
         version: 0.460.0(react@19.2.6)
@@ -708,6 +711,18 @@ packages:
         integrity: sha512-4zBIxpPzowiZpusoFkyGVwakdRJUyuH5PxQ/PrqghfdFWWasvnCdPfQXHrenDai+gyLARulZjZowCOj6fjT4pA==,
       }
     engines: { node: '>=6.9.0' }
+
+  '@dagrejs/dagre@3.0.0':
+    resolution:
+      {
+        integrity: sha512-ZzhnTy1rfuoew9Ez3EIw4L2znPGnYYhfn8vc9c4oB8iw6QAsszbiU0vRhlxWPFnmmNSFAkrYeF1PhM5m4lAN0Q==,
+      }
+
+  '@dagrejs/graphlib@4.0.1':
+    resolution:
+      {
+        integrity: sha512-IvcV6FduIIAmLwnH+yun+QtV36SC7mERqa86aClNqmMN09WhmPPYU8ckHrZBozErf+UvHPWOTJYaGYiIcs0DgA==,
+      }
 
   '@dnd-kit/accessibility@3.1.1':
     resolution:
@@ -4610,34 +4625,28 @@ packages:
       }
     engines: { node: '>= 12.0.0' }
 
-  lightweight-charts-line-tools-core@git+https://git@github.com:difurious/lightweight-charts-line-tools-core.git#167a83cf8702e35b4cfbe7beb0dafec94e800a71:
+  lightweight-charts-line-tools-core@https://codeload.github.com/difurious/lightweight-charts-line-tools-core/tar.gz/167a83cf8702e35b4cfbe7beb0dafec94e800a71:
     resolution:
       {
-        commit: 167a83cf8702e35b4cfbe7beb0dafec94e800a71,
-        repo: git@github.com:difurious/lightweight-charts-line-tools-core.git,
-        type: git,
+        tarball: https://codeload.github.com/difurious/lightweight-charts-line-tools-core/tar.gz/167a83cf8702e35b4cfbe7beb0dafec94e800a71,
       }
     version: 1.1.1
     peerDependencies:
       lightweight-charts: ^5.2.0
 
-  lightweight-charts-line-tools-lines@git+https://git@github.com:difurious/lightweight-charts-line-tools-lines.git#edb2a6ce00c8bbbe6f19e8469e378350efe6013f:
+  lightweight-charts-line-tools-lines@https://codeload.github.com/difurious/lightweight-charts-line-tools-lines/tar.gz/edb2a6ce00c8bbbe6f19e8469e378350efe6013f:
     resolution:
       {
-        commit: edb2a6ce00c8bbbe6f19e8469e378350efe6013f,
-        repo: git@github.com:difurious/lightweight-charts-line-tools-lines.git,
-        type: git,
+        tarball: https://codeload.github.com/difurious/lightweight-charts-line-tools-lines/tar.gz/edb2a6ce00c8bbbe6f19e8469e378350efe6013f,
       }
     version: 1.1.0
     peerDependencies:
       lightweight-charts: ^5.1.0
 
-  lightweight-charts-line-tools-rectangle@git+https://git@github.com:difurious/lightweight-charts-line-tools-rectangle.git#8c229e62852f72936dbef5fdc198e321b9a85cc3:
+  lightweight-charts-line-tools-rectangle@https://codeload.github.com/difurious/lightweight-charts-line-tools-rectangle/tar.gz/8c229e62852f72936dbef5fdc198e321b9a85cc3:
     resolution:
       {
-        commit: 8c229e62852f72936dbef5fdc198e321b9a85cc3,
-        repo: git@github.com:difurious/lightweight-charts-line-tools-rectangle.git,
-        type: git,
+        tarball: https://codeload.github.com/difurious/lightweight-charts-line-tools-rectangle/tar.gz/8c229e62852f72936dbef5fdc198e321b9a85cc3,
       }
     version: 1.1.0
     peerDependencies:
@@ -6224,6 +6233,12 @@ snapshots:
     dependencies:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
+
+  '@dagrejs/dagre@3.0.0':
+    dependencies:
+      '@dagrejs/graphlib': 4.0.1
+
+  '@dagrejs/graphlib@4.0.1': {}
 
   '@dnd-kit/accessibility@3.1.1(react@19.2.6)':
     dependencies:
@@ -8617,7 +8632,7 @@ snapshots:
       lightningcss-win32-arm64-msvc: 1.32.0
       lightningcss-win32-x64-msvc: 1.32.0
 
-  lightweight-charts-line-tools-core@git+https://git@github.com:difurious/lightweight-charts-line-tools-core.git#167a83cf8702e35b4cfbe7beb0dafec94e800a71(lightweight-charts@5.2.0)(typescript@5.9.3):
+  lightweight-charts-line-tools-core@https://codeload.github.com/difurious/lightweight-charts-line-tools-core/tar.gz/167a83cf8702e35b4cfbe7beb0dafec94e800a71(lightweight-charts@5.2.0)(typescript@5.9.3):
     dependencies:
       lightweight-charts: 5.2.0
       tslib: 2.8.1
@@ -8625,19 +8640,19 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  lightweight-charts-line-tools-lines@git+https://git@github.com:difurious/lightweight-charts-line-tools-lines.git#edb2a6ce00c8bbbe6f19e8469e378350efe6013f(lightweight-charts@5.2.0)(typescript@5.9.3):
+  lightweight-charts-line-tools-lines@https://codeload.github.com/difurious/lightweight-charts-line-tools-lines/tar.gz/edb2a6ce00c8bbbe6f19e8469e378350efe6013f(lightweight-charts@5.2.0)(typescript@5.9.3):
     dependencies:
       lightweight-charts: 5.2.0
-      lightweight-charts-line-tools-core: git+https://git@github.com:difurious/lightweight-charts-line-tools-core.git#167a83cf8702e35b4cfbe7beb0dafec94e800a71(lightweight-charts@5.2.0)(typescript@5.9.3)
+      lightweight-charts-line-tools-core: https://codeload.github.com/difurious/lightweight-charts-line-tools-core/tar.gz/167a83cf8702e35b4cfbe7beb0dafec94e800a71(lightweight-charts@5.2.0)(typescript@5.9.3)
       tslib: 2.8.1
       typedoc: 0.28.19(typescript@5.9.3)
     transitivePeerDependencies:
       - typescript
 
-  lightweight-charts-line-tools-rectangle@git+https://git@github.com:difurious/lightweight-charts-line-tools-rectangle.git#8c229e62852f72936dbef5fdc198e321b9a85cc3(lightweight-charts@5.2.0)(typescript@5.9.3):
+  lightweight-charts-line-tools-rectangle@https://codeload.github.com/difurious/lightweight-charts-line-tools-rectangle/tar.gz/8c229e62852f72936dbef5fdc198e321b9a85cc3(lightweight-charts@5.2.0)(typescript@5.9.3):
     dependencies:
       lightweight-charts: 5.2.0
-      lightweight-charts-line-tools-core: git+https://git@github.com:difurious/lightweight-charts-line-tools-core.git#167a83cf8702e35b4cfbe7beb0dafec94e800a71(lightweight-charts@5.2.0)(typescript@5.9.3)
+      lightweight-charts-line-tools-core: https://codeload.github.com/difurious/lightweight-charts-line-tools-core/tar.gz/167a83cf8702e35b4cfbe7beb0dafec94e800a71(lightweight-charts@5.2.0)(typescript@5.9.3)
       tslib: 2.8.1
       typedoc: 0.28.19(typescript@5.9.3)
     transitivePeerDependencies:

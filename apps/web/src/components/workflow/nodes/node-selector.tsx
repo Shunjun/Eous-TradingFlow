@@ -84,7 +84,7 @@ function NodeSelector({
       setOpen(false)
       setSearch('')
     },
-    [onSelectNode],
+    [onSelectNode, setOpen],
   )
 
   const nodeList = (

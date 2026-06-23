@@ -1,117 +1,23 @@
 import { useCallback, useMemo } from 'react'
 import {
-  ReactFlow,
   Background,
-  MiniMap,
-  applyNodeChanges,
-  applyEdgeChanges,
   BackgroundVariant,
+  MiniMap,
+  ReactFlow,
   type Node,
-  type Edge,
-  type Connection,
   type NodeTypes,
-  type NodeChange,
-  type EdgeChange,
-  type OnConnect,
-  type OnNodesChange,
-  type OnEdgesChange,
-  type NodeProps,
   useReactFlow,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import type { WorkflowEditOp } from '@eous/api-client'
-import { nodeRegistry, type NodeComponentProps, type ParamDef } from '@eous/nodes'
-import { api } from '../../../lib/api'
+import { nodeRegistry, type NodeComponentProps } from '@eous/nodes'
 import { useWorkflowStore, useWorkflowStoreApi } from '../store/workflow-store'
-import { toWorkflowEdge, toWorkflowNode } from '../store/workflow-ops'
-import { BaseNode } from '../nodes/base-node'
+import { toWorkflowNode } from '../store/workflow-ops'
+import { WorkflowNodeSelectorPopover } from '../nodes'
 import type { CanvasInteractionMode } from './canvas-toolbar'
+import { WorkflowContextMenu } from './context-menu'
+import { useWorkflowChangeHandlers, useWorkflowContextMenu, useWorkflowNodeActions } from '../hooks'
 import { WORKFLOW_FIT_VIEW_OPTIONS, WORKFLOW_MAX_ZOOM } from './viewport'
-
-function extractDefaults(input: Record<string, ParamDef>): Record<string, unknown> {
-  const data: Record<string, unknown> = {}
-  for (const [key, def] of Object.entries(input)) {
-    if (def.default !== undefined) {
-      data[key] = def.default
-    }
-  }
-  return data
-}
-
-const localNodeRegistry: Record<
-  string,
-  { defaults: Record<string, unknown>; label: string; color: string }
-> = Object.fromEntries(
-  Object.entries(nodeRegistry).map(([type, entry]) => [
-    type,
-    {
-      defaults: extractDefaults(entry.def.executeInput),
-      label: entry.def.meta.label,
-      color: entry.def.meta.color,
-    },
-  ]),
-)
-
-interface WorkflowNodeData extends Record<string, unknown> {
-  status?: 'idle' | 'running' | 'completed' | 'failed'
-  color?: string
-}
-
-function hasPersistableNodeChange(changes: NodeChange[]): boolean {
-  return changes.some(
-    (change) =>
-      change.type === 'position' ||
-      change.type === 'add' ||
-      change.type === 'remove' ||
-      change.type === 'replace',
-  )
-}
-
-function hasPersistableEdgeChange(changes: EdgeChange[]): boolean {
-  return changes.some(
-    (change) => change.type === 'add' || change.type === 'remove' || change.type === 'replace',
-  )
-}
-
-function createNodeComponent(
-  CanvasNode: (props: NodeComponentProps) => React.ReactNode,
-  options?: {
-    hideHandles?: boolean
-    onRun?: (id: string) => void
-    onToggleLock?: (id: string) => void
-    onDuplicate?: (id: string) => void
-    onDelete?: (id: string) => void
-    onAddConnectedNode?: (params: {
-      sourceNodeId: string
-      sourcePosition: 'left' | 'right'
-      nodeType: string
-    }) => void
-  },
-) {
-  return function WorkflowNode(props: NodeProps<Node<WorkflowNodeData>>) {
-    return (
-      <BaseNode
-        id={props.id}
-        data={props.data}
-        selected={props.selected}
-        locked={props.draggable === false}
-        hideHandles={options?.hideHandles}
-        onRun={options?.onRun}
-        onToggleLock={options?.onToggleLock}
-        onDuplicate={options?.onDuplicate}
-        onDelete={options?.onDelete}
-        onAddConnectedNode={options?.onAddConnectedNode}
-      >
-        <CanvasNode
-          id={props.id}
-          data={props.data}
-          selected={props.selected}
-          status={props.data.status}
-        />
-      </BaseNode>
-    )
-  }
-}
+import { createNodeComponent, createWorkflowNode } from './node-types'
 
 const defaultEdgeOptions = {
   animated: true,
@@ -120,10 +26,21 @@ const defaultEdgeOptions = {
 
 interface WorkflowCanvasProps {
   interactionMode: CanvasInteractionMode
+  canPaste: boolean
   onSelectNode?: (nodeId: string | null) => void
+  onCopyNode: (nodeId: string) => void
+  onCutNode: (nodeId: string) => void
+  onPasteNode: (position?: { x: number; y: number }) => void
 }
 
-function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) {
+function WorkflowCanvas({
+  interactionMode,
+  canPaste,
+  onSelectNode,
+  onCopyNode,
+  onCutNode,
+  onPasteNode,
+}: WorkflowCanvasProps) {
   const workflowStore = useWorkflowStoreApi()
   const nodes = useWorkflowStore((s) => s.nodes)
   const edges = useWorkflowStore((s) => s.edges)
@@ -132,133 +49,50 @@ function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) 
   const onNodesChange = useWorkflowStore((s) => s.onNodesChange)
   const onEdgesChange = useWorkflowStore((s) => s.onEdgesChange)
   const commitOps = useWorkflowStore((s) => s.commitOps)
+  const undo = useWorkflowStore((s) => s.undo)
+  const redo = useWorkflowStore((s) => s.redo)
+  const canUndo = useWorkflowStore((s) => s.past.length > 0)
+  const canRedo = useWorkflowStore((s) => s.future.length > 0)
 
-  const { screenToFlowPosition } = useReactFlow()
+  const { fitView, screenToFlowPosition } = useReactFlow()
+  const {
+    contextMenu,
+    contextMenuRef,
+    nodeSelectorOpen,
+    nodeSelectorPosition,
+    closeContextMenu,
+    openNodeSelector,
+    handlePaneContextMenu,
+    handleNodeContextMenu,
+    handleNodeSelectorOpenChange,
+  } = useWorkflowContextMenu({ screenToFlowPosition, onSelectNode })
 
-  const createWorkflowNode = useCallback((nodeType: string, position: { x: number; y: number }) => {
-    const entry = localNodeRegistry[nodeType]
-    return {
-      id: `${nodeType}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      type: nodeType,
-      position,
-      data: {
-        status: 'idle',
-        label: entry?.label,
-        color: entry?.color,
-        ...entry?.defaults,
-      },
-    } satisfies Node<WorkflowNodeData>
-  }, [])
+  const {
+    runNode: handleRunNode,
+    duplicateNode: handleDuplicateNode,
+    deleteNode: handleDeleteNode,
+    deleteNodes: handleDeleteNodes,
+    deleteEdges: handleDeleteEdges,
+    toggleLockNode: handleToggleLockNode,
+    addConnectedNode: handleAddConnectedNode,
+    autoLayout: handleAutoLayout,
+  } = useWorkflowNodeActions({ workflowStore, commitOps, fitView })
 
-  const handleRunNode = useCallback(
-    (nodeId: string) => {
-      const workflowId = workflowStore.getState().activeWorkflowId
-      if (!workflowId || workflowId === 'new') return
-      void api.runWorkflowNode(workflowId, nodeId)
-    },
-    [workflowStore],
-  )
+  const { handleNodesChange, handleEdgesChange, handleConnect, handleDelete } =
+    useWorkflowChangeHandlers({
+      workflowStore,
+      setNodes,
+      setEdges,
+      onNodesChange,
+      onEdgesChange,
+      commitOps,
+      deleteNodes: handleDeleteNodes,
+      deleteEdges: handleDeleteEdges,
+    })
 
-  const handleDuplicateNode = useCallback(
-    (nodeId: string) => {
-      const currentNodes = workflowStore.getState().nodes
-      const sourceNode = currentNodes.find((node) => node.id === nodeId)
-      if (!sourceNode) return
-
-      const nextNode = {
-        ...sourceNode,
-        id: `${sourceNode.type ?? 'node'}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        selected: false,
-        position: {
-          x: sourceNode.position.x + 32,
-          y: sourceNode.position.y + 32,
-        },
-        data: { ...(sourceNode.data ?? {}) },
-      }
-      commitOps([{ type: 'node.add', node: toWorkflowNode(nextNode) }], '复制节点')
-    },
-    [commitOps, workflowStore],
-  )
-
-  const handleToggleLockNode = useCallback(
-    (nodeId: string) => {
-      const node = workflowStore.getState().nodes.find((item) => item.id === nodeId)
-      if (!node) return
-      commitOps(
-        [{ type: 'node.update', nodeId, metaPatch: { locked: node.draggable !== false } }],
-        node.draggable === false ? '解锁节点' : '锁定节点',
-      )
-    },
-    [commitOps, workflowStore],
-  )
-
-  const handleAddConnectedNode = useCallback(
-    ({
-      sourceNodeId,
-      sourcePosition,
-      nodeType,
-    }: {
-      sourceNodeId: string
-      sourcePosition: 'left' | 'right'
-      nodeType: string
-    }) => {
-      const currentNodes = workflowStore.getState().nodes
-      const sourceNode = currentNodes.find((node) => node.id === sourceNodeId)
-      if (!sourceNode) return
-
-      const xOffset = sourcePosition === 'right' ? 280 : -280
-      const nextNode = createWorkflowNode(nodeType, {
-        x: sourceNode.position.x + xOffset,
-        y: sourceNode.position.y,
-      })
-
-      const edge =
-        sourcePosition === 'right'
-          ? {
-              id: `${sourceNodeId}-${nextNode.id}`,
-              source: sourceNodeId,
-              target: nextNode.id,
-            }
-          : {
-              id: `${nextNode.id}-${sourceNodeId}`,
-              source: nextNode.id,
-              target: sourceNodeId,
-            }
-      const ops: WorkflowEditOp[] = [
-        { type: 'node.add', node: toWorkflowNode(nextNode) },
-        { type: 'edge.add', edge },
-      ]
-      commitOps(ops, '添加并连接节点')
-    },
-    [commitOps, createWorkflowNode, workflowStore],
-  )
-
-  const handleDeleteNode = useCallback(
-    (nodeId: string) => {
-      commitOps([{ type: 'node.delete', nodeId, force: true }], '删除节点')
-    },
-    [commitOps],
-  )
-
-  const handleDeleteNodes = useCallback(
-    (nodeIds: string[]) => {
-      commitOps(
-        nodeIds.map((nodeId): WorkflowEditOp => ({ type: 'node.delete', nodeId, force: true })),
-        '删除节点',
-      )
-    },
-    [commitOps],
-  )
-
-  const handleDeleteEdges = useCallback(
-    (edgeIds: string[]) => {
-      commitOps(
-        edgeIds.map((edgeId): WorkflowEditOp => ({ type: 'edge.delete', edgeId })),
-        '删除连线',
-      )
-    },
-    [commitOps],
-  )
+  const handleFitPorts = useCallback(() => {
+    void fitView({ ...WORKFLOW_FIT_VIEW_OPTIONS, duration: 240 })
+  }, [fitView])
 
   const nodeTypes = useMemo<NodeTypes>(
     () =>
@@ -284,89 +118,6 @@ function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) 
     ],
   )
 
-  const handleNodesChange: OnNodesChange = useCallback(
-    (changes) => {
-      const currentNodes = workflowStore.getState().nodes
-      const nextNodes = applyNodeChanges(changes, currentNodes)
-      if (hasPersistableNodeChange(changes)) {
-        const ops: WorkflowEditOp[] = []
-        for (const change of changes) {
-          if (change.type === 'position' && change.position) {
-            ops.push({ type: 'node.update', nodeId: change.id, position: change.position })
-          } else if (change.type === 'remove') {
-            ops.push({ type: 'node.delete', nodeId: change.id, force: true })
-          } else if (change.type === 'add') {
-            ops.push({ type: 'node.add', node: toWorkflowNode(change.item) })
-          } else if (change.type === 'replace') {
-            ops.push({ type: 'node.delete', nodeId: change.id, force: true })
-            ops.push({ type: 'node.add', node: toWorkflowNode(change.item) })
-          }
-        }
-        if (ops.length > 0) {
-          commitOps(ops, '更新节点')
-        } else {
-          onNodesChange(nextNodes)
-        }
-      } else {
-        setNodes(nextNodes)
-      }
-    },
-    [commitOps, onNodesChange, setNodes, workflowStore],
-  )
-
-  const handleEdgesChange: OnEdgesChange = useCallback(
-    (changes) => {
-      const currentEdges = workflowStore.getState().edges
-      const nextEdges = applyEdgeChanges(changes, currentEdges)
-      if (hasPersistableEdgeChange(changes)) {
-        const ops: WorkflowEditOp[] = []
-        for (const change of changes) {
-          if (change.type === 'remove') {
-            ops.push({ type: 'edge.delete', edgeId: change.id })
-          } else if (change.type === 'add') {
-            ops.push({ type: 'edge.add', edge: toWorkflowEdge(change.item) })
-          } else if (change.type === 'replace') {
-            ops.push({ type: 'edge.delete', edgeId: change.id })
-            ops.push({ type: 'edge.add', edge: toWorkflowEdge(change.item) })
-          }
-        }
-        if (ops.length > 0) {
-          commitOps(ops, '更新连线')
-        } else {
-          onEdgesChange(nextEdges)
-        }
-      } else {
-        setEdges(nextEdges)
-      }
-    },
-    [commitOps, onEdgesChange, setEdges, workflowStore],
-  )
-
-  const handleConnect: OnConnect = useCallback(
-    (connection: Connection) => {
-      const edge = {
-        id: `${connection.source}-${connection.target}-${Date.now()}`,
-        source: connection.source,
-        sourceHandle: connection.sourceHandle ?? undefined,
-        target: connection.target,
-        targetHandle: connection.targetHandle ?? undefined,
-      }
-      commitOps([{ type: 'edge.add', edge }], '连接节点')
-    },
-    [commitOps],
-  )
-
-  const handleDelete = useCallback(
-    (params: { nodes: Node[]; edges: Edge[] }) => {
-      if (params.nodes.length > 0) {
-        handleDeleteNodes(params.nodes.map((n) => n.id))
-      } else if (params.edges.length > 0) {
-        handleDeleteEdges(params.edges.map((edge) => edge.id))
-      }
-    },
-    [handleDeleteEdges, handleDeleteNodes],
-  )
-
   const handleDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()
     event.dataTransfer.dropEffect = 'move'
@@ -388,7 +139,7 @@ function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) 
         '添加节点',
       )
     },
-    [screenToFlowPosition, commitOps, createWorkflowNode],
+    [commitOps, screenToFlowPosition],
   )
 
   const handleNodeClick = useCallback(
@@ -401,6 +152,22 @@ function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) 
   const handlePaneClick = useCallback(() => {
     onSelectNode?.(null)
   }, [onSelectNode])
+
+  const handleSelectNodeFromMenu = useCallback(
+    (nodeType: string) => {
+      if (!nodeSelectorPosition) return
+      commitOps(
+        [
+          {
+            type: 'node.add',
+            node: toWorkflowNode(createWorkflowNode(nodeType, nodeSelectorPosition.flowPosition)),
+          },
+        ],
+        '添加节点',
+      )
+    },
+    [commitOps, nodeSelectorPosition],
+  )
 
   return (
     <div className="h-full w-full">
@@ -416,6 +183,8 @@ function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) 
         onDrop={handleDrop}
         onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}
+        onPaneContextMenu={handlePaneContextMenu}
+        onNodeContextMenu={handleNodeContextMenu}
         defaultEdgeOptions={defaultEdgeOptions}
         deleteKeyCode={['Backspace', 'Delete']}
         panOnDrag={interactionMode === 'pan'}
@@ -443,6 +212,39 @@ function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) 
           nodeStrokeWidth={1}
         />
       </ReactFlow>
+
+      {contextMenu && (
+        <WorkflowContextMenu
+          menu={contextMenu}
+          nodes={nodes}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          canPaste={canPaste}
+          menuRef={contextMenuRef}
+          onAddNode={() => openNodeSelector(contextMenu)}
+          onAutoLayout={handleAutoLayout}
+          onFitPorts={handleFitPorts}
+          onUndo={undo}
+          onRedo={redo}
+          onRunNode={handleRunNode}
+          onToggleLockNode={handleToggleLockNode}
+          onCopyNode={onCopyNode}
+          onCutNode={onCutNode}
+          onPasteNode={onPasteNode}
+          onDuplicateNode={handleDuplicateNode}
+          onDeleteNode={handleDeleteNode}
+          onClose={closeContextMenu}
+        />
+      )}
+
+      {nodeSelectorPosition && (
+        <WorkflowNodeSelectorPopover
+          open={nodeSelectorOpen}
+          position={nodeSelectorPosition}
+          onOpenChange={handleNodeSelectorOpenChange}
+          onSelectNode={handleSelectNodeFromMenu}
+        />
+      )}
     </div>
   )
 }

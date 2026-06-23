@@ -50,7 +50,7 @@ import {
 } from 'lucide-react'
 import { useWorkflowList } from '../../hooks/use-workflows'
 import { useWorkflowListStore } from '../../stores/workflows'
-import { CreateWorkflowDialog } from '../workflow/create-workflow-dialog'
+import { CreateWorkflowDialog } from '../workflow/dialogs'
 import { api } from '../../lib/api'
 
 interface NavItem {

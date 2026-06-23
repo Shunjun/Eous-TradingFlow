@@ -19,47 +19,11 @@ import {
   SheetContent,
   cn,
 } from '@eous/ui'
-import { getNodeDef, type OutputDef, type NodeDef } from '@eous/nodes'
-import { useWorkflowStore } from '../store/workflow-store'
-import { api } from '../../../lib/api'
+import { getNodeDef, type OutputDef } from '@eous/nodes'
 import { ConfigForm } from './config-form'
 import { VariableInspector } from '../variables'
-
-const OUTPUT_TYPES = ['string', 'number', 'boolean', 'json', 'array', 'file'] as const
-
-/** Get effective outputs — lazy init: fallback to def.executeOutput when data.outputs is not set */
-function getEffectiveOutputs(data: Record<string, unknown>, def: NodeDef | undefined): OutputDef[] {
-  if (Array.isArray(data.outputs)) return data.outputs as OutputDef[]
-  if (!def) return []
-  return Object.values(def.executeOutput).map((f) => ({
-    name: f.name,
-    type: f.type as OutputDef['type'],
-    source: f.source,
-  }))
-}
-
-/** Lazily initialize data.outputs from def fallback, preserving any current edits */
-function ensureOutputsInData(
-  data: Record<string, unknown>,
-  def: NodeDef | undefined,
-  onChange: (data: Record<string, unknown>) => void,
-): OutputDef[] {
-  if (Array.isArray(data.outputs)) return data.outputs as OutputDef[]
-  const fallback = getEffectiveOutputs(data, def)
-  onChange({ ...data, outputs: fallback })
-  return fallback
-}
-
-interface NodeExecution {
-  id: string
-  nodeId: string
-  status: string
-  inputs: Record<string, unknown> | null
-  outputs: Record<string, unknown> | null
-  logs: Array<{ ts: string; level: string; message: string }>
-  durationMs: number | null
-  error: string | null
-}
+import { ensureOutputsInData, getEffectiveOutputs, OUTPUT_TYPES } from './settings-panel-outputs'
+import { useNodeExecution } from '../hooks'
 
 function SettingsPanelContent({
   workflowId,
@@ -80,67 +44,12 @@ function SettingsPanelContent({
   inspectorOpen: boolean
   onToggleInspector: () => void
 }) {
-  const [running, setRunning] = useState(false)
-  const [lastExecution, setLastExecution] = useState<NodeExecution | null>(null)
-  const [loadingExecution, setLoadingExecution] = useState(true)
-  const [upstreamOutputs, setUpstreamOutputs] = useState<Record<string, Record<string, unknown>>>(
-    {},
-  )
-
   const nodeDef = getNodeDef(nodeType)
   const executeInput = nodeDef?.executeInput
-
-  // Fetch upstream outputs on mount and after run
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      try {
-        const res = await api.getWorkflowVariables(workflowId)
-        if (!cancelled) setUpstreamOutputs(res.variables)
-      } catch {
-        if (!cancelled) setUpstreamOutputs({})
-      }
-    }
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [workflowId])
-
-  // Fetch last execution
-  useEffect(() => {
-    let cancelled = false
-    async function load() {
-      setLoadingExecution(true)
-      try {
-        const res = await api.getNodeLastExecution(workflowId, nodeId)
-        if (!cancelled) setLastExecution(res.execution)
-      } catch {
-        if (!cancelled) setLastExecution(null)
-      } finally {
-        if (!cancelled) setLoadingExecution(false)
-      }
-    }
-    load()
-    return () => {
-      cancelled = true
-    }
-  }, [workflowId, nodeId])
-
-  const handleRun = useCallback(async () => {
-    setRunning(true)
-    try {
-      const res = await api.runWorkflowNode(workflowId, nodeId)
-      setLastExecution(res.execution)
-      // Refresh upstream outputs after run
-      const varRes = await api.getWorkflowVariables(workflowId)
-      setUpstreamOutputs(varRes.variables)
-    } catch {
-      // error handled by global error handler
-    } finally {
-      setRunning(false)
-    }
-  }, [workflowId, nodeId])
+  const { running, lastExecution, loadingExecution, upstreamOutputs, runNode } = useNodeExecution(
+    workflowId,
+    nodeId,
+  )
 
   const handleOutputFieldChange = useCallback(
     (index: number, field: keyof OutputDef, value: string) => {
@@ -207,7 +116,7 @@ function SettingsPanelContent({
             variant="ghost"
             size="sm"
             className="h-7 px-2 text-xs"
-            onClick={handleRun}
+            onClick={runNode}
             disabled={running}
           >
             {running ? (

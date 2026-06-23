@@ -9,7 +9,7 @@ import {
   Button,
   Input,
 } from '@eous/ui'
-import { createWorkflow } from '../../hooks/use-workflows'
+import { createWorkflow } from '../../../hooks/use-workflows'
 
 interface CreateWorkflowDialogProps {
   open: boolean
