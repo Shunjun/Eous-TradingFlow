@@ -20,7 +20,7 @@ import {
   cn,
 } from '@eous/ui'
 import { getNodeDef, type OutputDef, type NodeDef } from '@eous/nodes'
-import { useWorkflowStore } from '../../../stores/workflow'
+import { useWorkflowStore } from '../store/workflow-store'
 import { api } from '../../../lib/api'
 import { ConfigForm } from './config-form'
 import { VariableInspector } from '../variables'

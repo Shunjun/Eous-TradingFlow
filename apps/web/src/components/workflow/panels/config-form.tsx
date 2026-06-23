@@ -13,7 +13,7 @@ import {
 } from '@eous/ui'
 import type { ParamDef, OutputField, NodeDef } from '@eous/nodes'
 import { getNodeOutputs } from '@eous/nodes'
-import { useWorkflowStore } from '../../../stores/workflow'
+import { useWorkflowStore } from '../store/workflow-store'
 import { api } from '../../../lib/api'
 import { VariablePicker, type VariableRef } from '../variables'
 import type { Edge } from '@xyflow/react'
@@ -226,6 +226,7 @@ function ConfigField({
 }) {
   const [varPickerOpen, setVarPickerOpen] = useState(false)
   const [comboboxOpen, setComboboxOpen] = useState(false)
+  const storeNodes = useWorkflowStore((s) => s.nodes)
   const comboboxInputRef = useRef<HTMLInputElement>(null)
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null)
 
@@ -386,7 +387,6 @@ function ConfigField({
                 <div className="p-1">
                   {/* Variable options from upstream */}
                   {Object.entries(upstreamOutputs).map(([nid, fieldValues]) => {
-                    const storeNodes = useWorkflowStore.getState().nodes
                     const node = storeNodes.find((n) => n.id === nid)
                     const nodeLabel = node
                       ? typeof node.data.label === 'string'

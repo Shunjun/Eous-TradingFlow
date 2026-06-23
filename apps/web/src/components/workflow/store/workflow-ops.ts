@@ -89,14 +89,7 @@ function applyWorkflowOpsToState(
         break
 
       case 'edge.update':
-        edges = edges.map((edge) =>
-          edge.id === op.edgeId
-            ? {
-                ...edge,
-                ...op.patch,
-              }
-            : edge,
-        )
+        edges = edges.map((edge) => (edge.id === op.edgeId ? { ...edge, ...op.patch } : edge))
         break
 
       case 'edge.delete':

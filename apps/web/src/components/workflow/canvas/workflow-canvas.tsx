@@ -22,8 +22,8 @@ import '@xyflow/react/dist/style.css'
 import type { WorkflowEditOp } from '@eous/api-client'
 import { nodeRegistry, type NodeComponentProps, type ParamDef } from '@eous/nodes'
 import { api } from '../../../lib/api'
-import { useWorkflowStore } from '../../../stores/workflow'
-import { toWorkflowEdge, toWorkflowNode } from '../../../stores/workflow-ops'
+import { useWorkflowStore, useWorkflowStoreApi } from '../store/workflow-store'
+import { toWorkflowEdge, toWorkflowNode } from '../store/workflow-ops'
 import { BaseNode } from '../nodes/base-node'
 import type { CanvasInteractionMode } from './canvas-toolbar'
 import { WORKFLOW_FIT_VIEW_OPTIONS, WORKFLOW_MAX_ZOOM } from './viewport'
@@ -124,6 +124,7 @@ interface WorkflowCanvasProps {
 }
 
 function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) {
+  const workflowStore = useWorkflowStoreApi()
   const nodes = useWorkflowStore((s) => s.nodes)
   const edges = useWorkflowStore((s) => s.edges)
   const setNodes = useWorkflowStore((s) => s.setNodes)
@@ -149,15 +150,18 @@ function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) 
     } satisfies Node<WorkflowNodeData>
   }, [])
 
-  const handleRunNode = useCallback((nodeId: string) => {
-    const workflowId = useWorkflowStore.getState().activeWorkflowId
-    if (!workflowId || workflowId === 'new') return
-    void api.runWorkflowNode(workflowId, nodeId)
-  }, [])
+  const handleRunNode = useCallback(
+    (nodeId: string) => {
+      const workflowId = workflowStore.getState().activeWorkflowId
+      if (!workflowId || workflowId === 'new') return
+      void api.runWorkflowNode(workflowId, nodeId)
+    },
+    [workflowStore],
+  )
 
   const handleDuplicateNode = useCallback(
     (nodeId: string) => {
-      const currentNodes = useWorkflowStore.getState().nodes
+      const currentNodes = workflowStore.getState().nodes
       const sourceNode = currentNodes.find((node) => node.id === nodeId)
       if (!sourceNode) return
 
@@ -173,19 +177,19 @@ function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) 
       }
       commitOps([{ type: 'node.add', node: toWorkflowNode(nextNode) }], '复制节点')
     },
-    [commitOps],
+    [commitOps, workflowStore],
   )
 
   const handleToggleLockNode = useCallback(
     (nodeId: string) => {
-      const node = useWorkflowStore.getState().nodes.find((item) => item.id === nodeId)
+      const node = workflowStore.getState().nodes.find((item) => item.id === nodeId)
       if (!node) return
       commitOps(
         [{ type: 'node.update', nodeId, metaPatch: { locked: node.draggable !== false } }],
         node.draggable === false ? '解锁节点' : '锁定节点',
       )
     },
-    [commitOps],
+    [commitOps, workflowStore],
   )
 
   const handleAddConnectedNode = useCallback(
@@ -198,7 +202,7 @@ function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) 
       sourcePosition: 'left' | 'right'
       nodeType: string
     }) => {
-      const currentNodes = useWorkflowStore.getState().nodes
+      const currentNodes = workflowStore.getState().nodes
       const sourceNode = currentNodes.find((node) => node.id === sourceNodeId)
       if (!sourceNode) return
 
@@ -226,7 +230,7 @@ function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) 
       ]
       commitOps(ops, '添加并连接节点')
     },
-    [commitOps, createWorkflowNode],
+    [commitOps, createWorkflowNode, workflowStore],
   )
 
   const handleDeleteNode = useCallback(
@@ -282,7 +286,7 @@ function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) 
 
   const handleNodesChange: OnNodesChange = useCallback(
     (changes) => {
-      const currentNodes = useWorkflowStore.getState().nodes
+      const currentNodes = workflowStore.getState().nodes
       const nextNodes = applyNodeChanges(changes, currentNodes)
       if (hasPersistableNodeChange(changes)) {
         const ops: WorkflowEditOp[] = []
@@ -307,12 +311,12 @@ function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) 
         setNodes(nextNodes)
       }
     },
-    [commitOps, onNodesChange, setNodes],
+    [commitOps, onNodesChange, setNodes, workflowStore],
   )
 
   const handleEdgesChange: OnEdgesChange = useCallback(
     (changes) => {
-      const currentEdges = useWorkflowStore.getState().edges
+      const currentEdges = workflowStore.getState().edges
       const nextEdges = applyEdgeChanges(changes, currentEdges)
       if (hasPersistableEdgeChange(changes)) {
         const ops: WorkflowEditOp[] = []
@@ -335,7 +339,7 @@ function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) 
         setEdges(nextEdges)
       }
     },
-    [commitOps, onEdgesChange, setEdges],
+    [commitOps, onEdgesChange, setEdges, workflowStore],
   )
 
   const handleConnect: OnConnect = useCallback(

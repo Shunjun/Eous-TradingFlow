@@ -2,8 +2,8 @@ import { useMemo, useCallback } from 'react'
 import { Link } from 'lucide-react'
 import { Popover, PopoverTrigger, PopoverContent, Badge, ScrollArea, cn } from '@eous/ui'
 import { getNodeOutputs, type OutputField } from '@eous/nodes'
-import { useWorkflowStore } from '../../../stores/workflow'
-import type { Edge } from '@xyflow/react'
+import { useWorkflowStore } from '../store/workflow-store'
+import type { Edge, Node } from '@xyflow/react'
 
 interface VariableRef {
   nodeId: string
@@ -12,15 +12,14 @@ interface VariableRef {
   fieldType: string
 }
 
-function getUpstreamNodes(nodeId: string, edges: Edge[]) {
-  const store = useWorkflowStore.getState()
+function getUpstreamNodes(nodeId: string, edges: Edge[], nodes: Node[]) {
   const upstreamIds = new Set<string>()
   for (const edge of edges) {
     if (edge.target === nodeId) {
       upstreamIds.add(edge.source)
     }
   }
-  return store.nodes.filter((n) => upstreamIds.has(n.id))
+  return nodes.filter((n) => upstreamIds.has(n.id))
 }
 
 interface VariableOption {
@@ -45,9 +44,10 @@ function VariableSelector({
   onOpenChange,
 }: VariableSelectorProps) {
   const edges = useWorkflowStore((s) => s.edges)
+  const storeNodes = useWorkflowStore((s) => s.nodes)
 
   const variables = useMemo(() => {
-    const upstreamNodes = getUpstreamNodes(nodeId, edges)
+    const upstreamNodes = getUpstreamNodes(nodeId, edges, storeNodes)
     const groups: { nodeLabel: string; options: VariableOption[] }[] = []
 
     for (const node of upstreamNodes) {
@@ -68,7 +68,7 @@ function VariableSelector({
     }
 
     return groups
-  }, [nodeId, edges])
+  }, [nodeId, edges, storeNodes])
 
   const handleSelect = useCallback(
     (option: VariableOption) => {

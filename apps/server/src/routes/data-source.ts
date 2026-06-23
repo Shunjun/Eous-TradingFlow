@@ -44,15 +44,11 @@ dataSourceRouter.post('/data-source-providers/:id/debug-fetch', async (c) => {
   const from = now - 90 * 86400000 // 90 天前
   const request = { symbol: body.symbol, interval: body.interval, from, to: now }
 
-  console.log('[debug-fetch]', { providerKind, request, config: body.config })
-
   try {
     const klines = await provider.getKlines(request, body.config)
-    console.log('[debug-fetch] result', { count: klines.length, sample: klines[0] })
     return c.json({ ok: true, count: klines.length, sample: klines[0] ?? null })
   } catch (e) {
     const err = e as Error
-    console.error('[debug-fetch] error', { message: err.message, stack: err.stack })
     return c.json({ ok: false, error: err.message }, 500)
   }
 })

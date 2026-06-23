@@ -264,18 +264,12 @@ export class YahooFinanceProvider implements DataSourceProvider<YahooFinanceConf
     const period1 = Math.floor(request.from / 1000) // ms → s
     const period2 = Math.floor(request.to / 1000)
 
-    console.log('[yahoo getKlines]', { symbol: request.symbol, interval, period1, period2 })
-
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(request.symbol)}?interval=${interval}&period1=${period1}&period2=${period2}`
 
     try {
       const data = await this.fetchJson<YahooChartResponse>(url)
       const result = data.chart.result
       if (!result || result.length === 0) {
-        console.log('[yahoo getKlines] empty result', {
-          hasResult: !!data.chart.result,
-          error: data.chart.error,
-        })
         return []
       }
 
@@ -305,10 +299,8 @@ export class YahooFinanceProvider implements DataSourceProvider<YahooFinanceConf
         })
       }
 
-      console.log('[yahoo getKlines] response', { count: klines.length, sample: klines[0] })
       return klines
     } catch (e: any) {
-      console.error('[yahoo getKlines] error', { message: e?.message })
       if (isNetworkError(e) || isRateLimitError(e)) {
         return []
       }

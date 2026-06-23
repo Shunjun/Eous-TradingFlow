@@ -13,7 +13,7 @@ import {
   cn,
 } from '@eous/ui'
 import { useWorkflowList } from '../../../hooks/use-workflows'
-import { useWorkflowStore } from '../../../stores/workflow'
+import { useWorkflowStore } from '../store/workflow-store'
 
 const COMPACT_ACTIONS_WIDTH = 640
 

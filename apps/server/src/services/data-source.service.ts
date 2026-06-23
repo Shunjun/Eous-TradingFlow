@@ -375,20 +375,6 @@ export async function getKlines(
 
     const requestInterval =
       support.mode === 'derived' ? (support.baseInterval ?? normalizedInterval) : normalizedInterval
-    console.info('[kline interval support]', {
-      instanceId: id,
-      providerKind: instance.providerKind,
-      symbol,
-      requestedInterval: interval,
-      canonicalInterval: normalizedInterval,
-      mode: support.mode,
-      baseInterval: support.baseInterval,
-      aggregation: support.aggregation,
-      providerRequestInterval: requestInterval,
-      barCount: defaultBarCount,
-      from: requestFrom,
-      to: requestTo,
-    })
     const klines = await provider.getKlines(
       { symbol, interval: requestInterval, from: requestFrom, to: requestTo },
       config,

@@ -416,14 +416,6 @@ export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
     }
 
     const result = Array.from(plans.values()).sort(sortIntervals)
-    console.info('[ccxt intervals]', {
-      exchange: exchangeId,
-      rawTimeframes: Object.keys(ex.timeframes ?? {}),
-      intervals: result.map((plan) => ({
-        value: plan.value,
-        timeframe: plan.timeframe,
-      })),
-    })
     this.intervalPlanCache.set(exchangeId, result)
     return result
   }

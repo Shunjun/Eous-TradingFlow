@@ -2,7 +2,11 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { nodeRegistry } from '@eous/nodes'
 import type { NodeType, WorkflowNode } from '@eous/api-client'
 import { api } from '../../lib/api'
-import { useWorkflowStore } from '../../stores/workflow'
+import {
+  WorkflowStoreProvider,
+  useWorkflowStore,
+  useWorkflowStoreApi,
+} from './store/workflow-store'
 import { useWorkflow, publishWorkflow, saveWorkflow } from '../../hooks/use-workflows'
 import { WorkflowCanvas, WorkflowOverlay, type CanvasInteractionMode } from './canvas'
 
@@ -100,8 +104,13 @@ interface WorkflowEditorProps {
   onWorkflowSelect?: (workflowId: string) => void
 }
 
-function WorkflowEditor({ workflowId, showWorkflowList, onWorkflowSelect }: WorkflowEditorProps) {
+function WorkflowEditorContent({
+  workflowId,
+  showWorkflowList,
+  onWorkflowSelect,
+}: WorkflowEditorProps) {
   const { workflow, loading } = useWorkflow(workflowId)
+  const workflowStore = useWorkflowStoreApi()
   const loadWorkflow = useWorkflowStore((s) => s.loadWorkflow)
   const reset = useWorkflowStore((s) => s.reset)
   const activeWorkflowId = useWorkflowStore((s) => s.activeWorkflowId)
@@ -220,7 +229,7 @@ function WorkflowEditor({ workflowId, showWorkflowList, onWorkflowSelect }: Work
     if (!activeWorkflowId) return
     setSaving(true)
     try {
-      const pendingOps = useWorkflowStore.getState().pendingOps
+      const pendingOps = workflowStore.getState().pendingOps
       if (pendingOps.length > 0 && baseUpdatedAt) {
         const result = await api.applyWorkflowOps(activeWorkflowId, {
           baseUpdatedAt,
@@ -229,12 +238,12 @@ function WorkflowEditor({ workflowId, showWorkflowList, onWorkflowSelect }: Work
         setBaseUpdatedAt(result.workflow.updatedAt)
         removeDraft(activeWorkflowId)
         setIsLocalDraft(false)
-        useWorkflowStore.getState().markSynced()
+        workflowStore.getState().markSynced()
         return
       }
 
-      const currentNodes = useWorkflowStore.getState().nodes
-      const currentEdges = useWorkflowStore.getState().edges
+      const currentNodes = workflowStore.getState().nodes
+      const currentEdges = workflowStore.getState().edges
       const workflowNodes: WorkflowNode[] = []
       for (const n of currentNodes) {
         if (!n.type || !isNodeType(n.type)) continue
@@ -262,13 +271,13 @@ function WorkflowEditor({ workflowId, showWorkflowList, onWorkflowSelect }: Work
       })
       removeDraft(activeWorkflowId)
       setIsLocalDraft(false)
-      useWorkflowStore.getState().markClean()
+      workflowStore.getState().markClean()
     } catch {
       // error handled by global error handler
     } finally {
       setSaving(false)
     }
-  }, [activeWorkflowId, baseUpdatedAt, workflowName])
+  }, [activeWorkflowId, baseUpdatedAt, workflowName, workflowStore])
 
   const lastModified = useWorkflowStore((s) => s.lastModified)
   const debouncedDraftRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -278,7 +287,7 @@ function WorkflowEditor({ workflowId, showWorkflowList, onWorkflowSelect }: Work
 
     if (debouncedDraftRef.current) clearTimeout(debouncedDraftRef.current)
     debouncedDraftRef.current = setTimeout(() => {
-      const { nodes: latestNodes, edges: latestEdges } = useWorkflowStore.getState()
+      const { nodes: latestNodes, edges: latestEdges } = workflowStore.getState()
       writeDraft(activeWorkflowId, {
         nodes: latestNodes,
         edges: latestEdges,
@@ -290,7 +299,7 @@ function WorkflowEditor({ workflowId, showWorkflowList, onWorkflowSelect }: Work
     return () => {
       if (debouncedDraftRef.current) clearTimeout(debouncedDraftRef.current)
     }
-  }, [activeWorkflowId, workflowName, lastModified])
+  }, [activeWorkflowId, workflowName, lastModified, workflowStore])
 
   const handlePublish = useCallback(async () => {
     if (!activeWorkflowId) return
@@ -305,35 +314,41 @@ function WorkflowEditor({ workflowId, showWorkflowList, onWorkflowSelect }: Work
     }
   }, [activeWorkflowId, handleSave])
 
-  const handleAddNode = useCallback((nodeType: string) => {
-    const entry = NODE_DEFAULTS[nodeType]
-    const label = NODE_LABELS[nodeType] ?? nodeType
-    const color = NODE_COLORS[nodeType]
-    const newNode = {
-      id: `${nodeType}-${Date.now()}`,
-      type: nodeType,
-      position: { x: 250 + Math.random() * 100, y: 150 + Math.random() * 100 },
-      data: {
-        status: 'idle' as const,
-        label,
-        color,
-        ...entry,
-      },
-    }
-    useWorkflowStore.getState().commitOps([{ type: 'node.add', node: newNode }], '添加节点')
-  }, [])
+  const handleAddNode = useCallback(
+    (nodeType: string) => {
+      const entry = NODE_DEFAULTS[nodeType]
+      const label = NODE_LABELS[nodeType] ?? nodeType
+      const color = NODE_COLORS[nodeType]
+      const newNode = {
+        id: `${nodeType}-${Date.now()}`,
+        type: nodeType,
+        position: { x: 250 + Math.random() * 100, y: 150 + Math.random() * 100 },
+        data: {
+          status: 'idle' as const,
+          label,
+          color,
+          ...entry,
+        },
+      }
+      workflowStore.getState().commitOps([{ type: 'node.add', node: newNode }], '添加节点')
+    },
+    [workflowStore],
+  )
 
   const selectedNode = selectedNodeId ? (nodes.find((n) => n.id === selectedNodeId) ?? null) : null
 
-  const handleNodeDataChange = useCallback((data: Record<string, unknown>) => {
-    const currentSelectedNodeId = selectedNodeIdRef.current
-    if (!currentSelectedNodeId) return
-    const store = useWorkflowStore.getState()
-    store.commitOps(
-      [{ type: 'node.update', nodeId: currentSelectedNodeId, dataPatch: data }],
-      '修改节点配置',
-    )
-  }, [])
+  const handleNodeDataChange = useCallback(
+    (data: Record<string, unknown>) => {
+      const currentSelectedNodeId = selectedNodeIdRef.current
+      if (!currentSelectedNodeId) return
+      const store = workflowStore.getState()
+      store.commitOps(
+        [{ type: 'node.update', nodeId: currentSelectedNodeId, dataPatch: data }],
+        '修改节点配置',
+      )
+    },
+    [workflowStore],
+  )
 
   const handleCloseSettings = useCallback(() => {
     setSelectedNodeId(null)
@@ -385,6 +400,16 @@ function WorkflowEditor({ workflowId, showWorkflowList, onWorkflowSelect }: Work
         onCloseSettings={handleCloseSettings}
       />
     </div>
+  )
+}
+
+WorkflowEditorContent.displayName = 'WorkflowEditorContent'
+
+function WorkflowEditor(props: WorkflowEditorProps) {
+  return (
+    <WorkflowStoreProvider>
+      <WorkflowEditorContent {...props} />
+    </WorkflowStoreProvider>
   )
 }
 

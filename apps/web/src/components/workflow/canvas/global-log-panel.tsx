@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { Badge, Button, ScrollArea, cn } from '@eous/ui'
 import { api } from '../../../lib/api'
-import { useWorkflowStore } from '../../../stores/workflow'
+import { useWorkflowStore } from '../store/workflow-store'
 
 interface ExecutionLog {
   ts: string
