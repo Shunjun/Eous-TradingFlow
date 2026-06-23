@@ -13,7 +13,6 @@ import { nodeRegistry, type NodeComponentProps } from '@eous/nodes'
 import { useWorkflowStore, useWorkflowStoreApi } from '../store/workflow-store'
 import { toWorkflowNode } from '../store/workflow-ops'
 import { WorkflowNodeSelectorPopover } from '../nodes'
-import type { CanvasInteractionMode } from './canvas-toolbar'
 import { WorkflowContextMenu } from './context-menu'
 import { useWorkflowChangeHandlers, useWorkflowContextMenu, useWorkflowNodeActions } from '../hooks'
 import { WORKFLOW_FIT_VIEW_OPTIONS, WORKFLOW_MAX_ZOOM } from './viewport'
@@ -24,23 +23,7 @@ const defaultEdgeOptions = {
   className: 'stroke-muted-foreground',
 }
 
-interface WorkflowCanvasProps {
-  interactionMode: CanvasInteractionMode
-  canPaste: boolean
-  onSelectNode?: (nodeId: string | null) => void
-  onCopyNode: (nodeId: string) => void
-  onCutNode: (nodeId: string) => void
-  onPasteNode: (position?: { x: number; y: number }) => void
-}
-
-function WorkflowCanvas({
-  interactionMode,
-  canPaste,
-  onSelectNode,
-  onCopyNode,
-  onCutNode,
-  onPasteNode,
-}: WorkflowCanvasProps) {
+function WorkflowCanvas() {
   const workflowStore = useWorkflowStoreApi()
   const nodes = useWorkflowStore((s) => s.nodes)
   const edges = useWorkflowStore((s) => s.edges)
@@ -49,10 +32,8 @@ function WorkflowCanvas({
   const onNodesChange = useWorkflowStore((s) => s.onNodesChange)
   const onEdgesChange = useWorkflowStore((s) => s.onEdgesChange)
   const commitOps = useWorkflowStore((s) => s.commitOps)
-  const undo = useWorkflowStore((s) => s.undo)
-  const redo = useWorkflowStore((s) => s.redo)
-  const canUndo = useWorkflowStore((s) => s.past.length > 0)
-  const canRedo = useWorkflowStore((s) => s.future.length > 0)
+  const interactionMode = useWorkflowStore((s) => s.canvasMode)
+  const setSelectedNodeId = useWorkflowStore((s) => s.setSelectedNodeId)
 
   const { fitView, screenToFlowPosition } = useReactFlow()
   const {
@@ -65,7 +46,7 @@ function WorkflowCanvas({
     handlePaneContextMenu,
     handleNodeContextMenu,
     handleNodeSelectorOpenChange,
-  } = useWorkflowContextMenu({ screenToFlowPosition, onSelectNode })
+  } = useWorkflowContextMenu({ screenToFlowPosition, onSelectNode: setSelectedNodeId })
 
   const {
     runNode: handleRunNode,
@@ -75,7 +56,6 @@ function WorkflowCanvas({
     deleteEdges: handleDeleteEdges,
     toggleLockNode: handleToggleLockNode,
     addConnectedNode: handleAddConnectedNode,
-    autoLayout: handleAutoLayout,
   } = useWorkflowNodeActions({ workflowStore, commitOps, fitView })
 
   const { handleNodesChange, handleEdgesChange, handleConnect, handleDelete } =
@@ -89,10 +69,6 @@ function WorkflowCanvas({
       deleteNodes: handleDeleteNodes,
       deleteEdges: handleDeleteEdges,
     })
-
-  const handleFitPorts = useCallback(() => {
-    void fitView({ ...WORKFLOW_FIT_VIEW_OPTIONS, duration: 240 })
-  }, [fitView])
 
   const nodeTypes = useMemo<NodeTypes>(
     () =>
@@ -144,14 +120,14 @@ function WorkflowCanvas({
 
   const handleNodeClick = useCallback(
     (_event: React.MouseEvent, node: Node) => {
-      onSelectNode?.(node.id)
+      setSelectedNodeId(node.id)
     },
-    [onSelectNode],
+    [setSelectedNodeId],
   )
 
   const handlePaneClick = useCallback(() => {
-    onSelectNode?.(null)
-  }, [onSelectNode])
+    setSelectedNodeId(null)
+  }, [setSelectedNodeId])
 
   const handleSelectNodeFromMenu = useCallback(
     (nodeType: string) => {
@@ -216,23 +192,8 @@ function WorkflowCanvas({
       {contextMenu && (
         <WorkflowContextMenu
           menu={contextMenu}
-          nodes={nodes}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          canPaste={canPaste}
           menuRef={contextMenuRef}
           onAddNode={() => openNodeSelector(contextMenu)}
-          onAutoLayout={handleAutoLayout}
-          onFitPorts={handleFitPorts}
-          onUndo={undo}
-          onRedo={redo}
-          onRunNode={handleRunNode}
-          onToggleLockNode={handleToggleLockNode}
-          onCopyNode={onCopyNode}
-          onCutNode={onCutNode}
-          onPasteNode={onPasteNode}
-          onDuplicateNode={handleDuplicateNode}
-          onDeleteNode={handleDeleteNode}
           onClose={closeContextMenu}
         />
       )}
@@ -252,4 +213,3 @@ function WorkflowCanvas({
 WorkflowCanvas.displayName = 'WorkflowCanvas'
 
 export { WorkflowCanvas }
-export type { WorkflowCanvasProps }

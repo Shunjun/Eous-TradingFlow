@@ -1,30 +1,19 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup, cn } from '@eous/ui'
-import { CanvasToolbar, type CanvasInteractionMode } from './canvas-toolbar'
+import { CanvasToolbar } from './canvas-toolbar'
 import { FloatToolbar } from './float-toolbar'
 import { GlobalLogPanel, SettingsPanel } from '../panels'
+import { useWorkflowStore } from '../store/workflow-store'
 
 interface WorkflowOverlayProps {
   workflowId: string
   saving: boolean
   publishing: boolean
   isLocalDraft: boolean
-  logOpen: boolean
   showWorkflowList?: boolean
-  canvasMode: CanvasInteractionMode
-  selectedNode: {
-    id: string
-    type?: string
-    data: Record<string, unknown>
-  } | null
   onSave: () => void
   onPublish: () => void
-  onToggleLog: () => void
   onWorkflowSelect?: (workflowId: string | null) => void
-  onCanvasModeChange: (mode: CanvasInteractionMode) => void
-  onSelectNodeType: (nodeType: string) => void
-  onNodeDataChange: (data: Record<string, unknown>) => void
-  onCloseSettings: () => void
 }
 
 const LOG_COLLAPSED_SIZE = 0
@@ -48,19 +37,12 @@ function WorkflowOverlay({
   saving,
   publishing,
   isLocalDraft,
-  logOpen,
   showWorkflowList,
-  canvasMode,
-  selectedNode,
   onSave,
   onPublish,
-  onToggleLog,
   onWorkflowSelect,
-  onCanvasModeChange,
-  onSelectNodeType,
-  onNodeDataChange,
-  onCloseSettings,
 }: WorkflowOverlayProps) {
+  const logOpen = useWorkflowStore((state) => state.logOpen)
   const logPanelRef = useRef<ResizablePanelHandle | null>(null)
   const workspacePanelElementRef = useRef<HTMLDivElement | null>(null)
   const logPanelElementRef = useRef<HTMLDivElement | null>(null)
@@ -111,32 +93,19 @@ function WorkflowOverlay({
         saving={saving}
         publishing={publishing}
         isLocalDraft={isLocalDraft}
-        logOpen={logOpen}
         showWorkflowList={showWorkflowList}
         onSave={onSave}
         onPublish={onPublish}
-        onToggleLog={onToggleLog}
         onWorkflowSelect={onWorkflowSelect}
       />
 
       <div className="grid min-h-0 grid-cols-[1fr_auto] gap-3">
         <div className="relative min-h-0">
           <div className="absolute top-1/2 -translate-y-1/2 left-0">
-            <CanvasToolbar
-              mode={canvasMode}
-              onModeChange={onCanvasModeChange}
-              onSelectNode={onSelectNodeType}
-            />
+            <CanvasToolbar />
           </div>
         </div>
-        <SettingsPanel
-          workflowId={workflowId}
-          nodeId={selectedNode?.id ?? null}
-          nodeType={selectedNode?.type ?? null}
-          data={selectedNode?.data ?? null}
-          onChange={onNodeDataChange}
-          onClose={onCloseSettings}
-        />
+        <SettingsPanel workflowId={workflowId} />
       </div>
     </div>
   )
@@ -160,7 +129,7 @@ function WorkflowOverlay({
           maxSize={LOG_MAX_OPEN_SIZE}
           onResize={handleLogResize}
         >
-          <GlobalLogPanel workflowId={workflowId} open={logOpen} onClose={onToggleLog} />
+          <GlobalLogPanel workflowId={workflowId} />
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>

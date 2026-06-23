@@ -6,14 +6,13 @@ import {
   useWorkflowStore,
   useWorkflowStoreApi,
 } from './store/workflow-store'
-import { toWorkflowNode, tryApplyWorkflowOpsToState } from './store/workflow-ops'
+import { tryApplyWorkflowOpsToState } from './store/workflow-ops'
 import { useWorkflow, publishWorkflow, saveWorkflow } from '../../hooks/use-workflows'
 import { useWorkflowListStore } from '../../stores/workflows'
-import { WorkflowCanvas, WorkflowOverlay, type CanvasInteractionMode } from './canvas'
-import { useKeyboardShortcuts, useWorkflowClipboard } from './hooks'
+import { WorkflowCanvas, WorkflowOverlay } from './canvas'
+import { useKeyboardShortcuts } from './hooks'
 import {
   buildWorkflowDocument,
-  createDefaultWorkflowNode,
   isWorkflowNodeType,
   readWorkflowDraft,
   removeWorkflowDraft,
@@ -44,21 +43,13 @@ function WorkflowEditorContent({
   const reset = useWorkflowStore((s) => s.reset)
   const activeWorkflowId = useWorkflowStore((s) => s.activeWorkflowId)
   const workflowName = useWorkflowStore((s) => s.workflowName)
-  const nodes = useWorkflowStore((s) => s.nodes)
-  const edges = useWorkflowStore((s) => s.edges)
-  const undo = useWorkflowStore((s) => s.undo)
-  const redo = useWorkflowStore((s) => s.redo)
 
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
-  const selectedNodeIdRef = useRef<string | null>(null)
   const [isLocalDraft, setIsLocalDraft] = useState(false)
   const [baseUpdatedAt, setBaseUpdatedAt] = useState<string | null>(null)
   const [conflict, setConflict] = useState<WorkflowSaveConflictState>(null)
   const [resolvingConflict, setResolvingConflict] = useState(false)
-  const [logOpen, setLogOpen] = useState(false)
-  const [canvasMode, setCanvasMode] = useState<CanvasInteractionMode>('pan')
   const editorRef = useRef<HTMLDivElement | null>(null)
   const workflowNameRef = useRef(workflowName)
   const initialWorkflowNameRef = useRef<string | null>(null)
@@ -66,10 +57,6 @@ function WorkflowEditorContent({
   useEffect(() => {
     workflowNameRef.current = workflowName
   }, [workflowName])
-
-  useEffect(() => {
-    selectedNodeIdRef.current = selectedNodeId
-  }, [selectedNodeId])
 
   useEffect(() => {
     if (!workflow) return
@@ -334,67 +321,7 @@ function WorkflowEditorContent({
     }
   }, [activeWorkflowId, handleSave])
 
-  const handleAddNode = useCallback(
-    (nodeType: string) => {
-      const newNode = createDefaultWorkflowNode(nodeType)
-      workflowStore
-        .getState()
-        .commitOps([{ type: 'node.add', node: toWorkflowNode(newNode) }], '添加节点')
-    },
-    [workflowStore],
-  )
-
-  const deleteClipboardNode = useCallback(
-    (nodeId: string) => {
-      workflowStore.getState().commitOps([{ type: 'node.delete', nodeId, force: true }], '删除节点')
-    },
-    [workflowStore],
-  )
-
-  const {
-    canPaste,
-    copyNode: handleCopyNode,
-    cutNode: handleCutNode,
-    pasteNode: handlePasteNode,
-  } = useWorkflowClipboard({
-    getNodes: () => workflowStore.getState().nodes,
-    commitOps: (ops, label) => workflowStore.getState().commitOps(ops, label),
-    deleteNode: deleteClipboardNode,
-  })
-
-  useKeyboardShortcuts({
-    targetRef: editorRef,
-    selectedNodeId,
-    canvasMode,
-    onCanvasModeChange: setCanvasMode,
-    onUndo: undo,
-    onRedo: redo,
-    onCopyNode: handleCopyNode,
-    onPasteNode: handlePasteNode,
-  })
-
-  const selectedNode = selectedNodeId ? (nodes.find((n) => n.id === selectedNodeId) ?? null) : null
-
-  const handleNodeDataChange = useCallback(
-    (data: Record<string, unknown>) => {
-      const currentSelectedNodeId = selectedNodeIdRef.current
-      if (!currentSelectedNodeId) return
-      const store = workflowStore.getState()
-      store.commitOps(
-        [{ type: 'node.update', nodeId: currentSelectedNodeId, dataPatch: data }],
-        '修改节点配置',
-      )
-    },
-    [workflowStore],
-  )
-
-  const handleCloseSettings = useCallback(() => {
-    setSelectedNodeId(null)
-  }, [])
-
-  const handleToggleLog = useCallback(() => {
-    setLogOpen((prev) => !prev)
-  }, [])
+  useKeyboardShortcuts({ targetRef: editorRef })
 
   if (loading) {
     return (
@@ -411,39 +338,16 @@ function WorkflowEditorContent({
       tabIndex={-1}
       onPointerDown={() => editorRef.current?.focus()}
     >
-      <WorkflowCanvas
-        interactionMode={canvasMode}
-        canPaste={canPaste}
-        onSelectNode={setSelectedNodeId}
-        onCopyNode={handleCopyNode}
-        onCutNode={handleCutNode}
-        onPasteNode={handlePasteNode}
-      />
+      <WorkflowCanvas />
       <WorkflowOverlay
         workflowId={workflowId}
         saving={saving}
         publishing={publishing}
         isLocalDraft={isLocalDraft}
-        logOpen={logOpen}
         showWorkflowList={showWorkflowList}
-        canvasMode={canvasMode}
-        selectedNode={
-          selectedNode
-            ? {
-                id: selectedNode.id,
-                type: selectedNode.type,
-                data: selectedNode.data ?? {},
-              }
-            : null
-        }
         onSave={handleSave}
         onPublish={handlePublish}
-        onToggleLog={handleToggleLog}
         onWorkflowSelect={onWorkflowSelect}
-        onCanvasModeChange={setCanvasMode}
-        onSelectNodeType={handleAddNode}
-        onNodeDataChange={handleNodeDataChange}
-        onCloseSettings={handleCloseSettings}
       />
       <WorkflowSaveConflictDialog
         conflict={conflict}

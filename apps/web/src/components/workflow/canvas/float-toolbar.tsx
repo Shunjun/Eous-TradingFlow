@@ -38,11 +38,9 @@ interface FloatToolbarProps {
   saving: boolean
   publishing: boolean
   isLocalDraft: boolean
-  logOpen: boolean
   showWorkflowList?: boolean
   onSave: () => void
   onPublish: () => void
-  onToggleLog: () => void
   onWorkflowSelect?: (workflowId: string | null) => void
 }
 
@@ -50,17 +48,17 @@ function FloatToolbar({
   saving,
   publishing,
   isLocalDraft,
-  logOpen,
   showWorkflowList = false,
   onSave,
   onPublish,
-  onToggleLog,
   onWorkflowSelect,
 }: FloatToolbarProps) {
   const workflowName = useWorkflowStore((s) => s.workflowName)
   const isDirty = useWorkflowStore((s) => s.isDirty)
   const setWorkflowName = useWorkflowStore((s) => s.setWorkflowName)
   const activeWorkflowId = useWorkflowStore((s) => s.activeWorkflowId)
+  const logOpen = useWorkflowStore((s) => s.logOpen)
+  const toggleLogOpen = useWorkflowStore((s) => s.toggleLogOpen)
   const { workflows, loading: workflowsLoading } = useWorkflowList()
   const deleteWorkflow = useWorkflowListStore((s) => s.deleteWorkflow)
 
@@ -259,7 +257,7 @@ function FloatToolbar({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-36">
-                  <DropdownMenuItem className="cursor-pointer gap-2" onClick={onToggleLog}>
+                  <DropdownMenuItem className="cursor-pointer gap-2" onClick={toggleLogOpen}>
                     <ScrollText className="h-4 w-4" />
                     <span className="flex-1">日志</span>
                     {logOpen && <Check className="h-3.5 w-3.5 text-primary" />}
@@ -284,7 +282,7 @@ function FloatToolbar({
               <Button
                 variant="outline"
                 size="xs"
-                onClick={onToggleLog}
+                onClick={toggleLogOpen}
                 className={cn(logOpen && 'bg-accent text-accent-foreground')}
               >
                 <ScrollText className="mr-1" />

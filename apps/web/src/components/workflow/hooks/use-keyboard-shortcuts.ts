@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, type RefObject } from 'react'
 import { useReactFlow } from '@xyflow/react'
 import type { CanvasInteractionMode } from '../canvas'
+import { useWorkflowStore } from '../store/workflow-store'
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
@@ -9,26 +10,17 @@ function isEditableTarget(target: EventTarget | null): boolean {
 
 interface UseKeyboardShortcutsParams {
   targetRef: RefObject<HTMLElement | null>
-  selectedNodeId: string | null
-  canvasMode: CanvasInteractionMode
-  onCanvasModeChange: (mode: CanvasInteractionMode) => void
-  onUndo: () => void
-  onRedo: () => void
-  onCopyNode: (nodeId: string) => void
-  onPasteNode: (position?: { x: number; y: number }) => void
 }
 
-function useKeyboardShortcuts({
-  targetRef,
-  selectedNodeId,
-  canvasMode,
-  onCanvasModeChange,
-  onUndo,
-  onRedo,
-  onCopyNode,
-  onPasteNode,
-}: UseKeyboardShortcutsParams) {
+function useKeyboardShortcuts({ targetRef }: UseKeyboardShortcutsParams) {
   const { screenToFlowPosition } = useReactFlow()
+  const selectedNodeId = useWorkflowStore((state) => state.selectedNodeId)
+  const canvasMode = useWorkflowStore((state) => state.canvasMode)
+  const setCanvasMode = useWorkflowStore((state) => state.setCanvasMode)
+  const undo = useWorkflowStore((state) => state.undo)
+  const redo = useWorkflowStore((state) => state.redo)
+  const copyNode = useWorkflowStore((state) => state.copyNode)
+  const pasteNode = useWorkflowStore((state) => state.pasteNode)
   const selectedNodeIdRef = useRef(selectedNodeId)
   const canvasModeRef = useRef(canvasMode)
   const previousModeRef = useRef<CanvasInteractionMode | null>(null)
@@ -60,7 +52,7 @@ function useKeyboardShortcuts({
         if (previousModeRef.current === null) {
           previousModeRef.current = canvasModeRef.current
         }
-        onCanvasModeChange('pan')
+        setCanvasMode('pan')
         return
       }
 
@@ -72,9 +64,9 @@ function useKeyboardShortcuts({
         event.preventDefault()
         event.stopPropagation()
         if (event.shiftKey) {
-          onRedo()
+          redo()
         } else {
-          onUndo()
+          undo()
         }
         return
       }
@@ -82,14 +74,14 @@ function useKeyboardShortcuts({
       if (key === 'c' && selectedNodeIdRef.current) {
         event.preventDefault()
         event.stopPropagation()
-        onCopyNode(selectedNodeIdRef.current)
+        copyNode(selectedNodeIdRef.current)
         return
       }
 
       if (key === 'v') {
         event.preventDefault()
         event.stopPropagation()
-        onPasteNode(getViewportCenterPosition())
+        pasteNode(getViewportCenterPosition())
       }
     }
 
@@ -101,7 +93,7 @@ function useKeyboardShortcuts({
 
       event.preventDefault()
       previousModeRef.current = null
-      onCanvasModeChange(previousMode)
+      setCanvasMode(previousMode)
     }
 
     target.addEventListener('keydown', handleKeyDown)
@@ -111,15 +103,7 @@ function useKeyboardShortcuts({
       target.removeEventListener('keydown', handleKeyDown)
       target.removeEventListener('keyup', handleKeyUp)
     }
-  }, [
-    getViewportCenterPosition,
-    onCanvasModeChange,
-    onCopyNode,
-    onPasteNode,
-    onRedo,
-    onUndo,
-    targetRef,
-  ])
+  }, [getViewportCenterPosition, copyNode, pasteNode, redo, setCanvasMode, targetRef, undo])
 }
 
 export { useKeyboardShortcuts }

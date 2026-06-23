@@ -33,8 +33,6 @@ interface ExecutionEntry {
 
 interface GlobalLogPanelProps {
   workflowId: string
-  open: boolean
-  onClose: () => void
 }
 
 function formatTime(iso: string): string {
@@ -52,11 +50,13 @@ function formatDuration(ms: number | null): string {
   return `${(ms / 1000).toFixed(1)}s`
 }
 
-function GlobalLogPanel({ workflowId, open, onClose }: GlobalLogPanelProps) {
+function GlobalLogPanel({ workflowId }: GlobalLogPanelProps) {
   const [executions, setExecutions] = useState<ExecutionEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const storeNodes = useWorkflowStore((s) => s.nodes)
+  const open = useWorkflowStore((s) => s.logOpen)
+  const toggleLogOpen = useWorkflowStore((s) => s.toggleLogOpen)
 
   const fetchExecutions = useCallback(async () => {
     setLoading(true)
@@ -115,7 +115,7 @@ function GlobalLogPanel({ workflowId, open, onClose }: GlobalLogPanelProps) {
           </Button>
           <button
             type="button"
-            onClick={onClose}
+            onClick={toggleLogOpen}
             className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             {open ? <ChevronsDown className="h-4 w-4" /> : <ChevronsUp className="h-4 w-4" />}

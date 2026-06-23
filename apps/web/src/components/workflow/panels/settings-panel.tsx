@@ -24,6 +24,7 @@ import { ConfigForm } from './config-form'
 import { VariableInspector } from '../variables'
 import { ensureOutputsInData, getEffectiveOutputs, OUTPUT_TYPES } from './settings-panel-outputs'
 import { useNodeExecution } from '../hooks'
+import { useWorkflowStore } from '../store/workflow-store'
 
 function SettingsPanelContent({
   workflowId,
@@ -337,23 +338,33 @@ function SettingsPanelContent({
 
 interface SettingsPanelProps {
   workflowId: string
-  nodeId: string | null
-  nodeType: string | null
-  data: Record<string, unknown> | null
-  onChange: (data: Record<string, unknown>) => void
-  onClose: () => void
 }
 
-function SettingsPanel({
-  workflowId,
-  nodeId,
-  nodeType,
-  data,
-  onChange,
-  onClose,
-}: SettingsPanelProps) {
+function SettingsPanel({ workflowId }: SettingsPanelProps) {
+  const selectedNodeId = useWorkflowStore((state) => state.selectedNodeId)
+  const selectedNode = useWorkflowStore((state) =>
+    state.selectedNodeId
+      ? (state.nodes.find((node) => node.id === state.selectedNodeId) ?? null)
+      : null,
+  )
+  const commitOps = useWorkflowStore((state) => state.commitOps)
+  const onClose = useWorkflowStore((state) => state.closeSettingsPanel)
+  const nodeId = selectedNodeId
+  const nodeType = selectedNode?.type ?? null
+  const data = selectedNode?.data ?? null
   const isVisible = nodeId !== null && nodeType !== null && data !== null
   const [inspectorOpen, setInspectorOpen] = useState(false)
+
+  const handleChange = useCallback(
+    (nextData: Record<string, unknown>) => {
+      if (!selectedNodeId) return
+      commitOps(
+        [{ type: 'node.update', nodeId: selectedNodeId, dataPatch: nextData }],
+        '修改节点配置',
+      )
+    },
+    [commitOps, selectedNodeId],
+  )
 
   const handleToggleInspector = useCallback(() => {
     setInspectorOpen((prev) => !prev)
@@ -411,7 +422,7 @@ function SettingsPanel({
             nodeId={nodeId}
             nodeType={nodeType}
             data={data}
-            onChange={onChange}
+            onChange={handleChange}
             onClose={onClose}
             inspectorOpen={inspectorOpen}
             onToggleInspector={handleToggleInspector}

@@ -4,17 +4,15 @@ import { useReactFlow } from '@xyflow/react'
 import { Button, Separator, ToggleGroup, ToggleGroupItem } from '@eous/ui'
 import { NodeSelector } from '../nodes'
 import { WORKFLOW_FIT_VIEW_OPTIONS } from './viewport'
+import { useWorkflowStore } from '../store/workflow-store'
 
 export type CanvasInteractionMode = 'pan' | 'select'
 
-interface CanvasToolbarProps {
-  mode: CanvasInteractionMode
-  onModeChange: (mode: CanvasInteractionMode) => void
-  onSelectNode: (nodeType: string) => void
-}
-
-function CanvasToolbar({ mode, onModeChange, onSelectNode }: CanvasToolbarProps) {
+function CanvasToolbar() {
   const { fitView } = useReactFlow()
+  const mode = useWorkflowStore((state) => state.canvasMode)
+  const setCanvasMode = useWorkflowStore((state) => state.setCanvasMode)
+  const addDefaultNode = useWorkflowStore((state) => state.addDefaultNode)
 
   const handleFitView = useCallback(() => {
     void fitView({ ...WORKFLOW_FIT_VIEW_OPTIONS, duration: 240 })
@@ -22,7 +20,7 @@ function CanvasToolbar({ mode, onModeChange, onSelectNode }: CanvasToolbarProps)
 
   return (
     <div className="pointer-events-auto flex w-10 flex-col items-center gap-1 rounded-lg border border-border bg-card/90 py-1.5 shadow-sm backdrop-blur">
-      <NodeSelector onSelectNode={onSelectNode}>
+      <NodeSelector onSelectNode={addDefaultNode}>
         <Button size="sm" variant="default" className="h-7 w-7">
           <Plus className="h-4 w-4" />
         </Button>
@@ -36,7 +34,7 @@ function CanvasToolbar({ mode, onModeChange, onSelectNode }: CanvasToolbarProps)
         spacing={1}
         value={mode}
         onValueChange={(value) => {
-          if (value === 'pan' || value === 'select') onModeChange(value)
+          if (value === 'pan' || value === 'select') setCanvasMode(value)
         }}
       >
         <ToggleGroupItem value="select" aria-label="框选" className="h-7 w-7">
@@ -65,4 +63,3 @@ function CanvasToolbar({ mode, onModeChange, onSelectNode }: CanvasToolbarProps)
 CanvasToolbar.displayName = 'CanvasToolbar'
 
 export { CanvasToolbar }
-export type { CanvasToolbarProps }
