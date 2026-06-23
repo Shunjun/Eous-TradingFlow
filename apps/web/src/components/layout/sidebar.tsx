@@ -5,6 +5,12 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
   Dot,
   DropdownMenu,
   DropdownMenuContent,
@@ -40,8 +46,10 @@ import {
   Plus,
   GitBranch,
   ChevronDown,
+  Trash2,
 } from 'lucide-react'
 import { useWorkflowList } from '../../hooks/use-workflows'
+import { useWorkflowListStore } from '../../stores/workflows'
 import { CreateWorkflowDialog } from '../workflow/create-workflow-dialog'
 import { api } from '../../lib/api'
 
@@ -95,7 +103,10 @@ export function AppSidebar() {
   const { state } = useSidebar()
   const { theme, setTheme } = useTheme()
   const { workflows } = useWorkflowList()
+  const deleteWorkflow = useWorkflowListStore((s) => s.deleteWorkflow)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [workflowsCollapsed, setWorkflowsCollapsed] = useState(false)
 
   const isCollapsed = state === 'collapsed'
@@ -124,6 +135,21 @@ export function AppSidebar() {
     }
     window.location.href = '/login'
   }, [])
+
+  const handleDeleteWorkflow = useCallback(async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      const nextWorkflow = workflows.find((workflow) => workflow.id !== deleteTarget.id) ?? null
+      await deleteWorkflow(deleteTarget.id)
+      setDeleteTarget(null)
+      if (activeWorkflowId === deleteTarget.id) {
+        navigate(nextWorkflow ? `/workflow/${nextWorkflow.id}` : '/home')
+      }
+    } finally {
+      setDeleting(false)
+    }
+  }, [activeWorkflowId, deleteTarget, deleteWorkflow, navigate, workflows])
 
   return (
     <>
@@ -236,11 +262,16 @@ export function AppSidebar() {
                           workflows.map((wf) => {
                             const isActive = activeWorkflowId === wf.id
                             return (
-                              <SidebarMenuItem key={wf.id}>
+                              <SidebarMenuItem key={wf.id} className="group/workflow-item">
                                 {isActive && (
                                   <span className="pointer-events-none absolute -left-2 top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:hidden" />
                                 )}
-                                <SidebarMenuButton asChild isActive={isActive} tooltip={wf.name}>
+                                <SidebarMenuButton
+                                  asChild
+                                  isActive={isActive}
+                                  tooltip={wf.name}
+                                  className="pr-8"
+                                >
                                   <NavLink to={`/workflow/${wf.id}`} className="cursor-pointer">
                                     <GitBranch size={16} />
                                     <span className="flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
@@ -248,6 +279,19 @@ export function AppSidebar() {
                                     </span>
                                   </NavLink>
                                 </SidebarMenuButton>
+                                <button
+                                  type="button"
+                                  aria-label={`删除 ${wf.name}`}
+                                  title="删除"
+                                  className="absolute right-1 top-1/2 hidden size-6 -translate-y-1/2 items-center justify-center rounded-md text-sidebar-foreground/45 opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover/workflow-item:flex group-hover/workflow-item:opacity-100 focus:flex focus:opacity-100 group-data-[collapsible=icon]:hidden"
+                                  onClick={(event) => {
+                                    event.preventDefault()
+                                    event.stopPropagation()
+                                    setDeleteTarget({ id: wf.id, name: wf.name })
+                                  }}
+                                >
+                                  <Trash2 size={13} />
+                                </button>
                               </SidebarMenuItem>
                             )
                           })
@@ -327,6 +371,34 @@ export function AppSidebar() {
         onCreated={handleCreated}
         onCancel={() => setDialogOpen(false)}
       />
+      <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent showCloseButton={!deleting}>
+          <DialogHeader>
+            <DialogTitle>删除工作流</DialogTitle>
+            <DialogDescription>
+              确认删除「{deleteTarget?.name}」？该操作会移除工作流及相关版本记录。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={deleting}
+              onClick={() => setDeleteTarget(null)}
+            >
+              取消
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deleting}
+              onClick={handleDeleteWorkflow}
+            >
+              {deleting ? '删除中…' : '删除'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

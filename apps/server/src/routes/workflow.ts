@@ -39,6 +39,19 @@ workflowRouter.put('/:id', async (c) => {
   return c.json({ workflow })
 })
 
+workflowRouter.patch('/:id/meta', async (c) => {
+  const body = await c.req.json<{
+    name?: string
+    description?: string
+  }>()
+  const workflow = await workflowService.updateWorkflowMeta(
+    c.get('userId'),
+    c.req.param('id'),
+    body,
+  )
+  return c.json({ workflow })
+})
+
 workflowRouter.patch('/:id', async (c) => {
   const body = await c.req.json<ApplyWorkflowOpsRequest>()
   const result = await workflowEditService.applyWorkflowOps(

@@ -180,4 +180,18 @@ describe('workflow-edit.service', () => {
       new AppError('Workflow has changed. Refresh before applying edits.', 409),
     )
   })
+
+  it('persists workflow rename ops', async () => {
+    const { applyWorkflowOps } = await importService()
+
+    const result = await applyWorkflowOps('user-1', 'wf-1', {
+      ops: [{ type: 'workflow.rename', name: 'Renamed workflow' }],
+    })
+
+    expect(workflowRepo.update).toHaveBeenCalledWith(
+      'wf-1',
+      expect.objectContaining({ name: 'Renamed workflow' }),
+    )
+    expect(result.workflow.name).toBe('Renamed workflow')
+  })
 })

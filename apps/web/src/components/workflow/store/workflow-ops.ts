@@ -7,7 +7,10 @@ type WorkflowEdgeState = Edge
 interface WorkflowGraphState {
   nodes: WorkflowNodeState[]
   edges: WorkflowEdgeState[]
+  workflowName?: string
 }
+
+type TryApplyWorkflowOpsResult = (WorkflowGraphState & { ok: true }) | { ok: false; reason: string }
 
 function toWorkflowNode(node: WorkflowNodeState): WorkflowNode {
   return {
@@ -55,10 +58,12 @@ function applyWorkflowOpsToState(
 ): WorkflowGraphState {
   let nodes = state.nodes
   let edges = state.edges
+  let workflowName = state.workflowName
 
   for (const op of ops) {
     switch (op.type) {
       case 'workflow.rename':
+        workflowName = op.name
         break
 
       case 'node.add':
@@ -124,7 +129,115 @@ function applyWorkflowOpsToState(
     }
   }
 
-  return { nodes, edges }
+  return { nodes, edges, workflowName }
+}
+
+function hasCycle(nodes: WorkflowNodeState[], edges: WorkflowEdgeState[]): boolean {
+  const adj = new Map<string, string[]>()
+  const visiting = new Set<string>()
+  const visited = new Set<string>()
+
+  for (const node of nodes) adj.set(node.id, [])
+  for (const edge of edges) adj.get(edge.source)?.push(edge.target)
+
+  function visit(nodeId: string): boolean {
+    if (visiting.has(nodeId)) return true
+    if (visited.has(nodeId)) return false
+
+    visiting.add(nodeId)
+    for (const next of adj.get(nodeId) ?? []) {
+      if (visit(next)) return true
+    }
+    visiting.delete(nodeId)
+    visited.add(nodeId)
+    return false
+  }
+
+  return nodes.some((node) => visit(node.id))
+}
+
+function tryApplyWorkflowOpsToState(
+  state: WorkflowGraphState,
+  ops: WorkflowEditOp[],
+): TryApplyWorkflowOpsResult {
+  let cursor: WorkflowGraphState = {
+    nodes: state.nodes,
+    edges: state.edges,
+    workflowName: state.workflowName,
+  }
+
+  for (const op of ops) {
+    switch (op.type) {
+      case 'workflow.rename':
+        break
+
+      case 'node.add':
+        if (cursor.nodes.some((node) => node.id === op.node.id)) {
+          return { ok: false, reason: `节点已存在: ${op.node.id}` }
+        }
+        break
+
+      case 'node.update':
+        if (!cursor.nodes.some((node) => node.id === op.nodeId)) {
+          return { ok: false, reason: `节点不存在: ${op.nodeId}` }
+        }
+        break
+
+      case 'node.delete':
+        if (!cursor.nodes.some((node) => node.id === op.nodeId)) {
+          return { ok: false, reason: `节点不存在: ${op.nodeId}` }
+        }
+        break
+
+      case 'edge.add':
+        if (cursor.edges.some((edge) => edge.id === op.edge.id)) {
+          return { ok: false, reason: `连线已存在: ${op.edge.id}` }
+        }
+        if (!cursor.nodes.some((node) => node.id === op.edge.source)) {
+          return { ok: false, reason: `连线源节点不存在: ${op.edge.source}` }
+        }
+        if (!cursor.nodes.some((node) => node.id === op.edge.target)) {
+          return { ok: false, reason: `连线目标节点不存在: ${op.edge.target}` }
+        }
+        break
+
+      case 'edge.update': {
+        const edge = cursor.edges.find((item) => item.id === op.edgeId)
+        if (!edge) return { ok: false, reason: `连线不存在: ${op.edgeId}` }
+        const nextSource = op.patch.source ?? edge.source
+        const nextTarget = op.patch.target ?? edge.target
+        if (!cursor.nodes.some((node) => node.id === nextSource)) {
+          return { ok: false, reason: `连线源节点不存在: ${nextSource}` }
+        }
+        if (!cursor.nodes.some((node) => node.id === nextTarget)) {
+          return { ok: false, reason: `连线目标节点不存在: ${nextTarget}` }
+        }
+        break
+      }
+
+      case 'edge.delete':
+        if (!cursor.edges.some((edge) => edge.id === op.edgeId)) {
+          return { ok: false, reason: `连线不存在: ${op.edgeId}` }
+        }
+        break
+
+      case 'node.insertBetween':
+        if (!cursor.edges.some((edge) => edge.id === op.edgeId)) {
+          return { ok: false, reason: `连线不存在: ${op.edgeId}` }
+        }
+        if (cursor.nodes.some((node) => node.id === op.node.id)) {
+          return { ok: false, reason: `节点已存在: ${op.node.id}` }
+        }
+        break
+    }
+
+    cursor = applyWorkflowOpsToState(cursor, [op])
+    if (hasCycle(cursor.nodes, cursor.edges)) {
+      return { ok: false, reason: '合并后会形成循环依赖' }
+    }
+  }
+
+  return { ok: true, ...cursor }
 }
 
 function invertWorkflowOps(state: WorkflowGraphState, ops: WorkflowEditOp[]): WorkflowEditOp[] {
@@ -134,6 +247,7 @@ function invertWorkflowOps(state: WorkflowGraphState, ops: WorkflowEditOp[]): Wo
   for (const op of ops) {
     switch (op.type) {
       case 'workflow.rename':
+        inverse.unshift({ type: 'workflow.rename', name: cursor.workflowName ?? '' })
         break
 
       case 'node.add':
@@ -220,7 +334,8 @@ export {
   fromWorkflowEdge,
   fromWorkflowNode,
   invertWorkflowOps,
+  tryApplyWorkflowOpsToState,
   toWorkflowEdge,
   toWorkflowNode,
 }
-export type { WorkflowGraphState, WorkflowNodeState, WorkflowEdgeState }
+export type { TryApplyWorkflowOpsResult, WorkflowGraphState, WorkflowNodeState, WorkflowEdgeState }

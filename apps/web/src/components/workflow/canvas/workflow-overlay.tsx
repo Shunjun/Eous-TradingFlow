@@ -21,7 +21,7 @@ interface WorkflowOverlayProps {
   onSave: () => void
   onPublish: () => void
   onToggleLog: () => void
-  onWorkflowSelect?: (workflowId: string) => void
+  onWorkflowSelect?: (workflowId: string | null) => void
   onCanvasModeChange: (mode: CanvasInteractionMode) => void
   onSelectNodeType: (nodeType: string) => void
   onNodeDataChange: (data: Record<string, unknown>) => void

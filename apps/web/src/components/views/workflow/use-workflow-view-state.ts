@@ -7,7 +7,7 @@ export interface WorkflowViewState {
 
 export interface WorkflowViewProps {
   workflowId: string | null
-  onWorkflowSelect: (workflowId: string) => void
+  onWorkflowSelect: (workflowId: string | null) => void
 }
 
 const DEFAULT_WORKFLOW_STATE: WorkflowViewState = {
@@ -38,7 +38,7 @@ export function useWorkflowViewState(
   )
 
   const handleWorkflowSelect = useCallback(
-    (workflowId: string) => {
+    (workflowId: string | null) => {
       const updated = { workflowId }
       setState(updated)
       onChange(updated)

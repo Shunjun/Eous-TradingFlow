@@ -37,6 +37,27 @@ export async function updateWorkflow(
   return workflowRepo.update(id, body)
 }
 
+export async function updateWorkflowMeta(
+  userId: string,
+  id: string,
+  body: { name?: string; description?: string },
+) {
+  const workflow = await workflowRepo.findById(id)
+  if (!workflow || workflow.userId !== userId) {
+    throw new AppError('Workflow not found', 404)
+  }
+
+  const update: { name?: string; description?: string } = {}
+  if (body.name !== undefined) {
+    const name = body.name.trim()
+    if (!name) throw new AppError('Workflow name is required', 400)
+    update.name = name
+  }
+  if (body.description !== undefined) update.description = body.description
+
+  return workflowRepo.update(id, update)
+}
+
 export async function deleteWorkflow(userId: string, id: string) {
   const workflow = await workflowRepo.findById(id)
   if (!workflow || workflow.userId !== userId) {

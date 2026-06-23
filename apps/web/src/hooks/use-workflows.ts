@@ -1,28 +1,18 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { WorkflowDefinition } from '@eous/api-client'
 import { api } from '../lib/api'
+import { useWorkflowListStore } from '../stores/workflows'
 
 export function useWorkflowList() {
-  const [workflows, setWorkflows] = useState<WorkflowDefinition[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const refresh = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const data = await api.listWorkflows()
-      setWorkflows(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load workflows')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const workflows = useWorkflowListStore((s) => s.workflows)
+  const loading = useWorkflowListStore((s) => s.loading)
+  const error = useWorkflowListStore((s) => s.error)
+  const loadWorkflows = useWorkflowListStore((s) => s.loadWorkflows)
+  const refresh = useWorkflowListStore((s) => s.refreshWorkflows)
 
   useEffect(() => {
-    refresh()
-  }, [refresh])
+    void loadWorkflows()
+  }, [loadWorkflows])
 
   return { workflows, loading, error, refresh }
 }
@@ -69,11 +59,8 @@ export async function saveWorkflow(workflow: WorkflowDefinition): Promise<void> 
 }
 
 export async function createWorkflow(name: string): Promise<string> {
-  const result = await api.createWorkflow({
-    name,
-    definition: '{"nodes":[],"edges":[]}',
-  })
-  return result.workflow.id
+  const workflow = await useWorkflowListStore.getState().createWorkflow(name)
+  return workflow.id
 }
 
 export async function publishWorkflow(id: string): Promise<void> {

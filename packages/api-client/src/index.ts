@@ -336,6 +336,10 @@ export interface ApiClient {
     name: string
     definition: string
   }): Promise<{ workflow: WorkflowDefinition }>
+  updateWorkflowMeta(
+    id: string,
+    params: { name?: string; description?: string },
+  ): Promise<{ workflow: WorkflowDefinition }>
   saveWorkflow(workflow: WorkflowDefinition): Promise<void>
   applyWorkflowOps(
     workflowId: string,
@@ -739,13 +743,16 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       const res = await post<{ workflow: RawWorkflow }>('/workflows', params)
       return { workflow: toWorkflowDefinition(res.workflow) }
     },
+    updateWorkflowMeta: async (id, params) => {
+      const res = await patch<{ workflow: RawWorkflow }>(
+        `/workflows/${encodeURIComponent(id)}/meta`,
+        params,
+      )
+      return { workflow: toWorkflowDefinition(res.workflow) }
+    },
     saveWorkflow: async (workflow) => {
       const definition = JSON.stringify({ nodes: workflow.nodes, edges: workflow.edges })
-      await put(
-        `/workflows/${encodeURIComponent(workflow.id)}`,
-        { name: workflow.name, definition },
-        true,
-      )
+      await put(`/workflows/${encodeURIComponent(workflow.id)}`, { definition }, true)
     },
     applyWorkflowOps: async (workflowId, request) => {
       const res = await patch<{
