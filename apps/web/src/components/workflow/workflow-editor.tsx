@@ -5,22 +5,7 @@ import { useWorkflowStore } from '../../stores/workflow'
 import { useWorkflow, publishWorkflow, saveWorkflow } from '../../hooks/use-workflows'
 import { WorkflowCanvas, WorkflowOverlay, type CanvasInteractionMode } from './canvas'
 
-const VALID_NODE_TYPES = new Set<string>([
-  'source.price',
-  'source.kline',
-  'source.news',
-  'compute.indicator',
-  'compute.factor',
-  'compute.python',
-  'llm.signal',
-  'llm.report',
-  'llm.free',
-  'control.branch',
-  'control.parallel',
-  'control.cron',
-  'output.chart',
-  'agent.call',
-])
+const VALID_NODE_TYPES = new Set<string>(Object.keys(nodeRegistry))
 
 function isNodeType(value: string): value is NodeType {
   return VALID_NODE_TYPES.has(value)

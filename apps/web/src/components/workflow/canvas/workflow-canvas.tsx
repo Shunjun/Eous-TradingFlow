@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import {
   ReactFlow,
   Background,
@@ -11,6 +11,8 @@ import {
   type Edge,
   type Connection,
   type NodeTypes,
+  type NodeChange,
+  type EdgeChange,
   type OnConnect,
   type OnNodesChange,
   type OnEdgesChange,
@@ -19,6 +21,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { nodeRegistry, type NodeComponentProps, type ParamDef } from '@eous/nodes'
+import { api } from '../../../lib/api'
 import { useWorkflowStore } from '../../../stores/workflow'
 import { BaseNode } from '../nodes/base-node'
 import type { CanvasInteractionMode } from './canvas-toolbar'
@@ -52,9 +55,36 @@ interface WorkflowNodeData extends Record<string, unknown> {
   color?: string
 }
 
+function hasPersistableNodeChange(changes: NodeChange[]): boolean {
+  return changes.some(
+    (change) =>
+      change.type === 'position' ||
+      change.type === 'add' ||
+      change.type === 'remove' ||
+      change.type === 'replace',
+  )
+}
+
+function hasPersistableEdgeChange(changes: EdgeChange[]): boolean {
+  return changes.some(
+    (change) => change.type === 'add' || change.type === 'remove' || change.type === 'replace',
+  )
+}
+
 function createNodeComponent(
   CanvasNode: (props: NodeComponentProps) => React.ReactNode,
-  options?: { hideHandles?: boolean },
+  options?: {
+    hideHandles?: boolean
+    onRun?: (id: string) => void
+    onToggleLock?: (id: string) => void
+    onDuplicate?: (id: string) => void
+    onDelete?: (id: string) => void
+    onAddConnectedNode?: (params: {
+      sourceNodeId: string
+      sourcePosition: 'left' | 'right'
+      nodeType: string
+    }) => void
+  },
 ) {
   return function WorkflowNode(props: NodeProps<Node<WorkflowNodeData>>) {
     return (
@@ -62,7 +92,13 @@ function createNodeComponent(
         id={props.id}
         data={props.data}
         selected={props.selected}
+        locked={props.draggable === false}
         hideHandles={options?.hideHandles}
+        onRun={options?.onRun}
+        onToggleLock={options?.onToggleLock}
+        onDuplicate={options?.onDuplicate}
+        onDelete={options?.onDelete}
+        onAddConnectedNode={options?.onAddConnectedNode}
       >
         <CanvasNode
           id={props.id}
@@ -74,15 +110,6 @@ function createNodeComponent(
     )
   }
 }
-
-const nodeTypes: NodeTypes = Object.fromEntries(
-  Object.entries(nodeRegistry).map(([type, entry]) => [
-    type,
-    createNodeComponent(entry.canvas as (props: NodeComponentProps) => React.ReactNode, {
-      hideHandles: type === 'control.branch',
-    }),
-  ]),
-)
 
 const defaultEdgeOptions = {
   animated: true,
@@ -99,33 +126,156 @@ function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) 
   const edges = useWorkflowStore((s) => s.edges)
   const setNodes = useWorkflowStore((s) => s.setNodes)
   const setEdges = useWorkflowStore((s) => s.setEdges)
+  const onNodesChange = useWorkflowStore((s) => s.onNodesChange)
+  const onEdgesChange = useWorkflowStore((s) => s.onEdgesChange)
   const addNode = useWorkflowStore((s) => s.addNode)
   const removeNodes = useWorkflowStore((s) => s.removeNodes)
 
   const { screenToFlowPosition } = useReactFlow()
 
+  const createWorkflowNode = useCallback((nodeType: string, position: { x: number; y: number }) => {
+    const entry = localNodeRegistry[nodeType]
+    return {
+      id: `${nodeType}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      type: nodeType,
+      position,
+      data: {
+        status: 'idle',
+        label: entry?.label,
+        color: entry?.color,
+        ...entry?.defaults,
+      },
+    } satisfies Node<WorkflowNodeData>
+  }, [])
+
+  const handleRunNode = useCallback((nodeId: string) => {
+    const workflowId = useWorkflowStore.getState().activeWorkflowId
+    if (!workflowId || workflowId === 'new') return
+    void api.runWorkflowNode(workflowId, nodeId)
+  }, [])
+
+  const handleDuplicateNode = useCallback(
+    (nodeId: string) => {
+      const currentNodes = useWorkflowStore.getState().nodes
+      const sourceNode = currentNodes.find((node) => node.id === nodeId)
+      if (!sourceNode) return
+
+      addNode({
+        ...sourceNode,
+        id: `${sourceNode.type ?? 'node'}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        selected: false,
+        position: {
+          x: sourceNode.position.x + 32,
+          y: sourceNode.position.y + 32,
+        },
+        data: { ...(sourceNode.data ?? {}) },
+      })
+    },
+    [addNode],
+  )
+
+  const handleToggleLockNode = useCallback(
+    (nodeId: string) => {
+      const currentNodes = useWorkflowStore.getState().nodes
+      onNodesChange(
+        currentNodes.map((node) =>
+          node.id === nodeId ? { ...node, draggable: node.draggable === false } : node,
+        ),
+      )
+    },
+    [onNodesChange],
+  )
+
+  const handleAddConnectedNode = useCallback(
+    ({
+      sourceNodeId,
+      sourcePosition,
+      nodeType,
+    }: {
+      sourceNodeId: string
+      sourcePosition: 'left' | 'right'
+      nodeType: string
+    }) => {
+      const currentNodes = useWorkflowStore.getState().nodes
+      const sourceNode = currentNodes.find((node) => node.id === sourceNodeId)
+      if (!sourceNode) return
+
+      const xOffset = sourcePosition === 'right' ? 280 : -280
+      const nextNode = createWorkflowNode(nodeType, {
+        x: sourceNode.position.x + xOffset,
+        y: sourceNode.position.y,
+      })
+
+      const currentEdges = useWorkflowStore.getState().edges
+      const edge =
+        sourcePosition === 'right'
+          ? {
+              id: `${sourceNodeId}-${nextNode.id}`,
+              source: sourceNodeId,
+              target: nextNode.id,
+            }
+          : {
+              id: `${nextNode.id}-${sourceNodeId}`,
+              source: nextNode.id,
+              target: sourceNodeId,
+            }
+
+      onNodesChange([...currentNodes, nextNode])
+      onEdgesChange(addEdge(edge, currentEdges))
+    },
+    [createWorkflowNode, onEdgesChange, onNodesChange],
+  )
+
+  const nodeTypes = useMemo<NodeTypes>(
+    () =>
+      Object.fromEntries(
+        Object.entries(nodeRegistry).map(([type, entry]) => [
+          type,
+          createNodeComponent(entry.canvas as (props: NodeComponentProps) => React.ReactNode, {
+            hideHandles: type === 'control.branch',
+            onRun: handleRunNode,
+            onToggleLock: handleToggleLockNode,
+            onDuplicate: handleDuplicateNode,
+            onDelete: (nodeId) => removeNodes([nodeId]),
+            onAddConnectedNode: handleAddConnectedNode,
+          }),
+        ]),
+      ),
+    [handleAddConnectedNode, handleDuplicateNode, handleRunNode, handleToggleLockNode, removeNodes],
+  )
+
   const handleNodesChange: OnNodesChange = useCallback(
     (changes) => {
       const currentNodes = useWorkflowStore.getState().nodes
-      setNodes(applyNodeChanges(changes, currentNodes))
+      const nextNodes = applyNodeChanges(changes, currentNodes)
+      if (hasPersistableNodeChange(changes)) {
+        onNodesChange(nextNodes)
+      } else {
+        setNodes(nextNodes)
+      }
     },
-    [setNodes],
+    [onNodesChange, setNodes],
   )
 
   const handleEdgesChange: OnEdgesChange = useCallback(
     (changes) => {
       const currentEdges = useWorkflowStore.getState().edges
-      setEdges(applyEdgeChanges(changes, currentEdges))
+      const nextEdges = applyEdgeChanges(changes, currentEdges)
+      if (hasPersistableEdgeChange(changes)) {
+        onEdgesChange(nextEdges)
+      } else {
+        setEdges(nextEdges)
+      }
     },
-    [setEdges],
+    [onEdgesChange, setEdges],
   )
 
   const handleConnect: OnConnect = useCallback(
     (connection: Connection) => {
       const currentEdges = useWorkflowStore.getState().edges
-      setEdges(addEdge(connection, currentEdges))
+      onEdgesChange(addEdge(connection, currentEdges))
     },
-    [setEdges],
+    [onEdgesChange],
   )
 
   const handleDelete = useCallback(
@@ -153,22 +303,9 @@ function WorkflowCanvas({ interactionMode, onSelectNode }: WorkflowCanvasProps) 
         y: event.clientY,
       })
 
-      const entry = localNodeRegistry[nodeType]
-      const newNode: Node<WorkflowNodeData> = {
-        id: `${nodeType}-${Date.now()}`,
-        type: nodeType,
-        position,
-        data: {
-          status: 'idle',
-          label: entry?.label,
-          color: entry?.color,
-          ...entry?.defaults,
-        },
-      }
-
-      addNode(newNode)
+      addNode(createWorkflowNode(nodeType, position))
     },
-    [screenToFlowPosition, addNode],
+    [screenToFlowPosition, addNode, createWorkflowNode],
   )
 
   const handleNodeClick = useCallback(

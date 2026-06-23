@@ -55,7 +55,7 @@ export const useWorkflowStore = create<WorkflowEditorState>((set) => ({
       isDirty: false,
       lastModified: 0,
     }),
-  markDirty: () => set({ isDirty: true }),
+  markDirty: () => set({ isDirty: true, lastModified: Date.now() }),
   markClean: () => set({ isDirty: false }),
   setWorkflowName: (name) => set({ workflowName: name, isDirty: true, lastModified: Date.now() }),
   reset: () =>

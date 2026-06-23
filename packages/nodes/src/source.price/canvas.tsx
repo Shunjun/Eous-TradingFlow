@@ -1,4 +1,5 @@
 import type { NodeComponentProps } from '../types'
+import { NodeCard, emptyValue } from '../ui/node-card'
 import { def } from './def'
 
 function formatChangePercent(value: unknown): string {
@@ -15,19 +16,16 @@ function CanvasNode({ data }: NodeComponentProps) {
   const color = typeof data.color === 'string' ? data.color : undefined
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center gap-1.5 border-b border-border px-3 py-1.5">
-        {color && (
-          <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: color }} />
-        )}
-        <span className="text-[11px] font-medium text-foreground">{label}</span>
-      </div>
-      <div className="px-3 py-1.5">
-        <span className="text-[10px] text-muted-foreground">
-          {symbol} · {price} · {changePercent}
-        </span>
-      </div>
-    </div>
+    <NodeCard
+      icon={def.meta.icon}
+      title={label}
+      color={color}
+      details={[
+        { label: 'Symbol', value: emptyValue(symbol) },
+        { label: 'Price', value: price },
+        { label: 'Change', value: changePercent },
+      ]}
+    />
   )
 }
 
