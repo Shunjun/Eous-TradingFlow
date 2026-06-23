@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Badge, ScrollArea } from '@eous/ui'
-import { getNodeDef, allNodeMetas, type OutputDef, type NodeDef } from '@eous/nodes'
+import { getNodeDef, allNodeMetas } from '@eous/nodes'
 import { api } from '../../../lib/api'
 import { useWorkflowStore } from '../store/workflow-store'
+import { getEffectiveOutputs } from '../panels/settings-panel-outputs'
 
 interface VariableInspectorProps {
   workflowId: string
@@ -12,16 +13,6 @@ interface VariableInspectorProps {
 const NODE_LABELS: Record<string, string> = Object.fromEntries(
   allNodeMetas.map((m) => [m.type, m.label]),
 )
-
-function getEffectiveOutputs(data: Record<string, unknown>, def: NodeDef | undefined): OutputDef[] {
-  if (Array.isArray(data.outputs)) return data.outputs as OutputDef[]
-  if (!def) return []
-  return Object.values(def.executeOutput).map((f) => ({
-    name: f.name,
-    type: f.type as OutputDef['type'],
-    source: f.source,
-  }))
-}
 
 function getNodeTypeLabel(type: string): string {
   return NODE_LABELS[type] ?? type

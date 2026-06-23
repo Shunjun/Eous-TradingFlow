@@ -5,6 +5,7 @@ export type {
   ParamDef,
   OutputField,
   OutputDef,
+  CustomOutputDef,
   NodeMeta,
   NodeDef,
   AcceptableType,

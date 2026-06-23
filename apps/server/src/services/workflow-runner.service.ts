@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { prisma, type WorkflowNodeExecution } from '@eous/db'
 import { executors } from '@eous/nodes/server'
 import type {
+  CustomOutputDef,
   ExecuteContext,
   LogLevel,
   LogEntry,
@@ -37,6 +38,65 @@ interface WorkflowEdge {
 const NODE_SCHEMA_VERSION: Record<string, number> = {
   'source.kline': 2, // 派单 12: provider+exchange → dataSourceInstanceId
   'source.price': 2, // 同上
+}
+
+function getCustomOutputs(data: Record<string, unknown>): CustomOutputDef[] {
+  if (!Array.isArray(data.customOutputs)) return []
+  return data.customOutputs.filter((item): item is CustomOutputDef => {
+    if (!item || typeof item !== 'object') return false
+    const output = item as Record<string, unknown>
+    return typeof output.name === 'string' && typeof output.expression === 'string'
+  })
+}
+
+function splitOutputPath(path: string): string[] {
+  const parts: string[] = []
+  let current = ''
+  for (let i = 0; i < path.length; i++) {
+    const ch = path[i]
+    if (ch === '.' || ch === '[' || ch === ']') {
+      if (current) parts.push(current)
+      current = ''
+    } else {
+      current += ch
+    }
+  }
+  if (current) parts.push(current)
+  return parts
+}
+
+function resolveOutputExpression(outputs: Record<string, unknown>, expression: string): unknown {
+  const path = expression.trim()
+  if (!path) return undefined
+  let current: unknown = outputs
+  for (const part of splitOutputPath(path)) {
+    if (current == null || typeof current !== 'object') return undefined
+    current = (current as Record<string, unknown>)[part]
+  }
+  return current
+}
+
+function applyCustomOutputs(
+  outputs: Record<string, unknown>,
+  node: WorkflowNode,
+  log: (level: LogLevel, message: string) => void,
+): Record<string, unknown> {
+  const customOutputs = getCustomOutputs(node.data)
+  if (customOutputs.length === 0) return outputs
+
+  const next = { ...outputs }
+  for (const output of customOutputs) {
+    const name = output.name.trim()
+    const expression = output.expression.trim()
+    if (!name || !expression) continue
+    const value = resolveOutputExpression(outputs, expression)
+    if (value === undefined) {
+      log('warn', `额外输出 "${name}" 取值失败: ${expression}`)
+      continue
+    }
+    next[name] = value
+  }
+  return next
 }
 
 function computeDefinitionHash(node: WorkflowNode): string {
@@ -190,7 +250,8 @@ export async function runNode(
       ctx.log('error', error)
     } else {
       try {
-        outputs = await executor(resolvedInput, ctx)
+        const rawOutputs = await executor(resolvedInput, ctx)
+        outputs = applyCustomOutputs(rawOutputs, node, ctx.log)
       } catch (e) {
         status = 'failed'
         error = e instanceof Error ? e.message : String(e)

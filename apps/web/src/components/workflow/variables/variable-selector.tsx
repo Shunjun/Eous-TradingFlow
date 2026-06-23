@@ -1,9 +1,10 @@
 import { useMemo, useCallback } from 'react'
 import { Link } from 'lucide-react'
 import { Popover, PopoverTrigger, PopoverContent, Badge, ScrollArea, cn } from '@eous/ui'
-import { getNodeOutputs, type OutputField } from '@eous/nodes'
+import { getNodeDef, type OutputDef } from '@eous/nodes'
 import { useWorkflowStore } from '../store/workflow-store'
 import type { Edge, Node } from '@xyflow/react'
+import { getEffectiveOutputs } from '../panels/settings-panel-outputs'
 
 interface VariableRef {
   nodeId: string
@@ -25,7 +26,7 @@ function getUpstreamNodes(nodeId: string, edges: Edge[], nodes: Node[]) {
 interface VariableOption {
   nodeId: string
   nodeLabel: string
-  field: OutputField
+  field: OutputDef
 }
 
 interface VariableSelectorProps {
@@ -52,11 +53,10 @@ function VariableSelector({
 
     for (const node of upstreamNodes) {
       if (!node.type) continue
-      const outputs = getNodeOutputs(node.type)
-      if (!outputs) continue
+      const outputs = getEffectiveOutputs(node.data, getNodeDef(node.type))
 
       const label = typeof node.data.label === 'string' ? node.data.label : node.type
-      const options: VariableOption[] = Object.values(outputs).map((field) => ({
+      const options: VariableOption[] = outputs.map((field) => ({
         nodeId: node.id,
         nodeLabel: label,
         field,

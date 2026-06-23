@@ -146,6 +146,7 @@ function validateNodeDataPatch(
     'color',
     'status',
     'outputs',
+    'customOutputs',
   ])
 
   for (const key of Object.keys(patch)) {

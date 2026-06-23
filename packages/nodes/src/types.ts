@@ -78,13 +78,20 @@ export type OptionsSource =
   | { source: 'agents' }
   | { source: 'providerModels'; providerIdField: string }
 
-export type AcceptableType = 'string' | 'number' | 'boolean' | 'json' | 'array' | 'file'
+export type AcceptableType = 'string' | 'number' | 'boolean' | 'object' | 'array' | 'file'
 
-/** User-configured output definition — single source of truth for node outputs */
 export interface OutputDef {
   name: string
   type: AcceptableType
   source: { field: string; path?: string }
+  description?: string
+}
+
+export interface CustomOutputDef {
+  name: string
+  type: AcceptableType
+  description?: string
+  expression: string
 }
 
 export interface ParamDef {

@@ -1,9 +1,10 @@
 import { useMemo, useCallback } from 'react'
 import { Link } from 'lucide-react'
 import { Popover, PopoverTrigger, PopoverContent, Badge, ScrollArea, cn } from '@eous/ui'
-import type { AcceptableType, OutputField } from '@eous/nodes'
-import { getNodeOutputs } from '@eous/nodes'
+import type { AcceptableType } from '@eous/nodes'
+import { getNodeDef } from '@eous/nodes'
 import { useWorkflowStore } from '../store/workflow-store'
+import { getEffectiveOutputs } from '../panels/settings-panel-outputs'
 
 interface VariableRef {
   nodeId: string
@@ -30,7 +31,7 @@ function typeToAcceptable(serverType: string): AcceptableType {
   if (t === 'number') return 'number'
   if (t === 'boolean') return 'boolean'
   if (t.includes('bar') || t.includes('array') || t.endsWith('[]')) return 'array'
-  if (t === 'json') return 'json'
+  if (t === 'json' || t === 'object') return 'object'
   return 'string'
 }
 
@@ -79,10 +80,9 @@ function VariablePicker({
         : id
       const nodeType = node?.type ?? ''
 
-      const outputs = getNodeOutputs(nodeType)
-      if (!outputs) continue
+      const outputs = getEffectiveOutputs(node?.data ?? {}, getNodeDef(nodeType))
 
-      const fields = Object.values(outputs)
+      const fields = outputs
         .filter((f) => typeMatchesAcceptable(f.type, acceptTypes))
         .map((f) => ({ name: f.name, type: f.type }))
 

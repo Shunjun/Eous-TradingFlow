@@ -12,11 +12,12 @@ import {
   cn,
 } from '@eous/ui'
 import type { ParamDef, OutputField, NodeDef } from '@eous/nodes'
-import { getNodeOutputs } from '@eous/nodes'
+import { getNodeDef } from '@eous/nodes'
 import { useWorkflowStore } from '../store/workflow-store'
 import { api } from '../../../lib/api'
 import { VariablePicker, type VariableRef } from '../variables'
 import type { Edge } from '@xyflow/react'
+import { getEffectiveOutputs } from './settings-panel-outputs'
 
 // ── Helpers ─────────────────────────────────────────────────
 
@@ -394,10 +395,9 @@ function ConfigField({
                         : (node.type ?? nid)
                       : nid
                     const nodeType = node?.type ?? ''
-                    const outputs = getNodeOutputs(nodeType)
-                    if (!outputs) return null
+                    const outputs = getEffectiveOutputs(node?.data ?? {}, getNodeDef(nodeType))
                     return Object.keys(fieldValues).map((fieldName) => {
-                      const fieldDef = outputs[fieldName]
+                      const fieldDef = outputs.find((output) => output.name === fieldName)
                       const varValue = `{{${nodeLabel}.${fieldName}}}`
                       return (
                         <button
