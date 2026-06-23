@@ -1,6 +1,6 @@
 import { Separator } from '@eous/ui'
 import type { NodeDef } from '@eous/nodes'
-import { ConfigForm } from './config-form'
+import { ConfigField } from './config-fields/config-field'
 import { SettingsOutputsEditor } from './settings-outputs-editor'
 
 interface SettingsConfigTabProps {
@@ -23,13 +23,19 @@ function SettingsConfigTab({
   return (
     <div className="flex flex-col gap-4 p-3">
       {nodeDef && hasInputs && (
-        <ConfigForm
-          nodeDef={nodeDef}
-          nodeId={nodeId}
-          data={data}
-          onChange={onChange}
-          upstreamOutputs={upstreamOutputs}
-        />
+        <div className="flex flex-col gap-4">
+          {Object.entries(nodeDef.executeInput).map(([fieldKey, param]) => (
+            <ConfigField
+              key={fieldKey}
+              fieldKey={fieldKey}
+              param={param}
+              nodeId={nodeId}
+              data={data}
+              onChange={onChange}
+              upstreamOutputs={upstreamOutputs}
+            />
+          ))}
+        </div>
       )}
       {hasInputs && <Separator />}
       <SettingsOutputsEditor data={data} nodeDef={nodeDef} onChange={onChange} />
