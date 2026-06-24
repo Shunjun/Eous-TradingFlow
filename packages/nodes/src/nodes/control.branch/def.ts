@@ -26,18 +26,5 @@ export const def: NodeDef = {
       ],
     },
   },
-  executeOutput: {
-    selectedBranch: {
-      name: 'selectedBranch',
-      type: 'string',
-      source: { field: 'selectedBranch' },
-      description: '命中的分支 ID',
-    },
-    matched: {
-      name: 'matched',
-      type: 'boolean',
-      source: { field: 'matched' },
-      description: '是否命中条件分支',
-    },
-  },
+  executeOutput: {},
 }

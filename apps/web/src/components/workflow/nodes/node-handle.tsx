@@ -46,6 +46,15 @@ function NodeHandle({
     setMenuOpen(true)
   }, [])
 
+  const handleMenuOpenChange = useCallback((open: boolean) => {
+    if (!open) setMenuOpen(false)
+  }, [])
+
+  const handleClick = useCallback((event: React.MouseEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+  }, [])
+
   const handle = (
     <Handle
       id={handleId}
@@ -55,6 +64,7 @@ function NodeHandle({
       style={variant === 'node' ? { top: 18 } : undefined}
       onPointerDown={isSource ? handlePointerDown : undefined}
       onPointerUp={isSource ? handlePointerUp : undefined}
+      onClick={handleClick}
     />
   )
 
@@ -63,11 +73,12 @@ function NodeHandle({
   return (
     <NodeSelector
       open={menuOpen}
-      onOpenChange={setMenuOpen}
+      onOpenChange={handleMenuOpenChange}
       side="right"
       align="center"
       alignOffset={0}
       sideOffset={16}
+      trigger={false}
       onSelectNode={(nodeType) =>
         onAddConnectedNode?.({ sourceNodeId: nodeId, sourceHandle: handleId, nodeType })
       }

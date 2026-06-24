@@ -7,7 +7,7 @@ export async function execute(input: ExecuteInput, ctx: ExecuteContext): Promise
   for (const branch of branches) {
     if (branch.type === 'else') {
       ctx.log('info', `命中默认分支: ${branch.id}`)
-      return { selectedBranch: branch.id, matched: false }
+      return { __selectedBranch: branch.id }
     }
 
     const condition = branch.condition ?? ''
@@ -17,7 +17,7 @@ export async function execute(input: ExecuteInput, ctx: ExecuteContext): Promise
       const fn = new Function(`return (${condition})`)
       if (!!fn()) {
         ctx.log('info', `命中条件分支: ${branch.id}`)
-        return { selectedBranch: branch.id, matched: true }
+        return { __selectedBranch: branch.id }
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
@@ -27,5 +27,5 @@ export async function execute(input: ExecuteInput, ctx: ExecuteContext): Promise
   }
 
   ctx.log('info', '没有命中任何分支')
-  return { selectedBranch: '', matched: false }
+  return { __selectedBranch: '' }
 }

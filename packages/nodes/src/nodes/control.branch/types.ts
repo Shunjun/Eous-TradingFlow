@@ -5,6 +5,5 @@ export interface ExecuteInput {
 }
 
 export interface ExecuteOutput {
-  selectedBranch: string
-  matched: boolean
+  __selectedBranch: string
 }

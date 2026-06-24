@@ -39,6 +39,7 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+  --color-primary-muted: hsl(var(--primary-muted));
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -80,6 +81,7 @@
   --border: 30 15% 85%;
   --input: 30 15% 85%;
   --ring: 25 95% 53%;
+  --primary-muted: 25 88% 65%;
   --radius: 0.5rem;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --font-sans: 'DM Sans', system-ui, sans-serif;
@@ -117,6 +119,7 @@
   --border: 20 8% 18%;
   --input: 20 8% 18%;
   --ring: 25 95% 53%;
+  --primary-muted: 25 58% 32%;
   --sidebar: 20 8% 10%;
   --sidebar-foreground: 40 15% 90%;
   --sidebar-primary: 25 95% 53%;
@@ -147,20 +150,30 @@
 
 @layer components {
   .workflow-node-handle {
-    width: 7px !important;
-    height: 16px !important;
-    border: 1px solid hsl(var(--border)) !important;
-    border-radius: 3px !important;
-    background: hsl(var(--muted)) !important;
-    opacity: 0.82;
+    width: 18px !important;
+    height: 18px !important;
+    border: 0 !important;
+    border-radius: 999px !important;
+    background: transparent !important;
+    z-index: -1;
     transition:
-      width 150ms ease,
-      height 150ms ease,
-      border-radius 150ms ease,
-      background-color 150ms ease,
-      border-color 150ms ease,
       opacity 150ms ease,
       transform 150ms ease !important;
+  }
+
+  .workflow-node-handle::before {
+    content: '';
+    position: absolute;
+    inset: 1px 6px;
+    border: 1px solid hsl(var(--primary-muted));
+    border-radius: 4px;
+    background: hsl(var(--primary-muted));
+
+    transition:
+      inset 150ms ease,
+      border-radius 150ms ease,
+      background-color 150ms ease,
+      border-color 150ms ease;
   }
 
   .workflow-node-handle::after {
@@ -170,6 +183,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-bottom: 1px;
     color: hsl(var(--primary-foreground));
     font-size: 0;
     font-weight: 700;
@@ -177,12 +191,15 @@
   }
 
   .workflow-node-handle:hover {
-    width: 18px !important;
-    height: 18px !important;
-    border-color: hsl(var(--primary)) !important;
-    border-radius: 999px !important;
-    background: hsl(var(--primary)) !important;
     opacity: 1;
+    z-index: unset;
+  }
+
+  .workflow-node-handle:hover::before {
+    inset: 0;
+    border-color: hsl(var(--primary));
+    border-radius: 999px;
+    background: hsl(var(--primary));
   }
 
   .workflow-node-handle:hover::after {
@@ -190,12 +207,12 @@
   }
 
   .workflow-node-handle.source {
-    right: -1px !important;
+    right: -2px !important;
     transform: translate(50%, -50%) !important;
   }
 
   .workflow-node-handle.target {
-    left: -1px !important;
+    left: -2px !important;
     transform: translate(-50%, -50%) !important;
   }
 
@@ -205,11 +222,6 @@
 
   .workflow-node-handle.target:hover {
     transform: translate(-50%, -50%) !important;
-  }
-
-  .workflow-node-handle.workflow-node-handle--detail {
-    top: 50% !important;
-    z-index: 20;
   }
 }
 

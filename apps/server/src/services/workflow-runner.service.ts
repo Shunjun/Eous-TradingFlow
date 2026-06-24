@@ -176,7 +176,7 @@ function isBranchEdgeActive(
   varCache: Record<string, Record<string, unknown>>,
 ): boolean {
   if (sourceNode?.type !== 'control.branch') return true
-  const selectedBranch = varCache[edge.source]?.selectedBranch
+  const selectedBranch = varCache[edge.source]?.__selectedBranch
   return typeof selectedBranch === 'string' && edge.sourceHandle === selectedBranch
 }
 

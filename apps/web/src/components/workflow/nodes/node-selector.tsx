@@ -1,13 +1,12 @@
 import { useState, useMemo, useCallback, type ReactNode } from 'react'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
   Input,
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+  PopoverTrigger,
   ScrollArea,
+  cn,
 } from '@eous/ui'
 import { allNodeMetas, type NodeMeta } from '@eous/nodes'
 import { NodeIcon } from './node-icons'
@@ -44,6 +43,7 @@ interface NodeSelectorProps {
   align?: 'start' | 'center' | 'end'
   sideOffset?: number
   alignOffset?: number
+  trigger?: boolean
 }
 
 function NodeSelector({
@@ -55,6 +55,7 @@ function NodeSelector({
   align = 'start',
   sideOffset = 8,
   alignOffset = -4,
+  trigger = true,
 }: NodeSelectorProps) {
   const [search, setSearch] = useState('')
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false)
@@ -98,7 +99,7 @@ function NodeSelector({
           onKeyDown={(e) => e.stopPropagation()}
         />
       </div>
-      <DropdownMenuSeparator />
+      <div className="h-px bg-border" />
       <ScrollArea className="min-h-0 flex-1">
         <div className="p-1">
           {CATEGORY_ORDER.map((category) => {
@@ -106,24 +107,28 @@ function NodeSelector({
             if (!nodes || nodes.length === 0) return null
             return (
               <div key={category}>
-                <DropdownMenuLabel className="px-2 py-1 text-[11px] text-muted-foreground">
+                <div className="px-2 py-1 text-[11px] font-medium text-muted-foreground">
                   {CATEGORY_LABELS[category] ?? category}
-                </DropdownMenuLabel>
+                </div>
                 {nodes.map((node) => (
-                  <DropdownMenuItem
+                  <button
+                    type="button"
                     key={node.type}
-                    onSelect={() => handleSelect(node.type)}
-                    className="gap-2 text-xs"
+                    onClick={() => handleSelect(node.type)}
+                    className={cn(
+                      'flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs outline-none',
+                      'hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground',
+                    )}
                   >
                     <NodeIcon name={node.icon} className="h-3.5 w-3.5" />
                     <span className="flex-1 truncate">{node.label}</span>
                     <span className="ml-auto truncate font-mono text-[10px] text-muted-foreground">
                       {node.type}
                     </span>
-                  </DropdownMenuItem>
+                  </button>
                 ))}
                 {category !== CATEGORY_ORDER[CATEGORY_ORDER.length - 1] && (
-                  <DropdownMenuSeparator />
+                  <div className="-mx-1 my-1 h-px bg-border" />
                 )}
               </div>
             )
@@ -137,9 +142,10 @@ function NodeSelector({
   )
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      {children ? <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger> : null}
-      <DropdownMenuContent
+    <Popover open={open} onOpenChange={setOpen}>
+      {children && trigger ? <PopoverTrigger asChild>{children}</PopoverTrigger> : null}
+      {children && !trigger ? <PopoverAnchor asChild>{children}</PopoverAnchor> : null}
+      <PopoverContent
         side={side}
         align={align}
         alignOffset={alignOffset}
@@ -147,8 +153,8 @@ function NodeSelector({
         className="flex w-56 h-[360px] flex-col p-0"
       >
         {nodeList}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </PopoverContent>
+    </Popover>
   )
 }
 
