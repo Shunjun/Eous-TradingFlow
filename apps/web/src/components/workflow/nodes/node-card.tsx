@@ -8,11 +8,13 @@ type NodeConnection = {
 
 const NODE_ICON_LABELS: Record<string, string> = {
   brain: 'AI',
+  'calendar-clock': 'SCH',
   'candlestick-chart': 'K',
   'dollar-sign': '$',
   'file-text': 'R',
   'git-branch': 'IF',
   'message-square': 'LLM',
+  play: 'GO',
 }
 
 interface NodeTitleProps {

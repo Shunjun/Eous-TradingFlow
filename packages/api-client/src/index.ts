@@ -76,7 +76,14 @@ export interface ExecutionRecord {
 }
 
 export type NodeType = string
-export type NodeCategory = 'source' | 'compute' | 'llm' | 'control' | 'output' | 'agent'
+export type NodeCategory = 'trigger' | 'source' | 'compute' | 'llm' | 'control' | 'output' | 'agent'
+
+export interface ExecuteWorkflowRequest {
+  input?: {
+    userInput?: string
+    [key: string]: unknown
+  }
+}
 
 export interface WorkflowNode {
   id: string
@@ -347,7 +354,7 @@ export interface ApiClient {
   ): Promise<ApplyWorkflowOpsResponse>
   deleteWorkflow(id: string): Promise<void>
 
-  executeWorkflow(id: string): Promise<ExecutionRecord>
+  executeWorkflow(id: string, request?: ExecuteWorkflowRequest): Promise<ExecutionRecord>
   cancelExecution(id: string): Promise<void>
   getExecution(id: string): Promise<ExecutionRecord>
 
@@ -767,7 +774,8 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       }
     },
     deleteWorkflow: (id: string) => del(`/workflows/${encodeURIComponent(id)}`, true),
-    executeWorkflow: (id: string) => post(`/workflows/${encodeURIComponent(id)}/execute`),
+    executeWorkflow: (id: string, request?: ExecuteWorkflowRequest) =>
+      post(`/workflows/${encodeURIComponent(id)}/execute`, request),
 
     getExecution: (id: string) => get(`/executions/${encodeURIComponent(id)}`),
     cancelExecution: (id: string) =>

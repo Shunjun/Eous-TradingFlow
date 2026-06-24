@@ -1,10 +1,10 @@
 import type { WorkflowDocumentSlice, WorkflowSliceCreator } from './types'
 import { workflowContentOps } from './helpers'
-import { createDefaultWorkflowNode } from '../utils'
+import { createDefaultWorkflowNode, createDefaultWorkflowNodes } from '../utils'
 import { toWorkflowNode } from './workflow-ops'
 
 const createDocumentSlice: WorkflowSliceCreator<WorkflowDocumentSlice> = (set, get) => ({
-  nodes: [],
+  nodes: createDefaultWorkflowNodes(),
   edges: [],
   activeWorkflowId: null,
   workflowName: '',

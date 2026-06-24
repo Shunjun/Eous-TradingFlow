@@ -76,12 +76,15 @@ function workflowContentOps(ops: WorkflowEditOp[]): WorkflowEditOp[] {
   return ops.filter((op) => op.type !== 'workflow.rename')
 }
 
-function createDefaultWorkflowNode(nodeType: string): Node {
+function createDefaultWorkflowNode(
+  nodeType: string,
+  options: { id?: string; position?: { x: number; y: number } } = {},
+): Node {
   const defaults = NODE_DEFAULTS[nodeType]
   return {
-    id: `${nodeType}-${Date.now()}`,
+    id: options.id ?? `${nodeType}-${Date.now()}`,
     type: nodeType,
-    position: { x: 250 + Math.random() * 100, y: 150 + Math.random() * 100 },
+    position: options.position ?? { x: 250 + Math.random() * 100, y: 150 + Math.random() * 100 },
     data: {
       status: 'idle' as const,
       label: NODE_LABELS[nodeType] ?? nodeType,
@@ -91,9 +94,19 @@ function createDefaultWorkflowNode(nodeType: string): Node {
   }
 }
 
+function createDefaultWorkflowNodes(): Node[] {
+  return [
+    createDefaultWorkflowNode('trigger.start', {
+      id: 'start',
+      position: { x: 120, y: 160 },
+    }),
+  ]
+}
+
 export {
   buildWorkflowDocument,
   createDefaultWorkflowNode,
+  createDefaultWorkflowNodes,
   isWorkflowNodeType,
   toLocalWorkflowEdges,
   toLocalWorkflowNodes,

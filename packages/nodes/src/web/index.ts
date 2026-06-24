@@ -6,6 +6,7 @@ export type {
   NodeCanvasViewRow,
   ParamDef,
   BranchCondition,
+  ScheduleConfig,
   OutputField,
   OutputDef,
   CustomOutputDef,

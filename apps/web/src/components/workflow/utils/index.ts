@@ -1,6 +1,7 @@
 export {
   buildWorkflowDocument,
   createDefaultWorkflowNode,
+  createDefaultWorkflowNodes,
   isWorkflowNodeType,
   toLocalWorkflowEdges,
   toLocalWorkflowNodes,

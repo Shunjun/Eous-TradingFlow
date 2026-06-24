@@ -5,6 +5,7 @@ import { createDocumentSlice } from './document-slice'
 import { createHistorySlice } from './history-slice'
 import { createStatusSlice } from './status-slice'
 import { createUiSlice } from './ui-slice'
+import { createDefaultWorkflowNodes } from '../utils'
 import type { WorkflowEditorState, WorkflowStore } from './types'
 
 function createWorkflowStore(): WorkflowStore {
@@ -15,7 +16,7 @@ function createWorkflowStore(): WorkflowStore {
     ...createUiSlice(set, get, store),
     reset: () =>
       set({
-        nodes: [],
+        nodes: createDefaultWorkflowNodes(),
         edges: [],
         activeWorkflowId: null,
         workflowName: '',

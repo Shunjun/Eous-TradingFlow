@@ -5,6 +5,7 @@ import { CodeField } from './code-field'
 import { FieldShell } from './field-shell'
 import { formatVariableRef } from './variable-utils'
 import { NumberField } from './number-field'
+import { ScheduleField } from './schedule-field'
 import { SelectField } from './select-field'
 import { TextField } from './text-field'
 import { ToggleField } from './toggle-field'
@@ -80,6 +81,8 @@ function ConfigField({
     >
       {ui === 'branches' ? (
         <BranchesField param={param} value={value} onChange={handleValueChange} />
+      ) : ui === 'schedule' ? (
+        <ScheduleField param={param} value={value} onChange={handleValueChange} />
       ) : ui === 'select' ? (
         <SelectField
           param={param}

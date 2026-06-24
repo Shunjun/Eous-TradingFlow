@@ -12,6 +12,7 @@ import { allNodeMetas, type NodeMeta } from '@eous/nodes'
 import { NodeIcon } from './node-icons'
 
 const CATEGORY_LABELS: Record<string, string> = {
+  trigger: '触发器',
   source: '数据源',
   compute: '计算',
   llm: 'LLM',
@@ -20,7 +21,15 @@ const CATEGORY_LABELS: Record<string, string> = {
   agent: '智能体',
 }
 
-const CATEGORY_ORDER = ['source', 'compute', 'llm', 'control', 'output', 'agent'] as const
+const CATEGORY_ORDER = [
+  'trigger',
+  'source',
+  'compute',
+  'llm',
+  'control',
+  'output',
+  'agent',
+] as const
 
 const allNodes: NodeMeta[] = allNodeMetas
 

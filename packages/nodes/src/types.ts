@@ -51,6 +51,7 @@ export interface LlmService {
 export interface ExecuteContext {
   dataSourceService: DataSourceService
   llmService?: LlmService
+  workflowInput?: Record<string, unknown>
   userId: string
   workflowId: string
   executionId: string
@@ -61,20 +62,50 @@ export interface ExecuteContext {
 
 export interface NodeMeta {
   type: string
-  category: 'source' | 'compute' | 'llm' | 'control' | 'output' | 'agent'
+  category: 'trigger' | 'source' | 'compute' | 'llm' | 'control' | 'output' | 'agent'
   label: string
   icon: string
   description: string
   color: string
 }
 
-export type FieldUIType = 'text' | 'number' | 'select' | 'code' | 'toggle' | 'branches'
+export type FieldUIType = 'text' | 'number' | 'select' | 'code' | 'toggle' | 'branches' | 'schedule'
 
 export interface BranchCondition {
   id: string
   type: 'if' | 'else-if' | 'else'
   condition?: string
 }
+
+export type ScheduleConfig =
+  | {
+      mode: 'interval'
+      every: number
+      unit: 'minute' | 'hour' | 'day'
+      timezone: string
+    }
+  | {
+      mode: 'daily'
+      time: string
+      timezone: string
+    }
+  | {
+      mode: 'weekly'
+      weekdays: number[]
+      time: string
+      timezone: string
+    }
+  | {
+      mode: 'monthly'
+      days: number[]
+      time: string
+      timezone: string
+    }
+  | {
+      mode: 'cron'
+      cron: string
+      timezone: string
+    }
 
 export type OptionsSource =
   | { source: 'dataSourceInstances' }

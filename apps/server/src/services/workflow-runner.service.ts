@@ -36,6 +36,16 @@ interface WorkflowEdge {
   targetHandle?: string
 }
 
+interface ExecuteNodeSequenceOptions {
+  workflowId: string
+  userId: string
+  nodesToRun: WorkflowNode[]
+  allNodes: WorkflowNode[]
+  allEdges: WorkflowEdge[]
+  workflowInput?: Record<string, unknown>
+  useCache: boolean
+}
+
 // Node schema version — bump when node data structure changes so old cached
 // executions automatically invalidate (different hash → cache miss → re-execute).
 const NODE_SCHEMA_VERSION: Record<string, number> = {
@@ -180,6 +190,22 @@ function isBranchEdgeActive(
   return typeof selectedBranch === 'string' && edge.sourceHandle === selectedBranch
 }
 
+function getReachableNodeIds(startNodeId: string, edges: WorkflowEdge[]): Set<string> {
+  const reachable = new Set<string>([startNodeId])
+  const queue = [startNodeId]
+
+  while (queue.length > 0) {
+    const current = queue.shift()!
+    for (const edge of edges) {
+      if (edge.source !== current || reachable.has(edge.target)) continue
+      reachable.add(edge.target)
+      queue.push(edge.target)
+    }
+  }
+
+  return reachable
+}
+
 const dataSourceServiceImpl: DataSourceService = {
   async getInstanceConfig(userId: string, instanceId: string) {
     const instance = await dataSourceService.getInstance(userId, instanceId)
@@ -202,28 +228,18 @@ function createLlmService(userId: string): LlmService {
   }
 }
 
-export async function runNode(
-  workflowId: string,
-  userId: string,
-  targetNode: WorkflowNode,
-  allNodes: WorkflowNode[],
-  allEdges: WorkflowEdge[],
-): Promise<WorkflowNodeExecution> {
-  const sorted = topoSort(allNodes, allEdges)
-  const targetIdx = sorted.findIndex((n) => n.id === targetNode.id)
-  if (targetIdx === -1) {
-    throw new Error(`Node ${targetNode.id} not found in workflow`)
-  }
-
-  // Only run up to and including the target node
-  const nodesToRun = sorted.slice(0, targetIdx + 1)
-
-  // Variable cache: Record<nodeId, Record<fieldName, unknown>>
+async function executeNodeSequence({
+  workflowId,
+  userId,
+  nodesToRun,
+  allNodes,
+  allEdges,
+  workflowInput = {},
+  useCache,
+}: ExecuteNodeSequenceOptions): Promise<Map<string, WorkflowNodeExecution>> {
   const varCache: Record<string, Record<string, unknown>> = {}
   const nodeMap = new Map(allNodes.map((node) => [node.id, node]))
   const skippedNodes = new Set<string>()
-
-  // Track execution results for upstream resolution
   const executionResults = new Map<string, WorkflowNodeExecution>()
 
   for (const node of nodesToRun) {
@@ -240,37 +256,34 @@ export async function runNode(
     }
 
     const upstreamIds = activeUpstreamEdges.map((e) => e.source)
-
-    // Build upstreamOutputs from varCache
     const upstreamOutputs: Record<string, Record<string, unknown>> = {}
     for (const uid of upstreamIds) {
       upstreamOutputs[uid] = varCache[uid] ?? {}
     }
 
-    // Compute definition hash
     const definitionHash = computeDefinitionHash(node)
-
-    // Check cache
-    const cached = await prisma.workflowNodeExecution.findFirst({
-      where: { workflowId, nodeId: node.id, definitionHash, status: 'succeeded' },
-      orderBy: { startedAt: 'desc' },
-    })
+    const canUseCache = useCache && !node.type.startsWith('trigger.')
+    const cached = canUseCache
+      ? await prisma.workflowNodeExecution.findFirst({
+          where: { workflowId, nodeId: node.id, definitionHash, status: 'succeeded' },
+          orderBy: { startedAt: 'desc' },
+        })
+      : null
 
     if (cached) {
       executionResults.set(node.id, cached)
-      // Restore varCache from cached outputs
       if (cached.outputs) {
         varCache[node.id] = JSON.parse(cached.outputs)
       }
       continue
     }
 
-    // Build execution context with log collector
     const logs: LogEntry[] = []
     const executionId = `exec_${Date.now()}_${node.id}`
     const ctx: ExecuteContext = {
       dataSourceService: dataSourceServiceImpl,
       llmService: createLlmService(userId),
+      workflowInput,
       userId,
       workflowId,
       executionId,
@@ -281,7 +294,6 @@ export async function runNode(
       },
     }
 
-    // Parse input: resolve variable references in node data
     const resolvedInput: Record<string, unknown> = {}
     for (const [key, value] of Object.entries(node.data)) {
       if (key === 'label' || key === '__meta') continue
@@ -332,11 +344,38 @@ export async function runNode(
 
     executionResults.set(node.id, execution)
 
-    // Store outputs in varCache for downstream nodes
     if (outputs) {
       varCache[node.id] = outputs
     }
   }
+
+  return executionResults
+}
+
+export async function runNode(
+  workflowId: string,
+  userId: string,
+  targetNode: WorkflowNode,
+  allNodes: WorkflowNode[],
+  allEdges: WorkflowEdge[],
+  workflowInput: Record<string, unknown> = {},
+): Promise<WorkflowNodeExecution> {
+  const sorted = topoSort(allNodes, allEdges)
+  const targetIdx = sorted.findIndex((n) => n.id === targetNode.id)
+  if (targetIdx === -1) {
+    throw new Error(`Node ${targetNode.id} not found in workflow`)
+  }
+
+  const nodesToRun = sorted.slice(0, targetIdx + 1)
+  const executionResults = await executeNodeSequence({
+    workflowId,
+    userId,
+    nodesToRun,
+    allNodes,
+    allEdges,
+    workflowInput,
+    useCache: true,
+  })
 
   const targetExecution = executionResults.get(targetNode.id)
   if (!targetExecution) {
@@ -344,6 +383,67 @@ export async function runNode(
   }
 
   return targetExecution
+}
+
+export async function runWorkflow(
+  workflowId: string,
+  userId: string,
+  allNodes: WorkflowNode[],
+  allEdges: WorkflowEdge[],
+  options: {
+    workflowInput?: Record<string, unknown>
+    triggerNodeId?: string
+    triggeredBy?: 'manual' | 'cron' | 'event'
+  } = {},
+) {
+  const { workflowInput = {}, triggerNodeId, triggeredBy = 'manual' } = options
+  const sorted = topoSort(allNodes, allEdges)
+  const triggerNode = triggerNodeId
+    ? sorted.find((node) => node.id === triggerNodeId)
+    : sorted.find((node) => node.type === 'trigger.start')
+  const nodesToRun = triggerNode
+    ? sorted.filter((node) => getReachableNodeIds(triggerNode.id, allEdges).has(node.id))
+    : sorted
+
+  const executionResults = await executeNodeSequence({
+    workflowId,
+    userId,
+    nodesToRun,
+    allNodes,
+    allEdges,
+    workflowInput,
+    useCache: false,
+  })
+
+  const nodeResults = Object.fromEntries(
+    [...executionResults.values()].map((execution) => [
+      execution.nodeId,
+      {
+        nodeId: execution.nodeId,
+        status: execution.status === 'succeeded' ? 'completed' : 'failed',
+        inputData: execution.inputs ? JSON.parse(execution.inputs) : undefined,
+        outputData: execution.outputs ? JSON.parse(execution.outputs) : undefined,
+        error: execution.error ?? undefined,
+        startedAt: execution.startedAt.toISOString(),
+        finishedAt: execution.finishedAt?.toISOString(),
+      },
+    ]),
+  )
+  const failed = [...executionResults.values()].find(
+    (execution) => execution.status !== 'succeeded',
+  )
+  const now = new Date().toISOString()
+
+  return {
+    id: `workflow_${Date.now()}`,
+    workflowId,
+    status: failed ? 'failed' : 'completed',
+    triggeredBy,
+    nodeResults,
+    startedAt: now,
+    finishedAt: now,
+    error: failed?.error ?? undefined,
+  }
 }
 
 export async function getLastExecution(

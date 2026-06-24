@@ -120,6 +120,28 @@ workflowRouter.get('/:id/variables', async (c) => {
   return c.json({ variables })
 })
 
+workflowRouter.post('/:id/execute', async (c) => {
+  const userId = c.get('userId')
+  const workflow = await workflowService.getWorkflow(userId, c.req.param('id'))
+  const body: { input?: Record<string, unknown> } = await c.req
+    .json<{ input?: Record<string, unknown> }>()
+    .catch(() => ({}))
+  const def = JSON.parse(workflow.definition) as {
+    nodes: Array<{ id: string; type: string; data: Record<string, unknown> }>
+    edges: Array<{
+      id: string
+      source: string
+      sourceHandle?: string
+      target: string
+      targetHandle?: string
+    }>
+  }
+  const execution = await workflowRunner.runWorkflow(workflow.id, userId, def.nodes, def.edges, {
+    workflowInput: body.input ?? {},
+  })
+  return c.json(execution)
+})
+
 workflowRouter.get('/:id/executions', async (c) => {
   const limit = Number(c.req.query('limit')) || 50
   const executions = await workflowRunner.getWorkflowExecutions(c.req.param('id'), limit)

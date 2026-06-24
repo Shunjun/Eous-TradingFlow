@@ -99,7 +99,7 @@ function WorkflowOverlay({
         onWorkflowSelect={onWorkflowSelect}
       />
 
-      <div className="grid min-h-0 grid-cols-[1fr_auto] gap-3">
+      <div className="grid min-h-0 grid-cols-[1fr_auto] gap-3 overflow-x-hidden">
         <div className="relative min-h-0">
           <div className="absolute top-1/2 -translate-y-1/2 left-0">
             <CanvasToolbar />

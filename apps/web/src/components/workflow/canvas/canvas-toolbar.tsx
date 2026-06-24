@@ -20,16 +20,28 @@ export type CanvasInteractionMode = 'pan' | 'select'
 type ToolbarTooltipProps = React.HTMLAttributes<HTMLElement> & {
   label: string
   children: React.ReactElement
+  preserveChildState?: boolean
 }
 
-function ToolbarTooltip({ label, children, ...triggerProps }: ToolbarTooltipProps) {
+function ToolbarTooltip({
+  label,
+  children,
+  preserveChildState = false,
+  ...triggerProps
+}: ToolbarTooltipProps) {
   const trigger = isValidElement(children)
     ? cloneElement(children, triggerProps as React.HTMLAttributes<HTMLElement>)
     : children
 
   return (
     <Tooltip delayDuration={1000}>
-      <TooltipTrigger asChild>{trigger}</TooltipTrigger>
+      {preserveChildState ? (
+        <TooltipTrigger asChild>
+          <span className="inline-flex">{children}</span>
+        </TooltipTrigger>
+      ) : (
+        <TooltipTrigger asChild>{trigger}</TooltipTrigger>
+      )}
       <TooltipContent side="right" sideOffset={10}>
         {label}
       </TooltipContent>
@@ -71,12 +83,12 @@ function CanvasToolbar() {
           if (value === 'pan' || value === 'select') setCanvasMode(value)
         }}
       >
-        <ToolbarTooltip label="框选">
+        <ToolbarTooltip label="框选" preserveChildState>
           <ToggleGroupItem value="select" aria-label="框选" className="h-7 w-7">
             <MousePointer2 className="h-4 w-4" />
           </ToggleGroupItem>
         </ToolbarTooltip>
-        <ToolbarTooltip label="拖拽画布">
+        <ToolbarTooltip label="拖拽画布" preserveChildState>
           <ToggleGroupItem value="pan" aria-label="拖拽画布" className="h-7 w-7">
             <Hand className="h-4 w-4" />
           </ToggleGroupItem>

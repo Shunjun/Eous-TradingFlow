@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { WorkflowDefinition } from '@eous/api-client'
 import { api } from '../lib/api'
+import { buildWorkflowDocument, createDefaultWorkflowNodes } from '../components/workflow/utils'
 
 interface WorkflowListState {
   workflows: WorkflowDefinition[]
@@ -17,6 +18,10 @@ interface WorkflowListState {
 }
 
 let loadPromise: Promise<void> | null = null
+
+function createDefaultWorkflowDefinition(): string {
+  return JSON.stringify(buildWorkflowDocument(createDefaultWorkflowNodes(), []))
+}
 
 function sortWorkflows(workflows: WorkflowDefinition[]): WorkflowDefinition[] {
   return [...workflows].sort((a, b) => {
@@ -66,7 +71,7 @@ export const useWorkflowListStore = create<WorkflowListState>((set, get) => ({
     await get().loadWorkflows({ force: true })
   },
 
-  createWorkflow: async (name, definition = '{"nodes":[],"edges":[]}') => {
+  createWorkflow: async (name, definition = createDefaultWorkflowDefinition()) => {
     const result = await api.createWorkflow({ name, definition })
     get().upsertWorkflow(result.workflow)
     return result.workflow
