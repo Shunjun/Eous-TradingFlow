@@ -1,156 +1,65 @@
-# Eous 产品定位与架构总览
+# Eous 总览与现状
 
-## 一句话定义
+## 产品定位
 
-Eous 是一个低代码的交易标的分析平台。通过可视化节点编排定义 Agent 的分析与决策执行流程，让"数据获取 → 因子计算 → LLM 推理 → 信号/报告输出"整条链路可见、可干预、可复用。
+Eous TradingFlow 是低代码交易分析平台：用户通过可视化节点编排，把数据源、技术处理、LLM 分析、Agent 记忆和输出视图连接成可运行的分析流程。
 
-## 不是做什么的
+当前阶段聚焦交易分析、预测和研究流程编排：
 
-- **不是交易终端**：Eous 不替代 MT5、TradingView。交易下单、仓位管理不在核心范围。
-- **不是量化回测框架**：不替代 Qlib、Backtrader。回测可以作为未来节点加入，但不是内核。
-- **不是 Agent 社交平台**：不替代 AI-Trader。不涉及 Agent 间的信号分享、复制交易。
+- 数据源配置和标的数据读取。
+- 可复用 K 线视图、工作区布局和 Workflow 画布。
+- 节点化执行，包括 source、trigger、control、LLM 节点。
+- Agent 对话、Session、Memory 与 LLM 流式回复。
 
-## 解决什么问题
+回测、通知、自动化执行、交易下单等能力不排除在产品边界之外；它们更适合在基础分析链路稳定后，以 Workflow 节点、Agent 工具或外部集成的方式逐步加入。
 
-现有的交易工具有两类：量化回测框架面向模型研究，交易终端面向手动下单。两者都假设"决策逻辑在人的脑子里或者代码里"。
+## 核心边界
 
-Eous 面向的场景是：**你想让 AI 帮你系统性地分析一个标的，但不想每次手动切换多个工具、复制粘贴数据到 ChatGPT、再自己整理结论。** 目标是让 Agent 的执行逻辑从"脑子里的 SOP"或"一个 Python 脚本"变成一张看得见、改得动、跑得通的图。
+### 数据源、视图、运行时解耦
 
-类比：LLM-TradeBot 这类项目的代码逻辑（Symbol Selector → DataSync → Quant Analyst → Decision Core → Risk Audit）本质上是一条 DAG。在 Eous 里，这条链不是用 Python 写的，而是用节点拖拽 + Prompt 配置搭出来的。
+同一个 DataSourceInstance 可被视图层和运行时层同时消费：
 
-## 核心设计理念
-
-### 1. 数据源、视图、工作流三层解耦
-
-同一个数据源被不同层级消费：
-
-```
-Data Source Layer（数据源层）
-   │
-   ├──▶ View Layer（视图层）
-   │     K线图、新闻列表、报告渲染...   // 只看不改变数据
-   │
-   └──▶ Runtime Layer（运行时层）
-         Workflow 引擎、LLM 执行器...  // 拿数据做计算和推理
+```text
+Data Source Layer
+  ├─ View Layer      KlineChart、Watchlist、Workspace panel
+  └─ Runtime Layer   Workflow Runner、Source 节点、LLM 上下文
 ```
 
-视图组件和运行时逻辑各自独立开发，通过 Provider 抽象对接数据源。K 线视图被标的详情页、工作台 Mosaic、Agent 分屏三处复用，但 K 线视图不关心自己在哪个模块里。
+视图组件只负责展示和交互；Workflow 节点负责计算、取数、推理和输出；二者通过 API 与共享 DTO 连接。
 
-### 2. LLM 是 Workflow 里的一个普通节点
+### LLM 是节点，也是 Agent runtime 的能力
 
-LLM 不是独立的一层，也不是神圣的决策者。它就是 Workflow DAG 里节点面板上的一个类型：
+LLM 在 Workflow 中是普通节点：`llm.free`、`llm.signal`、`llm.report`。LLM 也被 Agent 服务用于对话流式回复和 Memory 注入。两者共用 server 端 LLM service。
 
-- 上游可以接数据源、技术指标、自定义 Python
-- 下游可以接条件分支、图表、另一个 LLM 节点
-- 输出可以是 JSON 信号、Markdown 报告、策略参数
+### Agent 是独立实体
 
-用途由连线决定，不由平台预设。
+Agent 不等同于 Workflow Node。当前已经有独立的 Agent、Session、Message、Summary、Memory 数据模型和页面。Agent 可拥有 Provider/Model/System Prompt 配置，也可在 LLM 节点中作为 Memory 来源。
 
-### 3. Agent 是独立实体
+后续目标是让 Agent 调用工具查看 K 线、搜索新闻、运行/编辑 Workflow。
 
-Agent 不是 Node 的特例。它有独立的对话空间、独立的记忆系统。Agent 可以：
+### Workspace 是容器，不是业务逻辑
 
-- 调用视图（"给我看 AAPL 的 K 线" → 对话右侧展开 K 线图）
-- 调用数据源（直接读取行情、搜索新闻）
-- 调用工作流（"用日报模板分析 AAPL"）
-- 被工作流调用（Workflow 中的 Agent 调用节点，将 Agent Memory 注入分析上下文）
+当前工作区实现使用 Dockview。Workspace panel 负责装载视图，例如 K 线视图和 Workflow 视图；具体业务状态由各视图和 store 管理。
 
-Agent 和 Workflow 是协作关系，不是包含关系。
+## 当前模块
 
-### 4. View 是共享组件，Mosaic 是容器
+| 模块        | 当前状态                                                                          |
+| ----------- | --------------------------------------------------------------------------------- |
+| Auth        | 已实现注册/登录/登出/me，认证态路由由 loader 保护                                 |
+| Provider    | 已实现 LLM Provider CRUD、API Key 加密、model 管理、测试/同步                     |
+| Data Source | 已实现 DataSourceProvider 接口、Yahoo Finance、CCXT、实例配置、标的搜索、K 线读取 |
+| Chart       | 已实现 `@eous/chart`，支持 K 线、指标、画线、周期设置、绘图保存                   |
+| Workspace   | 已实现 Dockview 工作区、布局保存、多 layout、Kline/Workflow panel                 |
+| Workflow    | 已实现列表、创建、编辑器、局部 patch、版本、节点执行、全图执行、变量缓存          |
+| Nodes       | 已实现 trigger、source、control.branch、llm.\* 节点注册和执行                     |
+| Agent       | 已实现 Agent/Session/Message/Memory、SSE 流式对话、手动 Memory 管理               |
+| Realtime    | 已有 market data socket；Workflow 执行事件推送仍待增强                            |
 
-视图组件（K 线图、新闻列表、报告渲染等）是独立开发的 React 组件。工作台的 Mosaic 分窗布局只是把这些组件装进去的一个容器。Mosaic 不关心里面装了什么，组件不关心自己被谁调用了。
+## 重要实现事实
 
-## 模块划分
-
-```
-┌─ Application Shell ──────────────────────────────────┐
-│  导航菜单、路由、模块入口                               │
-├───────────────────────────────────────────────────────┤
-│                                                       │
-│  ┌─ Modules ────────────────────────────────────┐    │
-│  │                                               │    │
-│  │  标的详情页                                   │    │
-│  │  ├─ 标的概览 + K线图                         │    │
-│  │  ├─ 新闻列表                                 │    │
-│  │  └─ 分析历史                                 │    │
-│  │                                               │    │
-│  │  工作台                                       │    │
-│  │  ├─ react-mosaic 自由分窗布局                │    │
-│  │  │   ├─ Workflow 编辑器（React Flow 画布）   │    │
-│  │  │   ├─ 图表面板                             │    │
-│  │  │   └─ ... 用户自由组合                   │    │
-│  │  └─ 面板间通信（标的切换联动）               │    │
-│  │                                               │    │
-│  │  Agent 对话                                   │    │
-│  │  ├─ 对话界面 + Memory                        │    │
-│  │  ├─ 分屏（对话 + Agent 唤起的视图）          │    │
-│  │  └─ 工具调用（唤起视图/读数据/跑工作流）    │    │
-│  │                                               │    │
-│  └───────────────────────────────────────────────┘    │
-│                          ▲ 消费                        │
-│  ┌─ View Layer ─────────────────────────────────┐    │
-│  │  K线图 │ 折线图 │ 新闻列表 │ 报告渲染 │ 数据表格  │    │
-│  │  （独立 React 组件，各模块复用）               │    │
-│  └───────────────────────────────────────────────┘    │
-│                          ▲ 消费                        │
-│  ┌─ Runtime Layer ──────────────────────────────┐    │
-│  │  Workflow 引擎 │ LLM 执行器 │ Agent 运行时    │    │
-│  └───────────────────┬───────────────────────────┘    │
-│                      │ 消费                             │
-│  ┌─ Data Source Layer ──────────────────────────┐    │
-│  │  MarketDataProvider │ NewsProvider │ ...      │    │
-│  └───────────────────────────────────────────────┘    │
-│                          ▲ 支持                        │
-│  ┌─ Infrastructure ─────────────────────────────┐    │
-│  │  Provider 配置 │ API Key 管理 │ 认证 │ 设置   │    │
-│  └───────────────────────────────────────────────┘    │
-│                                                       │
-└───────────────────────────────────────────────────────┘
-```
-
-## 通信层设计
-
-前端不直接知道自己在浏览器还是 Electron 里：
-
-```
-packages/api-client          -- 接口定义（ApiClient 抽象）
-packages/api-client-http     -- CS 模式：fetch + JWT Token
-packages/api-client-electron -- Electron 模式：本地 HTTP + 自动签发 JWT
-```
-
-前端代码只依赖 `@eous/api-client` 的 `ApiClient` 接口，由入口文件注入对应实现。单元测试塞 mock，不走网络。
-
-## 实现策略
-
-按依赖关系分 8 个阶段，每个阶段产出独立可验收的功能：
-
-| 阶段 | 内容            | 交付物                                                       |
-| ---- | --------------- | ------------------------------------------------------------ |
-| P0   | 架构骨架        | Monorepo 结构、核心类型、分层目录、数据流文档                |
-| P1   | 基础设施        | 认证、API Key 加密存储、Provider 配置系统、设置页面          |
-| P2   | 数据源层        | MarketDataProvider / NewsProvider 抽象与实现、缓存、实时推送 |
-| P3   | 共享视图        | K线图、折线图、新闻列表、报告渲染、数据表格                  |
-| P4   | Workflow 引擎   | 节点注册、执行器、DAG 调度、变量插值、WebSocket 推送         |
-| P5   | Workflow 编辑器 | React Flow 画布、节点面板、配置面板、连线、保存加载          |
-| P6   | 工作台          | Mosaic 布局、面板注册、布局持久化、面板间通信                |
-| P7   | Agent 对话      | 对话界面、Memory、工具调用、分屏、Agent 调用节点             |
-| P8   | 标的管理        | 关注列表、标的详情、标的搜索                                 |
-
-[详细功能点列表 →](./07-roadmap.md)
-
-## 关键设计决策
-
-| 决策       | 选择                        | 理由                                    |
-| ---------- | --------------------------- | --------------------------------------- |
-| 前端框架   | Vite + React（非 Next.js）  | SPA 无 SEO 需求，Vite 构建快一个数量级  |
-| 后端框架   | Hono（非 Express/Fastify）  | 轻量高性能，内置 WebSocket              |
-| 节点编辑器 | React Flow                  | 行业标准，Sim Studio/TradingGoose 验证  |
-| 分窗布局   | react-mosaic                | 递归拆分 + Tab 页签，i3 风格平铺        |
-| 图表       | Lightweight Charts          | TradingView 开源版，K 线专业渲染        |
-| 桌面方案   | Electron 独立包             | 不替代 CS 架构，核心代码零改动          |
-| Monorepo   | Turborepo + pnpm            | 并行构建，依赖感知                      |
-| 通信层     | 抽象为独立 package          | CS/Electron 双模式，前端无感            |
-| 数据库     | SQLite（Prisma）            | 零安装，CS 与 Electron 统一，单文件部署 |
-| ORM        | Prisma                      | 类型安全，Schema 声明式，迁移工具成熟   |
-| UI 组件    | Tailwind CSS v4 + shadcn/ui | 原子组件统一管理，主题可切换            |
+- 当前没有 `packages/types`、`api-client-http`、`api-client-electron`、`apps/desktop` 独立包。共享 DTO 和 HTTP client 在 `packages/api-client`。
+- 当前工作区不是 `react-mosaic`，而是 `dockview`。
+- 当前 LLM 接入不是 Vercel AI SDK，而是 `@earendil-works/pi-ai`。
+- 当前 Workflow definition 仍以 JSON 字符串存储在 `workflows.definition`，节点和边暂不拆表。
+- 当前节点执行记录按节点写入 `workflow_node_executions`，全图执行返回聚合结果，但没有独立 workflow execution 表。
+- 当前 Agent 工具调用、MCP tools、Agent 分屏视图还未落地。

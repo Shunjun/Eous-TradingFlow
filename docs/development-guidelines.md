@@ -1,6 +1,6 @@
 # 开发规范
 
-> 每次派 Claude 写代码前，将本文作为上下文传入。写入项目 `.cursor/rules` 或等价机制以确保自动生效。
+本文约束当前仓库的日常开发。若规范与当前实现不一致，优先按当前实现修正文档或代码，避免让规范停留在愿望清单。
 
 ---
 
@@ -9,8 +9,8 @@
 ### 1.1 类型安全
 
 - **禁止 `any` 类型**。若类型确实无法确定，用 `unknown` + type guard 收窄。
-- **禁止 `as` 强制类型断言**。用 Zod schema 或 type guard 替代。
-- **禁止 `@ts-ignore` 和 `@ts-expect-error`**。若第三方库类型有误，在 `.d.ts` 中打补丁。
+- 避免 `as` 强制类型断言。确需处理第三方库或 JSON 边界时，用局部收窄函数或小范围断言，并让断言靠近数据边界。
+- 禁止 `@ts-ignore`。`@ts-expect-error` 只能用于测试类型边界，并必须说明原因。
 - **禁止 `eslint-disable`**。如果规则不合理，在 eslint config 层面调整，不在代码里压。
 
 ### 1.2 文件与命名
@@ -66,22 +66,22 @@ import type { IndicatorConfig } from '../types' // 4
 
 ### 2.3 状态管理
 
-| 场景                      | 方案                          |
-| ------------------------- | ----------------------------- |
-| 组件本地状态              | `useState`                    |
-| 跨组件共享（页面级）      | 提升到父组件，多层级建context |
-| 跨组件共享（全局/持久化） | Zustand store                 |
-| 服务端数据                | TanStack Query                |
-| 图表引擎 Ref              | `useRef`（不触发重渲染）      |
+| 场景                      | 方案                                                                               |
+| ------------------------- | ---------------------------------------------------------------------------------- |
+| 组件本地状态              | `useState`                                                                         |
+| 跨组件共享（页面级）      | 提升到父组件，多层级建context                                                      |
+| 跨组件共享（全局/持久化） | Zustand store                                                                      |
+| 服务端数据                | 当前使用 `@eous/api-client` + 页面/hook 状态；后续如引入 TanStack Query 需统一迁移 |
+| 图表引擎 Ref              | `useRef`（不触发重渲染）                                                           |
 
 ### 2.4 UI 组件使用
 
-- **必须使用 `@eous/ui` 中的 shadcn 组件**，禁止使用原生 HTML 交互元素（`<button>`、`<input>`、`<select>`）
+- 优先使用 `@eous/ui` 中的 shadcn-style 组件。当前组件库尚未覆盖的场景允许使用原生元素，但样式、可访问性和事件行为必须与现有 UI 保持一致。
 - **必须使用 `cn()` 合并 className**，不要手动拼接字符串
 - 分隔线用 `<Separator>`，不用 `<div className="w-px h-4 bg-border">`
 - 加载态用 `<Skeleton>`，不用"Loading..."文案
 - 空态用 `<Empty>`，不用纯文案
-- 交互按钮用 `<Button>` 原生 `<button>`
+- 交互按钮优先用 `<Button>`，只有在第三方库插槽或特殊定位场景下才使用原生 `<button>`
 - 标签/徽标用 `<Badge>`，不用 `<span>` + 手动背景色
 
 ### 2.5 Props 传递
@@ -113,7 +113,7 @@ interface KlineChartProps {
 
 - 优先使用 Tailwind 内置尺寸（`w-4`、`h-5`、`p-2`）
 - 允许任意值的场景：`text-[9px]` / `text-[10px]` / `text-[11px]`（微文字）、`max-w-[1400px]`（固定布局）、`tracking-[0.2em]`（特殊字间距）
-- 暗色模式无需单独处理，Tailwind `dark:` 前缀已全局配置
+- 主题优先使用 CSS token 和 Tailwind utility，不在组件内硬编码主题颜色
 - 禁止内联 `style={{}}`
 
 ### 2.7 异步操作
@@ -181,9 +181,9 @@ export async function findById(id: string) {
 
 ### 3.2 校验
 
-- 所有外部输入（Request body、query params、path params）必须用 Zod schema 校验
-- Schema 定义在 Route 文件顶部或独立的 `schemas/` 目录
-- 校验失败返回 400，由全局错误处理统一格式化
+- 所有外部输入（Request body、query params、path params）必须做显式校验。
+- 当前仓库未引入 Zod；校验可以先使用手写 guard 和 `AppError`。若后续引入 schema 库，需要按模块统一迁移。
+- 校验失败返回 400，由全局错误处理统一格式化。
 
 ### 3.3 错误处理
 
@@ -199,29 +199,29 @@ export async function findById(id: string) {
 
 ---
 
-## 四、Claude 提交前的自检清单
+## 四、提交前自检清单
 
 每次提交代码前，确认以下事项：
 
-- [ ] 没有 `any`、`as`、`@ts-ignore`、`eslint-disable`
+- [ ] 没有不必要的 `any`、`as`、`@ts-ignore`、`eslint-disable`
 - [ ] 没有死代码（console.log、注释掉的代码、未使用的导入）
-- [ ] 所有交互元素使用 `@eous/ui` 组件，不用原生 HTML
+- [ ] 交互元素优先使用 `@eous/ui` 组件；原生元素有明确理由且样式一致
 - [ ] 所有颜色使用 Tailwind token，不硬编码 HSL/HEX
 - [ ] 一个文件一个组件，不同功能逻辑分离，复杂逻辑抽成 hook
 - [ ] 后端严格遵循 Route → Service → Repository 三层
 - [ ] Route 层没有 try/catch 和业务逻辑
-- [ ] 外部输入有 Zod 校验
+- [ ] 外部输入有显式校验
 - [ ] 异步操作有错误处理和竞态取消
 - [ ] `pnpm typecheck` 通过
 
 ---
 
-## 五、我的审查清单
+## 五、审查清单
 
-你（铃）在 Claude 提交后，必须在"通过"之前逐项确认：
+合并或确认变更之前逐项检查：
 
 1. **读完所有变更文件**，不是只跑 `tsc`
 2. **对照以上规范逐项检查**，发现问题列出具体文件和行号
 3. **检查架构边界**：组件是否越界管理了不属于它的状态？hook 是否做了太多事？
-4. **如果发现问题，派回 Claude 修改**，附上具体问题描述（不教写法，只描述问题）
+4. **如果发现问题，要求修改**，附上具体问题描述
 5. **问题清零后再确认通过**

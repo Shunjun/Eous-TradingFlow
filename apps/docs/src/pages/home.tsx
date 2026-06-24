@@ -423,7 +423,7 @@ export function HomePage() {
           {/* Additional feature strip */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
             {[
-              { icon: Layers, label: 'Mosaic Layout' },
+              { icon: Layers, label: 'Dockview Layout' },
               { icon: GitBranch, label: 'DAG Execution' },
               { icon: Cpu, label: 'Sandboxed Python' },
               { icon: Zap, label: 'WebSocket Realtime' },

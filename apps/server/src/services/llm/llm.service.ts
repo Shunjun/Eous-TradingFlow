@@ -106,7 +106,7 @@ export async function streamChat({
 }
 
 /**
- * JSON tolerance chain for LLM outputs (doc/05-llm-integration.md §6):
+ * JSON tolerance chain for LLM outputs (docs/05-agent-llm.md):
  * 1. Direct JSON.parse
  * 2. Extract ```json ... ``` code block
  * 3. Extract { ... } object
