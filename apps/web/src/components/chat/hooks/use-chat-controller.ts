@@ -28,6 +28,7 @@ export function useChatController() {
   const selectedAgent = useChatStore(selectSelectedAgent)
   const selectedProviderId = useChatStore((state) => state.selectedProviderId)
   const selectedModelId = useChatStore((state) => state.selectedModelId)
+  const streamingSessionId = useChatStore((state) => state.streamingSessionId)
   const stream = useAgentStream()
   const { isStreaming, start } = stream
 
@@ -45,7 +46,18 @@ export function useChatController() {
         api.listAgentSessions(),
         api.listProviders(),
       ])
+      const modelEntries = await Promise.all(
+        providerRes.providers.map(async (provider) => {
+          try {
+            const res = await api.getProvider(provider.id)
+            return [provider.id, res.models.filter((model) => model.enabled)] as const
+          } catch {
+            return [provider.id, []] as const
+          }
+        }),
+      )
       store.getState().loadShellSuccess(agentRes.agents, sessionRes.sessions, providerRes.providers)
+      store.getState().setModelsByProviderId(Object.fromEntries(modelEntries))
     } catch (err) {
       store.getState().setError(err instanceof Error ? err.message : 'Failed to load chat')
     } finally {
@@ -66,31 +78,11 @@ export function useChatController() {
   }, [selectedAgent, store])
 
   useEffect(() => {
-    if (!selectedProviderId) {
-      store.getState().setModels([])
-      return
-    }
-
-    let cancelled = false
-    async function loadModels() {
-      try {
-        const res = await api.getProvider(selectedProviderId)
-        if (!cancelled) store.getState().setModels(res.models.filter((model) => model.enabled))
-      } catch {
-        if (!cancelled) store.getState().setModels([])
-      }
-    }
-    void loadModels()
-    return () => {
-      cancelled = true
-    }
-  }, [selectedProviderId, store])
-
-  useEffect(() => {
     if (!activeSessionId) {
       store.getState().setMessages([])
       return
     }
+    if (activeSessionId === streamingSessionId) return
 
     const sessionId = activeSessionId
     let cancelled = false
@@ -116,7 +108,7 @@ export function useChatController() {
     return () => {
       cancelled = true
     }
-  }, [activeSessionId, agents, store])
+  }, [activeSessionId, agents, store, streamingSessionId])
 
   const sendMessage = useCallback(async () => {
     const content = input.trim()
@@ -125,6 +117,7 @@ export function useChatController() {
     const state = store.getState()
     state.setInput('')
     state.setError(null)
+    state.setStreamingSessionId(activeSessionId)
 
     const now = new Date().toISOString()
     const optimisticUser: AgentMessage = {
@@ -161,6 +154,7 @@ export function useChatController() {
           if (!nextSession) return
 
           const nextState = store.getState()
+          nextState.setStreamingSessionId(nextSession.id)
           nextState.setActiveSessionId(nextSession.id)
           nextState.setSessions((current) => {
             const exists = current.some((session) => session.id === nextSession.id)
@@ -182,6 +176,7 @@ export function useChatController() {
         },
         onDone: (event) => {
           const doneMessage = pickDoneMessage(event.data)
+          store.getState().setStreamingSessionId(null)
           if (!doneMessage) return
           store
             .getState()
@@ -192,7 +187,10 @@ export function useChatController() {
             )
           void api.listAgentSessions().then((res) => store.getState().setSessions(res.sessions))
         },
-        onError: (message) => store.getState().setError(message),
+        onError: (message) => {
+          store.getState().setStreamingSessionId(null)
+          store.getState().setError(message)
+        },
       },
     )
   }, [

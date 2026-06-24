@@ -82,7 +82,7 @@ function ChatPageLayout() {
                 </div>
               ) : null}
 
-              <div className="flex min-h-0 flex-1 flex-col">
+              <div className="flex min-h-0 flex-1 flex-col gap-2">
                 <div
                   className={cn(
                     'min-h-0 flex-1 overflow-y-auto px-5 py-5',

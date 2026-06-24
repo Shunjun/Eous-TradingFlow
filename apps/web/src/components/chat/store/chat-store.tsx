@@ -14,7 +14,7 @@ function createChatStore(): ChatStore {
     agents: [],
     sessions: [],
     providers: [],
-    models: [],
+    modelsByProviderId: {},
     selectedAgentId: null,
     selectedProviderId: '',
     selectedModelId: '',
@@ -26,22 +26,23 @@ function createChatStore(): ChatStore {
     sessionListOpen: true,
     viewOpen: false,
     isStreaming: false,
+    streamingSessionId: null,
     sendMessage: async () => {},
 
     setError: (error) => set({ error }),
     setInput: (input) => set({ input }),
     setLoading: (loading) => set({ loading }),
-    setModels: (models) => set({ models }),
+    setModelsByProviderId: (modelsByProviderId) => set({ modelsByProviderId }),
     setMessages: (messages) =>
       set((state) => ({ messages: resolveUpdater(state.messages, messages) })),
     setSessions: (sessions) =>
       set((state) => ({ sessions: resolveUpdater(state.sessions, sessions) })),
     setActiveSessionId: (activeSessionId) => set({ activeSessionId }),
-    setSelectedModelId: (selectedModelId) => set({ selectedModelId }),
     setSessionListOpen: (open) =>
       set((state) => ({ sessionListOpen: resolveUpdater(state.sessionListOpen, open) })),
     setViewOpen: (open) => set((state) => ({ viewOpen: resolveUpdater(state.viewOpen, open) })),
     setIsStreaming: (isStreaming) => set({ isStreaming }),
+    setStreamingSessionId: (streamingSessionId) => set({ streamingSessionId }),
     setSendMessage: (sendMessage) => set({ sendMessage }),
     loadShellSuccess: (agents, sessions, providers) => {
       const firstAgent = agents[0] ?? null
@@ -64,7 +65,15 @@ function createChatStore(): ChatStore {
         selectedModelId: agent?.modelId ?? '',
       })
     },
-    selectProvider: (selectedProviderId) => set({ selectedProviderId, selectedModelId: '' }),
+    selectProviderModel: (value) => {
+      if (!value) {
+        set({ selectedProviderId: '', selectedModelId: '' })
+        return
+      }
+
+      const [selectedProviderId, selectedModelId] = value.split('::')
+      set({ selectedProviderId, selectedModelId })
+    },
     startNewConversation: () => set({ activeSessionId: null, messages: [], error: null }),
   }))
 }

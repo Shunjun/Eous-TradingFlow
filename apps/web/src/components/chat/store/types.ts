@@ -12,7 +12,7 @@ interface ChatState {
   agents: AgentSummary[]
   sessions: AgentSessionSummary[]
   providers: Provider[]
-  models: ProviderModel[]
+  modelsByProviderId: Record<string, ProviderModel[]>
   selectedAgentId: string | null
   selectedProviderId: string
   selectedModelId: string
@@ -24,19 +24,20 @@ interface ChatState {
   sessionListOpen: boolean
   viewOpen: boolean
   isStreaming: boolean
+  streamingSessionId: string | null
   sendMessage: () => Promise<void>
 
   setError: (error: string | null) => void
   setInput: (input: string) => void
   setLoading: (loading: boolean) => void
-  setModels: (models: ProviderModel[]) => void
+  setModelsByProviderId: (modelsByProviderId: Record<string, ProviderModel[]>) => void
   setMessages: (messages: ValueUpdater<AgentMessage[]>) => void
   setSessions: (sessions: ValueUpdater<AgentSessionSummary[]>) => void
   setActiveSessionId: (sessionId: string | null) => void
-  setSelectedModelId: (modelId: string) => void
   setSessionListOpen: (open: ValueUpdater<boolean>) => void
   setViewOpen: (open: ValueUpdater<boolean>) => void
   setIsStreaming: (isStreaming: boolean) => void
+  setStreamingSessionId: (sessionId: string | null) => void
   setSendMessage: (sendMessage: () => Promise<void>) => void
   loadShellSuccess: (
     agents: AgentSummary[],
@@ -44,7 +45,7 @@ interface ChatState {
     providers: Provider[],
   ) => void
   selectAgent: (agentId: string) => void
-  selectProvider: (providerId: string) => void
+  selectProviderModel: (value: string) => void
   startNewConversation: () => void
 }
 

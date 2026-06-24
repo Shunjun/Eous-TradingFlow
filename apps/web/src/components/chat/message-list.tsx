@@ -1,9 +1,15 @@
+import { useEffect, useRef } from 'react'
 import { cn } from '@eous/ui'
 import { formatChatTime } from './format-chat-time'
 import { useChatStore } from './store'
 
 export function MessageList() {
   const messages = useChatStore((state) => state.messages)
+  const bottomRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: 'end' })
+  }, [messages])
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-4">
@@ -30,6 +36,7 @@ export function MessageList() {
           </div>
         </div>
       ))}
+      <div ref={bottomRef} />
     </div>
   )
 }
