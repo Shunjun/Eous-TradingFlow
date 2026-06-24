@@ -9,7 +9,7 @@ import type {
   DataSourceService,
   LlmService,
 } from '@eous/nodes/types'
-import { resolveValue } from '../lib/var-resolver.js'
+import { resolveString, resolveValue } from '../lib/var-resolver.js'
 import * as dataSourceService from './data-source.service.js'
 import * as llmServiceModule from './llm/llm.service.js'
 
@@ -19,6 +19,7 @@ type NodeExecutor = (
 ) => Promise<Record<string, unknown>>
 
 const EXECUTORS: Record<string, NodeExecutor> = executors as Record<string, NodeExecutor>
+const WHOLE_VAR_RE = /^{{([^{}]+)}}$/
 
 interface WorkflowNode {
   id: string
@@ -31,6 +32,8 @@ interface WorkflowEdge {
   id: string
   source: string
   target: string
+  sourceHandle?: string
+  targetHandle?: string
 }
 
 // Node schema version — bump when node data structure changes so old cached
@@ -143,6 +146,40 @@ function topoSort(nodes: WorkflowNode[], edges: WorkflowEdge[]): WorkflowNode[] 
   return sorted
 }
 
+function resolveInputValue(
+  value: unknown,
+  varCache: Record<string, Record<string, unknown>>,
+  allNodes: WorkflowNode[],
+): unknown {
+  if (typeof value === 'string') {
+    return WHOLE_VAR_RE.test(value)
+      ? resolveValue(value, varCache, allNodes)
+      : resolveString(value, varCache, allNodes)
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => resolveInputValue(item, varCache, allNodes))
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [
+        key,
+        resolveInputValue(item, varCache, allNodes),
+      ]),
+    )
+  }
+  return value
+}
+
+function isBranchEdgeActive(
+  edge: WorkflowEdge,
+  sourceNode: WorkflowNode | undefined,
+  varCache: Record<string, Record<string, unknown>>,
+): boolean {
+  if (sourceNode?.type !== 'control.branch') return true
+  const selectedBranch = varCache[edge.source]?.selectedBranch
+  return typeof selectedBranch === 'string' && edge.sourceHandle === selectedBranch
+}
+
 const dataSourceServiceImpl: DataSourceService = {
   async getInstanceConfig(userId: string, instanceId: string) {
     const instance = await dataSourceService.getInstance(userId, instanceId)
@@ -183,13 +220,26 @@ export async function runNode(
 
   // Variable cache: Record<nodeId, Record<fieldName, unknown>>
   const varCache: Record<string, Record<string, unknown>> = {}
+  const nodeMap = new Map(allNodes.map((node) => [node.id, node]))
+  const skippedNodes = new Set<string>()
 
   // Track execution results for upstream resolution
   const executionResults = new Map<string, WorkflowNodeExecution>()
 
   for (const node of nodesToRun) {
     const upstreamEdges = allEdges.filter((e) => e.target === node.id)
-    const upstreamIds = upstreamEdges.map((e) => e.source)
+    const activeUpstreamEdges = upstreamEdges.filter((edge) => {
+      if (skippedNodes.has(edge.source)) return false
+      if (!varCache[edge.source]) return false
+      return isBranchEdgeActive(edge, nodeMap.get(edge.source), varCache)
+    })
+
+    if (upstreamEdges.length > 0 && activeUpstreamEdges.length === 0) {
+      skippedNodes.add(node.id)
+      continue
+    }
+
+    const upstreamIds = activeUpstreamEdges.map((e) => e.source)
 
     // Build upstreamOutputs from varCache
     const upstreamOutputs: Record<string, Record<string, unknown>> = {}
@@ -235,7 +285,7 @@ export async function runNode(
     const resolvedInput: Record<string, unknown> = {}
     for (const [key, value] of Object.entries(node.data)) {
       if (key === 'label' || key === '__meta') continue
-      resolvedInput[key] = resolveValue(value, varCache, allNodes)
+      resolvedInput[key] = resolveInputValue(value, varCache, allNodes)
     }
 
     const startTime = Date.now()
@@ -288,9 +338,12 @@ export async function runNode(
     }
   }
 
-  console.log(executionResults)
+  const targetExecution = executionResults.get(targetNode.id)
+  if (!targetExecution) {
+    throw new Error(`Node ${targetNode.id} was not executed because its branch is inactive`)
+  }
 
-  return executionResults.get(targetNode.id)!
+  return targetExecution
 }
 
 export async function getLastExecution(
