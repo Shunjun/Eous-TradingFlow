@@ -47,13 +47,13 @@ custom -> openai
 
 Agent 相关表：
 
-| 表                | 说明                                                      |
-| ----------------- | --------------------------------------------------------- |
-| `agents`          | Agent 配置，包括名称、描述、system prompt、provider/model |
-| `agent_sessions`  | 对话 Session，可关联 workflow                             |
-| `agent_messages`  | 用户/助手/系统/tool 消息                                  |
-| `agent_summaries` | 长对话摘要                                                |
-| `agent_memories`  | 长期记忆                                                  |
+| 表                | 说明                                                     |
+| ----------------- | -------------------------------------------------------- |
+| `agents`          | Agent 配置，包括名称、描述、instructions、provider/model |
+| `agent_sessions`  | 对话 Session，可关联 workflow                            |
+| `agent_messages`  | 用户/助手/系统/tool 消息                                 |
+| `agent_summaries` | 长对话摘要                                               |
+| `agent_memories`  | 长期记忆                                                 |
 
 `AgentMemory` 当前字段包括：
 
@@ -85,7 +85,7 @@ Agent 相关表：
 - 近期消息窗口。
 - 超过阈值后生成 fallback summary 并写入 `agent_summaries`。
 - Memory 列表、手动新增、按 query/agent/session 检索。
-- Agent 页面可配置 Agent 的 Provider、Model、System Prompt。
+- Agent 页面当前仍临时展示 Agent 设置；后续会迁移到 Settings。
 
 ## 当前页面能力
 
@@ -96,6 +96,147 @@ Agent 相关表：
 - 右侧：Agent 设置、Session summary、Memory 新增与列表。
 
 当前消息渲染是纯文本 `white-space: pre-wrap`，不是完整 Markdown 渲染。
+
+## Agent 设置与模板化方向
+
+Agent 的创建和配置应从 `/agents` 对话页迁移到 Settings。对话页只负责选择 Agent、选择 Session、发送消息和查看结果；Agent 的生命周期管理、默认模型、模板初始化和长期配置统一放在设置页。
+
+目标页面：
+
+```text
+/settings/agents
+  - Agent 列表
+  - New Agent from Template
+  - Agent instructions 编辑
+  - 默认 Provider / Model
+  - Memory / Experience 管理入口
+  - Tool Scope 预留
+```
+
+### Agent Instructions
+
+前端不再把 Agent 的核心设定称为 `System Prompt`。虽然运行时最终仍会渲染成 system prompt，但产品概念应是 Agent instructions：一段类似角色说明文档的多行文本配置。它不需要对应真实文件，也不要求使用 Markdown 编辑器；第一版使用普通多行文本编辑即可。
+
+建议结构：
+
+```md
+# 简介
+
+说明这个 Agent 的身份、职责和领域边界。
+
+# 能力范围
+
+列出这个 Agent 擅长处理的问题和不负责的问题。
+
+# 工作方式
+
+说明分析步骤、输出格式、工具使用原则和需要追问的情况。
+
+# Memory
+
+长期记忆入口，保存用户偏好、固定上下文和长期关注事项。
+
+# Experience
+
+经验入口，保存历史复盘、有效方法、失败案例和已验证规则。
+
+# Tool Scope
+
+声明允许使用的工具组和禁止使用的工具组。
+
+# Constraints
+
+风险约束、合规提醒、禁止确定性收益承诺、数据不足时的处理方式。
+```
+
+数据库字段使用 `agents.instructions`，不再保留 `systemPrompt` 作为 API 字段。历史 `system_prompt` 列通过迁移转为 `instructions` 后删除。
+
+运行时 prompt 渲染应由后端统一完成：
+
+```text
+Agent instructions
+  + retrieved AgentMemory
+  + retrieved Agent Experience
+  + session summary
+  + current tool scope
+  -> final system prompt
+```
+
+Memory 和 Experience 不应被当作高优先级指令。它们是上下文和历史经验，优先级低于系统约束和用户当前请求。
+
+### Agent 模板
+
+Agent 模板用于创建起始 Agent。用户选择模板后自动填充 instructions、默认名称、描述、建议工具范围和默认模型配置，之后可以自由修改。
+
+模板不作为 Agent 的持久身份保存。创建 Agent 时选择模板，只是把模板内容写入 `instructions`。如果后续支持切换模板，切换动作会覆盖当前已编辑的 instructions，并把覆盖后的内容保存到数据库。
+
+第一批建议模板：
+
+| 模板                       | 说明                                             |
+| -------------------------- | ------------------------------------------------ |
+| `Blank Agent`              | 空白 Agent，只提供基础结构                       |
+| `Technical Analyst`        | 技术指标、趋势、支撑阻力、量价关系               |
+| `Fundamental Analyst`      | 财务、估值、成长性、公司质量                     |
+| `Capital Flow Analyst`     | 主力资金、资金流向、板块资金、量价背离           |
+| `News & Sentiment Analyst` | 新闻事件、公告、舆情、短中长期影响               |
+| `Risk Manager`             | 解禁、减持、监管、财务异常、仓位和止损风险       |
+| `Sector Rotation Analyst`  | 板块强弱、热点持续性、行业景气度、板块资金轮动   |
+| `Chief Analyst`            | 汇总多个分析结论，形成综合判断、风险点和观察条件 |
+| `Workflow Architect`       | 设计、解释和修改 TradingFlow Workflow            |
+
+模板来源是产品化借鉴，不直接照搬外部项目：
+
+- TradingAgents：适合作为多 Agent 分工和流程参考，例如 analyst、researcher、trader、risk、portfolio manager。
+- `oficcejo/aiagents-stock`：适合作为中文股票分析角色模板参考，例如技术面、基本面、资金面、新闻、宏观、板块和风险角色。
+- `ArvinLovegood/go-stock`：适合作为股票 AI 产品机制参考，例如提示词模板管理、工具分组、复杂任务模式和技能注入。
+
+### Provider / Model
+
+每个 Agent 应在 Settings 中设置默认 Provider 和 Model。对话页不负责编辑这些配置，只展示当前 Agent 使用的模型。
+
+后续可以支持：
+
+- Agent 默认模型。
+- Quick / Deep 两档模型。
+- 简单问答使用 quick model。
+- 复杂分析、workflow 修改、综合决策使用 deep model。
+
+### Tool Scope 与 MCP 工具方向
+
+Agent 应通过 Tool Scope 控制可用工具，而不是所有 Agent 默认拥有全部工具。Tool Scope 可以先作为 instructions 中的声明和数据库预留字段，后续接入真正 tool calling / MCP runtime。
+
+建议工具域：
+
+| 工具域               | 示例能力                                             |
+| -------------------- | ---------------------------------------------------- |
+| `market_data`        | quote、kline、intraday、index quote                  |
+| `technical_analysis` | MA、MACD、RSI、趋势总结、支撑阻力                    |
+| `fundamental_data`   | 财务摘要、估值指标、股东信息、盈利预测、研报         |
+| `capital_flow`       | 主力资金、板块资金、北向资金、融资融券、量价背离     |
+| `news_research`      | 公司新闻、公告、财经日历、热点事件、事件影响总结     |
+| `sector_analysis`    | 板块排行、板块成分、板块轮动、强弱对比               |
+| `screening`          | 指标选股、资金流选股、板块选股、自然语言筛选         |
+| `risk`               | 解禁、减持、监管处罚、退市/ST 风险、组合风险         |
+| `workflow`           | 读取、创建、局部编辑、校验、运行 Workflow 或单个节点 |
+
+不同模板的默认工具范围示例：
+
+| Agent 模板                 | 默认工具范围                                     |
+| -------------------------- | ------------------------------------------------ |
+| `Technical Analyst`        | `market_data`、`technical_analysis`              |
+| `Fundamental Analyst`      | `fundamental_data`、`news_research`              |
+| `Capital Flow Analyst`     | `capital_flow`、`sector_analysis`、`market_data` |
+| `News & Sentiment Analyst` | `news_research`、`market_data`                   |
+| `Risk Manager`             | `risk`、`fundamental_data`、`capital_flow`       |
+| `Sector Rotation Analyst`  | `sector_analysis`、`capital_flow`、`market_data` |
+| `Workflow Architect`       | `workflow`                                       |
+
+第一批真实工具建议优先做：
+
+1. `workflow` 工具：复用 `WorkflowEditService`，包括 read、apply ops、run node。
+2. `market_data` 工具：复用现有 data source / kline / quote 能力。
+3. `news_research` 工具：复用已有 news API 能力。
+4. 后续再接资金流、板块、公告、财务等更依赖外部数据源的工具。
 
 ## Agent 编辑 Workflow / MCP 工具
 
@@ -147,6 +288,11 @@ Agent tool / MCP tool
 
 Agent 相关后续需求统一放入路线图和 Backlog，当前优先级较高的是：
 
+- 将 Agent 创建和配置从 `/agents` 迁移到 `/settings/agents`。
+- 将 UI 概念从 `System Prompt` 调整为 Agent instructions / Agent Profile。
+- 增加 Agent Template，并支持选择模板后自动填充 instructions。
+- 对话页移除 Agent 创建和设置表单，只保留 Agent/Session 选择和聊天能力。
+- Provider / Model 改为在 Settings 中配置，聊天页只展示当前模型。
 - Tool calling：查看 K 线、搜索新闻、运行 Workflow、读关注列表。
 - Agent 分屏视图：对话右侧打开 Kline/News/Workflow 结果。
 - `agent.call` Workflow 节点。

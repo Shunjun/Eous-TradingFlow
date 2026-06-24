@@ -70,7 +70,13 @@ agentRouter.post('/memories', async (c) => {
 
 agentRouter.post('/chat', async (c) => {
   const userId = c.get('userId')
-  const body = await c.req.json<{ agentId?: string; sessionId?: string; message: string }>()
+  const body = await c.req.json<{
+    agentId?: string
+    sessionId?: string
+    providerId?: string
+    modelId?: string
+    message: string
+  }>()
   const { session, stream } = await agentService.prepareChat(userId, body)
 
   const readable = new ReadableStream({

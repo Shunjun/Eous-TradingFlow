@@ -19,6 +19,7 @@
     "@eous/tailwind": "workspace:*",
     "@eous/ui": "workspace:*",
     "@xyflow/react": "^12.0.0",
+    "dayjs": "^1.11.13",
     "dockview": "^6.6.1",
     "lodash-es": "^4.18.1",
     "lucide-react": "^0.460.0",

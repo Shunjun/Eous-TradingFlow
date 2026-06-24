@@ -126,6 +126,9 @@ importers:
       '@xyflow/react':
         specifier: ^12.0.0
         version: 12.11.0(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      dayjs:
+        specifier: ^1.11.13
+        version: 1.11.21
       dockview:
         specifier: ^6.6.1
         version: 6.6.1(react@19.2.6)

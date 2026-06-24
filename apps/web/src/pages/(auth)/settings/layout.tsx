@@ -1,6 +1,6 @@
 import type { CSSProperties, ElementType } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Settings, Bot, Sliders, Database } from 'lucide-react'
+import { Settings, Bot, Sliders, Database, BrainCircuit } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -14,6 +14,7 @@ import {
 const subNav = [
   { to: '/settings/general', label: 'General', icon: Sliders },
   { to: '/settings/providers', label: 'Providers', icon: Bot },
+  { to: '/settings/agents', label: 'Agents', icon: BrainCircuit },
   { to: '/settings/data-sources', label: 'Data Sources', icon: Database },
 ]
 

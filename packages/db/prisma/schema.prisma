@@ -218,9 +218,10 @@ model Agent {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name        String
   description String?
-  systemPrompt String? @map("system_prompt")
+  instructions String?
   providerId  String? @map("provider_id")
   modelId     String? @map("model_id")
+  toolScope    String  @default("[]") @map("tool_scope")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

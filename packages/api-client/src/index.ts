@@ -256,9 +256,10 @@ export interface AgentSummary {
   id: string
   name: string
   description: string | null
-  systemPrompt: string | null
+  instructions: string | null
   providerId: string | null
   modelId: string | null
+  toolScope: string[]
   createdAt: string
   updatedAt: string
 }
@@ -527,18 +528,20 @@ export interface ApiClient {
   createAgent(params: {
     name: string
     description?: string | null
-    systemPrompt?: string | null
+    instructions?: string | null
     providerId?: string | null
     modelId?: string | null
+    toolScope?: string[]
   }): Promise<{ agent: AgentSummary }>
   updateAgent(
     id: string,
     params: {
       name?: string
       description?: string | null
-      systemPrompt?: string | null
+      instructions?: string | null
       providerId?: string | null
       modelId?: string | null
+      toolScope?: string[]
     },
   ): Promise<{ agent: AgentSummary }>
   listAgentSessions(): Promise<{ sessions: AgentSessionSummary[] }>

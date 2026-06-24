@@ -28,9 +28,10 @@ export function createAgent(data: {
   userId: string
   name: string
   description?: string | null
-  systemPrompt?: string | null
+  instructions?: string | null
   providerId?: string | null
   modelId?: string | null
+  toolScope?: string
 }): Promise<Agent> {
   return prisma.agent.create({ data })
 }
@@ -40,9 +41,10 @@ export function updateAgent(
   data: {
     name?: string
     description?: string | null
-    systemPrompt?: string | null
+    instructions?: string | null
     providerId?: string | null
     modelId?: string | null
+    toolScope?: string
   },
 ): Promise<Agent> {
   return prisma.agent.update({ where: { id }, data })
@@ -160,5 +162,21 @@ export function findDefaultProviderModel(
     where: { enabled: true, provider: { userId, isActive: true } },
     include: { provider: true },
     orderBy: { createdAt: 'asc' },
+  })
+}
+
+export function findProviderModelByUser(
+  userId: string,
+  providerId: string,
+  modelId: string,
+): Promise<(ProviderModel & { provider: Provider }) | null> {
+  return prisma.providerModel.findFirst({
+    where: {
+      providerId,
+      modelId,
+      enabled: true,
+      provider: { userId, isActive: true },
+    },
+    include: { provider: true },
   })
 }

@@ -63,6 +63,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
   {
     title: 'OVERVIEW',
     items: [
+      { id: 'agents', label: 'Chat', icon: BrainCircuit },
       { id: 'home', label: 'Home', icon: LayoutDashboard },
       { id: 'dashboard', label: 'Dashboard', icon: Grid3x3 },
       { id: 'watchlist', label: 'Watchlist', icon: BarChart3 },
@@ -71,10 +72,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
   },
   {
     title: 'BUILD',
-    items: [
-      { id: 'agents', label: 'Agents', icon: BrainCircuit },
-      { id: 'datasets', label: 'Datasets', icon: Wallet },
-    ],
+    items: [{ id: 'datasets', label: 'Datasets', icon: Wallet }],
   },
 ]
 
