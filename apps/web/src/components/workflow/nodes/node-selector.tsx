@@ -69,6 +69,43 @@ function NodeSelector({
     [controlledOpen, onOpenChange],
   )
 
+  const handleSelect = useCallback(
+    (nodeType: string) => {
+      onSelectNode(nodeType)
+      setOpen(false)
+      setSearch('')
+    },
+    [onSelectNode, setOpen],
+  )
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      {children && trigger ? <PopoverTrigger asChild>{children}</PopoverTrigger> : null}
+      {children && !trigger ? <PopoverAnchor asChild>{children}</PopoverAnchor> : null}
+      <PopoverContent
+        side={side}
+        align={align}
+        alignOffset={alignOffset}
+        sideOffset={sideOffset}
+        className="flex h-[360px] w-56 flex-col p-0"
+      >
+        <NodeSelectorContent
+          search={search}
+          onSearchChange={setSearch}
+          onSelectNode={handleSelect}
+        />
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+interface NodeSelectorContentProps {
+  search: string
+  onSearchChange: (search: string) => void
+  onSelectNode: (nodeType: string) => void
+}
+
+function NodeSelectorContent({ search, onSearchChange, onSelectNode }: NodeSelectorContentProps) {
   const filtered = useMemo(() => {
     if (!search.trim()) return allNodes
     const q = search.toLowerCase()
@@ -82,19 +119,17 @@ function NodeSelector({
   const handleSelect = useCallback(
     (nodeType: string) => {
       onSelectNode(nodeType)
-      setOpen(false)
-      setSearch('')
     },
-    [onSelectNode, setOpen],
+    [onSelectNode],
   )
 
-  const nodeList = (
+  return (
     <>
       <div className="p-2">
         <Input
           placeholder="搜索…"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => onSearchChange(e.target.value)}
           className="h-7 text-xs"
           onKeyDown={(e) => e.stopPropagation()}
         />
@@ -140,25 +175,10 @@ function NodeSelector({
       </ScrollArea>
     </>
   )
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      {children && trigger ? <PopoverTrigger asChild>{children}</PopoverTrigger> : null}
-      {children && !trigger ? <PopoverAnchor asChild>{children}</PopoverAnchor> : null}
-      <PopoverContent
-        side={side}
-        align={align}
-        alignOffset={alignOffset}
-        sideOffset={sideOffset}
-        className="flex w-56 h-[360px] flex-col p-0"
-      >
-        {nodeList}
-      </PopoverContent>
-    </Popover>
-  )
 }
 
 NodeSelector.displayName = 'NodeSelector'
 
 export { NodeSelector }
-export type { NodeSelectorProps }
+export { NodeSelectorContent }
+export type { NodeSelectorContentProps, NodeSelectorProps }

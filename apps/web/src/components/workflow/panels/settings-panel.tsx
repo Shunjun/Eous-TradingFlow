@@ -22,7 +22,6 @@ function panelClassName(width: string) {
   return cn(
     'h-full min-h-0 overflow-hidden rounded-lg border border-border bg-card/95 shadow-lg backdrop-blur',
     width,
-    'animate-[workflow-panel-in_180ms_cubic-bezier(0.16,1,0.3,1)_both]',
   )
 }
 
