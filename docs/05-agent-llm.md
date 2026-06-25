@@ -23,6 +23,66 @@ ollama -> openai
 custom -> openai
 ```
 
+## Agent Runtime 目标架构
+
+后续 Agent runtime 使用 Mastra，但 Mastra 只负责运行时能力，不接管 Eous 的产品数据模型。
+
+职责边界：
+
+| 领域                | 所属方           | 说明                                                   |
+| ------------------- | ---------------- | ------------------------------------------------------ |
+| Agent runtime       | Mastra           | Agent 执行、模型调用、tool/MCP 调度抽象                |
+| Model provider 调用 | Mastra           | 替换当前 `@earendil-works/pi-ai` 的 provider 调用层    |
+| Eous Workflow       | Eous             | 继续使用现有 React Flow definition、runner、执行记录   |
+| Agent 配置          | Eous DB          | `agents.instructions/providerId/modelId/toolScope`     |
+| Session/Message     | Eous DB          | `agent_sessions`、`agent_messages` 是唯一事实源        |
+| Memory/Experience   | Eous DB          | 自动提取、手动维护、设置页查看与启停                   |
+| Knowledge Base      | Eous DB + Vector | 文档、片段、embedding、检索结果由 Eous 管理            |
+| Skills/MCP 配置     | Eous DB          | 用户可安装 Skills、启用/禁用 MCP server/tool           |
+| Chat UI             | Eous Web         | Markdown、tool call block、tool result block、MCP view |
+
+Mastra Workflow 不接入。Eous Workflow 是产品核心编排层，Mastra 不能成为第二套 workflow runtime。
+
+运行链路：
+
+```text
+Chat / Agent API
+  -> Eous Agent Service
+    -> Eous DB: agents / sessions / messages / memories / experiences / knowledge
+    -> Prompt assembly: instructions + retrieved context + session summary
+    -> Mastra Agent runtime
+      -> model provider
+      -> enabled tools / MCP / skills
+    -> Eous DB: assistant message + tool events + extracted memory/experience + title/summary
+    -> SSE: session/text_delta/tool_call/tool_result/session_updated/done
+```
+
+数据库方向：
+
+- 当前 SQLite 适合早期本地开发，但不适合作为长期 Memory、Experience 和 Knowledge Base 的最终存储。
+- 最终建议切换 PostgreSQL，并启用 pgvector 或兼容向量扩展。
+- 第一阶段先保持现有 SQLite，补齐 runtime 抽象、数据模型和 UI；切库作为单独迁移批次执行。
+- 向量检索接口先抽象为 Eous-owned retrieval service，避免被 Mastra storage 绑定。
+
+Memory / Experience：
+
+- Memory：用户偏好、长期事实、固定上下文。
+- Experience：复盘结论、有效方法、失败案例、可复用分析规则。
+- Chat 页面不直接展示 Memory / Experience 管理入口，只无感使用检索结果。
+- Settings 的 Agent 页面负责查看、编辑、启用/禁用 Memory、Experience、Skills 和 MCP。
+
+Skills / MCP：
+
+- Skill 是可安装、可版本化的能力包，属于用户空间配置。
+- MCP server/tool 可由用户定义并自行启动，Eous 保存连接配置、权限和启用状态。
+- 项目内置能力可先作为内置 MCP tools 暴露，例如 Workflow 查询、编辑、运行相关工具。
+
+Chat 渲染：
+
+- Assistant 文本至少支持 Markdown。
+- Tool/MCP 调用必须作为结构化 tool block 渲染，而不是混入普通文本。
+- Agent View 右侧面板用于承载 tool/MCP 打开的 workflow、iframe、图表、报告等 view。
+
 ## Workflow LLM 节点
 
 当前 LLM 节点在 `packages/nodes/src/nodes`：

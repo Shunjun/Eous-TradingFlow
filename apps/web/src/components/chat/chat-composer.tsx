@@ -24,7 +24,7 @@ export function ChatComposer() {
     selectedProviderId && selectedModelId ? `${selectedProviderId}::${selectedModelId}` : ''
 
   return (
-    <div className={cn('mx-auto w-full max-w-4xl shrink-0 px-5 pb-5', centered && 'pb-[18vh]')}>
+    <div className="mx-auto w-full max-w-4xl shrink-0 px-5">
       {centered ? (
         <div className="mb-5 text-center">
           <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-md bg-primary/10 text-primary">

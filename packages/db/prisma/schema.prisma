@@ -9,39 +9,43 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  name             String?
-  workspaceLayout  String?  @map("workspace_layout")
-  activeLayoutId   String?  @map("active_layout_id")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id              String   @id @default(cuid())
+  email           String   @unique
+  passwordHash    String   @map("password_hash")
+  name            String?
+  workspaceLayout String?  @map("workspace_layout")
+  activeLayoutId  String?  @map("active_layout_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
 
-  sessions       Session[]
-  providers      Provider[]
+  sessions            Session[]
+  providers           Provider[]
   dataSourceInstances DataSourceInstance[]
-  chartDrawings  ChartDrawing[]
-  chartConfigs   UserChartConfig[]
-  workspaceLayouts WorkspaceLayout[]
-  workflows      Workflow[]
-  agents         Agent[]
-  agentSessions  AgentSession[]
-  agentMessages  AgentMessage[]
-  agentMemories  AgentMemory[]
+  chartDrawings       ChartDrawing[]
+  chartConfigs        UserChartConfig[]
+  workspaceLayouts    WorkspaceLayout[]
+  workflows           Workflow[]
+  agents              Agent[]
+  agentSessions       AgentSession[]
+  agentMessages       AgentMessage[]
+  agentMemories       AgentMemory[]
+  agentExperiences    AgentExperience[]
+  agentSkills         AgentSkill[]
+  agentMcpServers     AgentMcpServer[]
+  knowledgeBases      KnowledgeBase[]
 
   @@map("users")
 }
 
 model WorkspaceLayout {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name         String   @default("Default")
-  schemaJson   String   @default("null")  @map("schema_json")
-  sortOrder    Int      @default(0)       @map("sort_order")
-  createdAt    DateTime @default(now())   @map("created_at")
-  updatedAt    DateTime @updatedAt        @map("updated_at")
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String   @default("Default")
+  schemaJson String   @default("null") @map("schema_json")
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   @@index([userId])
   @@map("workspace_layouts")
@@ -73,7 +77,7 @@ model Provider {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  models         ProviderModel[]
+  models ProviderModel[]
 
   @@unique([userId, name])
   @@map("providers")
@@ -82,10 +86,10 @@ model Provider {
 model ProviderModel {
   id           String   @id @default(cuid())
   providerId   String   @map("provider_id")
-  modelId      String   @map("model_id")              // "gpt-4o"
-  displayName  String?  @map("display_name")           // "GPT-4o"
+  modelId      String   @map("model_id") // "gpt-4o"
+  displayName  String?  @map("display_name") // "GPT-4o"
   maxTokens    Int?     @map("max_tokens")
-  capabilities String   @default("[]")                 // JSON string array
+  capabilities String   @default("[]") // JSON string array
   enabled      Boolean  @default(true)
   provider     Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
   createdAt    DateTime @default(now()) @map("created_at")
@@ -95,49 +99,49 @@ model ProviderModel {
 }
 
 model DataSourceInstance {
-  id               String   @id @default(cuid())
-  name             String
-  providerKind     String
-  defaultSymbol    String   @map("default_symbol")
-  identityKey      String?  @map("identity_key")
-  identityLabel    String?  @map("identity_label")
-  configEncrypted  String
-  configIv         String
-  userId           String
-  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  trackedSymbols   TrackedSymbol[]
-  chartDrawings     ChartDrawing[]
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id              String          @id @default(cuid())
+  name            String
+  providerKind    String
+  defaultSymbol   String          @map("default_symbol")
+  identityKey     String?         @map("identity_key")
+  identityLabel   String?         @map("identity_label")
+  configEncrypted String
+  configIv        String
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trackedSymbols  TrackedSymbol[]
+  chartDrawings   ChartDrawing[]
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
 
   @@unique([userId, name])
   @@map("data_source_instances")
 }
 
 model TrackedSymbol {
-  id          String   @id @default(cuid())
-  instanceId  String
-  symbol      String
-  name        String
-  exchange    String?
-  type        String?
-  instance    DataSourceInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now()) @map("created_at")
+  id         String             @id @default(cuid())
+  instanceId String
+  symbol     String
+  name       String
+  exchange   String?
+  type       String?
+  instance   DataSourceInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  createdAt  DateTime           @default(now()) @map("created_at")
 
   @@unique([instanceId, symbol])
   @@map("tracked_symbols")
 }
 
 model ChartDrawing {
-  id          String   @id @default(cuid())
-  userId      String   @map("user_id")
-  instanceId  String   @map("instance_id")
-  symbol      String
-  payload     String   @default("[]")
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  instance    DataSourceInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id         String             @id @default(cuid())
+  userId     String             @map("user_id")
+  instanceId String             @map("instance_id")
+  symbol     String
+  payload    String             @default("[]")
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  instance   DataSourceInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  createdAt  DateTime           @default(now()) @map("created_at")
+  updatedAt  DateTime           @updatedAt @map("updated_at")
 
   @@unique([userId, instanceId, symbol])
   @@index([instanceId, symbol])
@@ -145,14 +149,14 @@ model ChartDrawing {
 }
 
 model UserChartConfig {
-  id                String   @id @default(cuid())
-  userId            String   @map("user_id")
-  scope             String   @default("default")
-  autoSaveDrawings  Boolean  @default(false) @map("auto_save_drawings")
-  intervalSettings  String   @default("{\"visible\":[],\"custom\":[]}") @map("interval_settings")
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(cuid())
+  userId           String   @map("user_id")
+  scope            String   @default("default")
+  autoSaveDrawings Boolean  @default(false) @map("auto_save_drawings")
+  intervalSettings String   @default("{\"visible\":[],\"custom\":[]}") @map("interval_settings")
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   @@unique([userId, scope])
   @@map("user_chart_configs")
@@ -168,7 +172,7 @@ model Workflow {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  versions    WorkflowVersion[]
+  versions       WorkflowVersion[]
   nodeExecutions WorkflowNodeExecution[]
 
   @@index([userId])
@@ -184,25 +188,25 @@ model WorkflowVersion {
   createdAt  DateTime @default(now()) @map("created_at")
   createdBy  String   @map("created_by")
 
-  @@index([workflowId])
   @@unique([workflowId, version])
+  @@index([workflowId])
   @@map("workflow_versions")
 }
 
 model WorkflowNodeExecution {
-  id             String   @id @default(cuid())
-  workflowId     String   @map("workflow_id")
-  userId         String   @map("user_id")
-  nodeId         String   @map("node_id")
-  nodeType       String   @map("node_type")
+  id             String    @id @default(cuid())
+  workflowId     String    @map("workflow_id")
+  userId         String    @map("user_id")
+  nodeId         String    @map("node_id")
+  nodeType       String    @map("node_type")
   status         String
   inputs         String
   outputs        String?
   error          String?
-  logs           String   @default("[]")
-  definitionHash String   @map("definition_hash")
-  durationMs     Int?     @map("duration_ms")
-  startedAt      DateTime @default(now()) @map("started_at")
+  logs           String    @default("[]")
+  definitionHash String    @map("definition_hash")
+  durationMs     Int?      @map("duration_ms")
+  startedAt      DateTime  @default(now()) @map("started_at")
   finishedAt     DateTime? @map("finished_at")
 
   workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
@@ -213,36 +217,40 @@ model WorkflowNodeExecution {
 }
 
 model Agent {
-  id          String   @id @default(cuid())
-  userId      String   @map("user_id")
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name        String
-  description String?
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  description  String?
   instructions String?
-  providerId  String? @map("provider_id")
-  modelId     String? @map("model_id")
-  toolScope    String  @default("[]") @map("tool_scope")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  providerId   String?  @map("provider_id")
+  modelId      String?  @map("model_id")
+  toolScope    String   @default("[]") @map("tool_scope")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
-  sessions AgentSession[]
-  memories AgentMemory[]
+  sessions       AgentSession[]
+  memories       AgentMemory[]
+  experiences    AgentExperience[]
+  skills         AgentSkill[]
+  mcpServers     AgentMcpServer[]
+  knowledgeBases KnowledgeBase[]
 
   @@index([userId])
   @@map("agents")
 }
 
 model AgentSession {
-  id          String   @id @default(cuid())
-  userId      String   @map("user_id")
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  agentId     String   @map("agent_id")
-  agent       Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  title       String
-  summary     String?
-  workflowId  String?  @map("workflow_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId    String   @map("agent_id")
+  agent      Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  title      String
+  summary    String?
+  workflowId String?  @map("workflow_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   messages  AgentMessage[]
   summaries AgentSummary[]
@@ -254,15 +262,15 @@ model AgentSession {
 }
 
 model AgentMessage {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sessionId String   @map("session_id")
+  id        String       @id @default(cuid())
+  userId    String       @map("user_id")
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId String       @map("session_id")
   session   AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   role      String
   content   String
-  metadata  String   @default("{}")
-  createdAt DateTime @default(now()) @map("created_at")
+  metadata  String       @default("{}")
+  createdAt DateTime     @default(now()) @map("created_at")
 
   @@index([userId])
   @@index([sessionId, createdAt])
@@ -270,38 +278,160 @@ model AgentMessage {
 }
 
 model AgentSummary {
-  id        String   @id @default(cuid())
-  sessionId String   @map("session_id")
-  session   AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  content   String
-  fromMessageId String? @map("from_message_id")
-  toMessageId   String? @map("to_message_id")
-  createdAt DateTime @default(now()) @map("created_at")
+  id            String       @id @default(cuid())
+  sessionId     String       @map("session_id")
+  session       AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  content       String
+  fromMessageId String?      @map("from_message_id")
+  toMessageId   String?      @map("to_message_id")
+  createdAt     DateTime     @default(now()) @map("created_at")
 
   @@index([sessionId])
   @@map("agent_summaries")
 }
 
 model AgentMemory {
-  id         String   @id @default(cuid())
-  userId     String   @map("user_id")
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  agentId    String?  @map("agent_id")
-  agent      Agent?   @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  sessionId  String?  @map("session_id")
+  id         String        @id @default(cuid())
+  userId     String        @map("user_id")
+  user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId    String?       @map("agent_id")
+  agent      Agent?        @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  sessionId  String?       @map("session_id")
   session    AgentSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   scope      String
-  targetId   String   @map("target_id")
+  targetId   String        @map("target_id")
   kind       String
   content    String
-  tags       String   @default("[]")
-  importance Int      @default(1)
-  confidence Float    @default(0.7)
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  tags       String        @default("[]")
+  importance Int           @default(1)
+  confidence Float         @default(0.7)
+  enabled    Boolean       @default(true)
+  source     String        @default("manual")
+  metadata   String        @default("{}")
+  createdAt  DateTime      @default(now()) @map("created_at")
+  updatedAt  DateTime      @updatedAt @map("updated_at")
 
   @@index([userId, scope, targetId])
   @@index([agentId])
   @@index([sessionId])
   @@map("agent_memories")
+}
+
+model AgentExperience {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId    String   @map("agent_id")
+  agent      Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  sessionId  String?  @map("session_id")
+  title      String
+  content    String
+  tags       String   @default("[]")
+  importance Int      @default(1)
+  confidence Float    @default(0.7)
+  enabled    Boolean  @default(true)
+  source     String   @default("auto")
+  metadata   String   @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([userId, agentId])
+  @@index([sessionId])
+  @@map("agent_experiences")
+}
+
+model AgentSkill {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId     String?  @map("agent_id")
+  agent       Agent?   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  packageName String   @map("package_name")
+  version     String?
+  displayName String   @map("display_name")
+  description String?
+  config      String   @default("{}")
+  enabled     Boolean  @default(true)
+  source      String   @default("installed")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, agentId, packageName])
+  @@index([userId])
+  @@index([agentId])
+  @@map("agent_skills")
+}
+
+model AgentMcpServer {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId   String?  @map("agent_id")
+  agent     Agent?   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  name      String
+  transport String
+  command   String?
+  url       String?
+  config    String   @default("{}")
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, agentId, name])
+  @@index([userId])
+  @@index([agentId])
+  @@map("agent_mcp_servers")
+}
+
+model KnowledgeBase {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId     String?  @map("agent_id")
+  agent       Agent?   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  enabled     Boolean  @default(true)
+  metadata    String   @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  documents KnowledgeDocument[]
+
+  @@index([userId])
+  @@index([agentId])
+  @@map("knowledge_bases")
+}
+
+model KnowledgeDocument {
+  id              String        @id @default(cuid())
+  knowledgeBaseId String        @map("knowledge_base_id")
+  knowledgeBase   KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  title           String
+  sourceType      String        @map("source_type")
+  sourceUri       String?       @map("source_uri")
+  content         String
+  metadata        String        @default("{}")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  chunks KnowledgeChunk[]
+
+  @@index([knowledgeBaseId])
+  @@map("knowledge_documents")
+}
+
+model KnowledgeChunk {
+  id         String            @id @default(cuid())
+  documentId String            @map("document_id")
+  document   KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  chunkIndex Int               @map("chunk_index")
+  content    String
+  embedding  String?
+  metadata   String            @default("{}")
+  createdAt  DateTime          @default(now()) @map("created_at")
+
+  @@unique([documentId, chunkIndex])
+  @@index([documentId])
+  @@map("knowledge_chunks")
 }

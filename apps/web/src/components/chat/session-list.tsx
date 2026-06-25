@@ -19,7 +19,7 @@ export function SessionList() {
   )
 
   return (
-    <aside className="flex h-full flex-col border-r border-border">
+    <aside className="flex h-full min-h-0 flex-col overflow-hidden border-r border-border">
       <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-3">
         <div className="flex items-center gap-2">
           <MessageSquare className="size-4 text-primary" />
