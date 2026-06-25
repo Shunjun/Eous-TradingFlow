@@ -544,6 +544,7 @@ export interface ApiClient {
       toolScope?: string[]
     },
   ): Promise<{ agent: AgentSummary }>
+  deleteAgent(id: string): Promise<void>
   listAgentSessions(): Promise<{ sessions: AgentSessionSummary[] }>
   createAgentSession(params: {
     agentId?: string
@@ -878,6 +879,7 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
     listAgents: () => get('/agents'),
     createAgent: (params) => post('/agents', params),
     updateAgent: (id, params) => patch(`/agents/${encodeURIComponent(id)}`, params),
+    deleteAgent: (id: string) => del(`/agents/${encodeURIComponent(id)}`),
     listAgentSessions: () => get('/agents/sessions'),
     createAgentSession: (params) => post('/agents/sessions', params),
     getAgentSession: (id: string) => get(`/agents/sessions/${encodeURIComponent(id)}`),

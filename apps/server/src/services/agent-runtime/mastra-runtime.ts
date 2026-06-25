@@ -2,6 +2,7 @@ import { Agent } from '@mastra/core/agent'
 import * as providerRepo from '../../repositories/provider.repo.js'
 import * as agentRepo from '../../repositories/agent.repo.js'
 import { decrypt, getEncryptionKey } from '../../lib/crypto-utils.js'
+import { resolveAgentTools } from './skill-registry.js'
 import type {
   AgentRuntime,
   RuntimeContext,
@@ -144,8 +145,11 @@ async function* mapMastraStream(stream: AsyncIterable<MastraChunk>): RuntimeStre
 export class MastraRuntime implements AgentRuntime {
   async streamChat({
     userId,
+    agentId,
+    sessionId,
     providerId,
     modelId,
+    toolScope,
     memory,
     context,
     options: streamOptions,
@@ -157,13 +161,17 @@ export class MastraRuntime implements AgentRuntime {
     const apiKey = decrypt(provider.apiKeyEncrypted, provider.apiKeyIv, keyHex)
     const memoryBlock = await resolveMemoryBlock({
       userId,
+      agentId,
+      sessionId,
       providerId,
       modelId,
+      toolScope,
       memory,
       context,
       options: streamOptions,
     })
     const resolvedContext = resolveContext(context, memoryBlock)
+    const tools = resolveAgentTools({ userId, agentId, sessionId, toolScope })
 
     const agent = new Agent({
       id: 'eous-runtime-agent',
@@ -175,6 +183,7 @@ export class MastraRuntime implements AgentRuntime {
         url: normalizeBaseUrl(provider.baseUrl),
         apiKey,
       },
+      tools,
     })
 
     const output = await agent.stream(toMastraMessages(resolvedContext), {

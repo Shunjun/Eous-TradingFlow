@@ -156,22 +156,6 @@ function toMemoryDTO(memory: AgentMemory): AgentMemoryDTO {
   }
 }
 
-async function ensureDefaultAgent(userId: string): Promise<Agent> {
-  const existing = await agentRepo.findFirstAgent(userId)
-  if (existing) return existing
-
-  const defaultModel = await agentRepo.findDefaultProviderModel(userId)
-  return agentRepo.createAgent({
-    userId,
-    name: 'Eous Analyst',
-    description: 'Default trading workflow analysis agent',
-    instructions: DEFAULT_AGENT_INSTRUCTIONS,
-    providerId: defaultModel?.providerId ?? null,
-    modelId: defaultModel?.modelId ?? null,
-    toolScope: JSON.stringify(['market_data', 'workflow']),
-  })
-}
-
 async function resolveAgentModel(agent: Agent, userId: string): Promise<Agent> {
   if (agent.providerId && agent.modelId) return agent
 
@@ -263,7 +247,6 @@ async function maybeCompactSession(session: AgentSession): Promise<void> {
 }
 
 export async function listAgents(userId: string): Promise<AgentDTO[]> {
-  await ensureDefaultAgent(userId)
   const agents = await agentRepo.findAgentsByUser(userId)
   return agents.map(toAgentDTO)
 }
@@ -312,6 +295,12 @@ export async function updateAgent(
   return toAgentDTO(agent)
 }
 
+export async function deleteAgent(userId: string, agentId: string): Promise<void> {
+  const existing = await agentRepo.findAgentByIdAndUser(agentId, userId)
+  if (!existing) throw new AppError('Agent not found', 404)
+  await agentRepo.deleteAgent(agentId)
+}
+
 export async function listSessions(userId: string): Promise<AgentSessionDTO[]> {
   const sessions = await agentRepo.findSessionsByUser(userId)
   return sessions.map(toSessionDTO)
@@ -321,9 +310,7 @@ export async function createSession(
   userId: string,
   body: { agentId?: string; title?: string; workflowId?: string },
 ): Promise<AgentSessionDTO> {
-  const agent = body.agentId
-    ? await agentRepo.findAgentByIdAndUser(body.agentId, userId)
-    : await ensureDefaultAgent(userId)
+  const agent = body.agentId ? await agentRepo.findAgentByIdAndUser(body.agentId, userId) : null
   if (!agent) throw new AppError('Agent not found', 404)
 
   const session = await agentRepo.createSession({
@@ -420,9 +407,7 @@ export async function prepareChat(
     : null
 
   if (!session) {
-    const agent = body.agentId
-      ? await agentRepo.findAgentByIdAndUser(body.agentId, userId)
-      : await ensureDefaultAgent(userId)
+    const agent = body.agentId ? await agentRepo.findAgentByIdAndUser(body.agentId, userId) : null
     if (!agent) throw new AppError('Agent not found', 404)
     session = await agentRepo.createSession({
       userId,
@@ -459,8 +444,11 @@ export async function prepareChat(
 
   const stream = await streamChat({
     userId,
+    agentId: agent.id,
+    sessionId: session.id,
     providerId: model.providerId,
     modelId: model.modelId,
+    toolScope: parseJsonArray(agent.toolScope),
     context: {
       systemPrompt,
       messages: recentMessages

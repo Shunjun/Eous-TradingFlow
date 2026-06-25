@@ -27,6 +27,11 @@ agentRouter.patch('/:id', async (c) => {
   return c.json({ agent })
 })
 
+agentRouter.delete('/:id', async (c) => {
+  await agentService.deleteAgent(c.get('userId'), c.req.param('id'))
+  return c.json({ ok: true })
+})
+
 agentRouter.get('/sessions', async (c) => {
   const sessions = await agentService.listSessions(c.get('userId'))
   return c.json({ sessions })

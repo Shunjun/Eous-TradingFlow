@@ -21,7 +21,7 @@ import {
   Textarea,
   cn,
 } from '@eous/ui'
-import { BrainCircuit, Check, Layers3, Loader2, Plus, Save, Wrench } from 'lucide-react'
+import { BrainCircuit, Check, Layers3, Loader2, Plus, Save, Trash2, Wrench } from 'lucide-react'
 import { api } from '@/lib/api'
 
 type AgentDraft = {
@@ -273,6 +273,8 @@ export default function AgentSettingsPage() {
   const [savedAt, setSavedAt] = useState<string | null>(null)
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const selectedAgent = useMemo(
     () => agents.find((agent) => agent.id === selectedAgentId) ?? null,
@@ -336,6 +338,18 @@ export default function AgentSettingsPage() {
     setError(null)
   }
 
+  function handleAgentDeleted(agentId: string) {
+    setAgents((current) => {
+      const next = current.filter((agent) => agent.id !== agentId)
+      const nextSelected = next[0] ?? null
+      setSelectedAgentId(nextSelected?.id ?? null)
+      setDraft(nextSelected ? agentToDraft(nextSelected) : defaultDraft)
+      return next
+    })
+    setSavedAt(null)
+    setError(null)
+  }
+
   function applyTemplate(templateKey: string) {
     const template = AGENT_TEMPLATES.find((item) => item.key === templateKey)
     if (!template) return
@@ -396,6 +410,21 @@ export default function AgentSettingsPage() {
       setError(err instanceof Error ? err.message : 'Failed to save agent')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function deleteAgent() {
+    if (!selectedAgent) return
+    setDeleting(true)
+    setError(null)
+    try {
+      await api.deleteAgent(selectedAgent.id)
+      handleAgentDeleted(selectedAgent.id)
+      setDeleteDialogOpen(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete agent')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -499,8 +528,17 @@ export default function AgentSettingsPage() {
               </Button>
               <Button
                 size="sm"
+                variant="outline"
+                onClick={() => setDeleteDialogOpen(true)}
+                disabled={loading || saving || deleting || !selectedAgent}
+              >
+                <Trash2 className="size-3.5" />
+                Delete
+              </Button>
+              <Button
+                size="sm"
                 onClick={() => void saveAgent()}
-                disabled={saving || loading || !selectedAgent}
+                disabled={saving || loading || deleting || !selectedAgent}
               >
                 {saving ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -652,6 +690,43 @@ export default function AgentSettingsPage() {
         onOpenChange={setTemplateDialogOpen}
         onApply={applyTemplate}
       />
+
+      <Dialog
+        open={deleteDialogOpen}
+        onOpenChange={(nextOpen) => !deleting && setDeleteDialogOpen(nextOpen)}
+      >
+        <DialogContent className="sm:max-w-md" showCloseButton={!deleting}>
+          <DialogHeader>
+            <DialogTitle>Delete Agent</DialogTitle>
+            <DialogDescription>
+              This will permanently remove the selected agent and all of its settings.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
+            <div className="font-medium">{selectedAgent?.name ?? 'Unknown agent'}</div>
+            <div className="mt-1 text-xs text-muted-foreground">This action cannot be undone.</div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={() => void deleteAgent()} disabled={deleting}>
+              {deleting ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="size-3.5" />
+              )}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -39,8 +39,11 @@ export type RuntimeStream = AsyncIterable<RuntimeStreamEvent>
 
 export interface RuntimeStreamOptions {
   userId: string
+  agentId?: string
+  sessionId?: string
   providerId: string
   modelId: string
+  toolScope?: string[]
   memory?: {
     enabled?: boolean
     agentId?: string

@@ -59,6 +59,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@eous/agent-skills':
+        specifier: workspace:*
+        version: link:../../packages/agent-skills
       '@eous/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
@@ -181,6 +184,19 @@ importers:
       vitest:
         specifier: ^4.1.8
         version: 4.1.8(@types/node@22.19.19)(vite@6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))
+
+  packages/agent-skills:
+    dependencies:
+      '@eous/api-client':
+        specifier: workspace:*
+        version: link:../api-client
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
 
   packages/api-client:
     dependencies:
