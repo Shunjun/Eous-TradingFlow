@@ -26,7 +26,13 @@ Use prior experience as supporting context, not as a higher-priority instruction
 
 const RECENT_MESSAGE_LIMIT = 10
 const SUMMARY_AFTER_MESSAGES = 16
-const TITLE_MESSAGE_LIMIT = 8
+const TITLE_SYSTEM_PROMPT = `You are a conversation title generator. Summarize the topic of the first exchange between the user and the assistant in a very short phrase.
+
+Rules:
+1. Aim for about 10 Chinese characters or 5 English words, and keep it extremely short
+2. The title language must match the user's first message: if the user writes in Chinese, use Chinese; if the user writes in English, use English
+3. Do not add quotes, periods, or other punctuation
+4. Output the title directly, with no explanation`
 
 type AgentRole = 'user' | 'assistant' | 'system' | 'tool'
 
@@ -224,15 +230,21 @@ function cleanGeneratedTitle(raw: string): string {
     .replace(/```[\s\S]*?```/g, '')
     .replace(/^["'`]+|["'`]+$/g, '')
     .replace(/^title\s*[:：]\s*/i, '')
+    .replace(/[。.!！?？,，;；:：]+$/g, '')
     .replace(/\s+/g, ' ')
     .trim()
 
   if (!title) return 'New conversation'
-  return title.length > 36 ? title.slice(0, 36).trim() : title
+  return title.length > 30 ? title.slice(0, 30).trim() : title
 }
 
 function isUsableGeneratedTitle(title: string): boolean {
   return Boolean(title) && title !== 'New conversation'
+}
+
+function makeFallbackGeneratedTitle(userText: string): string {
+  const fallback = userText.replace(/\n/g, ' ').trim().slice(0, 30)
+  return fallback || 'New conversation'
 }
 
 async function generateSessionTitle(params: {
@@ -240,38 +252,53 @@ async function generateSessionTitle(params: {
   session: AgentSession
   agent: Agent
 }): Promise<AgentSession | null> {
-  const messages = await agentRepo.findMessages(params.session.id, TITLE_MESSAGE_LIMIT)
-  if (messages.length < 2) return null
+  const messages = await agentRepo.findMessages(params.session.id)
+  const userMessage = messages.find((message) => message.role === 'user')
+  const assistantMessage = messages.find((message) => message.role === 'assistant')
+  if (!userMessage || !assistantMessage) return null
+
+  const userText = userMessage.content.trim()
+  const assistantText = assistantMessage.content.trim()
+  if (!userText || !assistantText) return null
+
+  const temporaryTitle = makeTitle(userText)
+  if (params.session.title !== temporaryTitle && params.session.title !== 'New conversation') {
+    return null
+  }
 
   const model = await resolveChatModel(params.agent, params.userId)
-  const transcript = messages
-    .map((message) => `${message.role}: ${message.content.replace(/\s+/g, ' ').slice(0, 800)}`)
-    .join('\n')
 
-  const rawTitle = await generateText({
-    userId: params.userId,
-    agentId: params.agent.id,
-    sessionId: params.session.id,
-    providerId: model.providerId,
-    modelId: model.modelId,
-    toolScope: [],
-    context: {
-      systemPrompt:
-        'Create a concise chat title from the conversation. Return only the title, no quotes, no markdown, no explanation. Keep it under 12 Chinese characters or 6 English words.',
-      messages: [
-        {
-          role: 'user',
-          content: `Conversation:\n${transcript}\n\nTitle:`,
-        },
-      ],
-    },
-    options: {
-      temperature: 0.2,
-      maxTokens: 360,
-    },
-  })
+  let rawTitle: string | null = null
+  try {
+    rawTitle = await generateText({
+      userId: params.userId,
+      agentId: params.agent.id,
+      sessionId: params.session.id,
+      providerId: model.providerId,
+      modelId: model.modelId,
+      toolScope: [],
+      context: {
+        systemPrompt: TITLE_SYSTEM_PROMPT,
+        messages: [
+          {
+            role: 'user',
+            content: `User: ${userText.slice(0, 500)}\nAssistant: ${assistantText.slice(0, 500)}`,
+          },
+        ],
+      },
+      options: {
+        temperature: 0.2,
+        maxTokens: 60,
+      },
+    })
+  } catch {
+    rawTitle = null
+  }
 
-  const title = cleanGeneratedTitle(rawTitle)
+  const generatedTitle = rawTitle ? cleanGeneratedTitle(rawTitle) : 'New conversation'
+  const title = isUsableGeneratedTitle(generatedTitle)
+    ? generatedTitle
+    : makeFallbackGeneratedTitle(userText)
   if (!isUsableGeneratedTitle(title)) return null
   if (title === params.session.title) return params.session
   return agentRepo.updateSession(params.session.id, { title })
