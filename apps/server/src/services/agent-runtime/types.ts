@@ -56,4 +56,5 @@ export interface RuntimeStreamOptions {
 
 export interface AgentRuntime {
   streamChat(options: RuntimeStreamOptions): Promise<RuntimeStream>
+  generateText(options: RuntimeStreamOptions): Promise<string>
 }

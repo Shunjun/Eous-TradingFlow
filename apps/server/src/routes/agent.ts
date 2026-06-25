@@ -106,12 +106,13 @@ agentRouter.post('/chat', async (c) => {
           }
         }
 
-        const message = await agentService.finishAssistantMessage({
+        const { message, session: updatedSession } = await agentService.finishAssistantMessage({
           userId,
           sessionId: session.id,
           content: fullText,
         })
-        write('done', { message })
+        if (updatedSession) write('session_updated', { session: updatedSession })
+        write('done', { message, session: updatedSession })
       } catch (err) {
         write('error', { error: err instanceof Error ? err.message : String(err) })
       } finally {

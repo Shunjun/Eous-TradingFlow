@@ -21,3 +21,11 @@ export interface AgentSkill {
   description?: string
   tools: AgentSkillTool<any, any>[]
 }
+
+export interface AgentSkillManifest {
+  id: string
+  name: string
+  description?: string
+  requiredCapabilities?: string[]
+  createSkill: (capabilities: Record<string, unknown>) => AgentSkill
+}

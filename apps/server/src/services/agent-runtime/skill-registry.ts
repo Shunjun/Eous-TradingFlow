@@ -1,34 +1,41 @@
 import { createTool } from '@mastra/core/tools'
-import { createWorkflowSkill, type AgentSkill, type AgentSkillContext } from '@eous/agent-skills'
+import {
+  defaultSkillManifests,
+  type AgentSkill,
+  type AgentSkillContext,
+  type AgentSkillManifest,
+} from '@eous/agent-skills'
 import type { ToolsInput } from '@mastra/core/agent'
-import * as workflowService from '../workflow.service.js'
-import * as workflowEditService from '../workflow-edit.service.js'
-import * as workflowRunner from '../workflow-runner.service.js'
+import { workflowCapability } from '../../capabilities/workflow-capability.js'
 
 export interface ResolveAgentToolsOptions extends AgentSkillContext {
   userId: string
   toolScope?: string[]
 }
 
-function createEnabledSkills(toolScope: string[] | undefined): AgentSkill[] {
-  const enabled = new Set(toolScope ?? [])
-  const skills: AgentSkill[] = []
+const serverCapabilities: Record<string, unknown> = {
+  workflow: workflowCapability,
+}
 
-  if (enabled.has('workflow')) {
-    skills.push(
-      createWorkflowSkill({
-        listWorkflows: workflowService.listWorkflows,
-        getWorkflow: workflowService.getWorkflow,
-        applyWorkflowOps: workflowEditService.applyWorkflowOps,
-        runWorkflow: workflowRunner.runWorkflow,
-        runNode: workflowRunner.runNode,
-        getVariableCache: workflowRunner.getVariableCache,
-        getWorkflowExecutions: workflowRunner.getWorkflowExecutions,
-      }),
-    )
+function resolveManifestCapabilities(manifest: AgentSkillManifest): Record<string, unknown> {
+  const resolved: Record<string, unknown> = {}
+
+  for (const capabilityId of manifest.requiredCapabilities ?? []) {
+    const capability = serverCapabilities[capabilityId]
+    if (!capability) {
+      throw new Error(`Skill "${manifest.id}" requires capability "${capabilityId}"`)
+    }
+    resolved[capabilityId] = capability
   }
 
-  return skills
+  return resolved
+}
+
+function createEnabledSkills(toolScope: string[] | undefined): AgentSkill[] {
+  const enabledSkillIds = new Set(toolScope ?? [])
+  return defaultSkillManifests
+    .filter((manifest) => enabledSkillIds.has(manifest.id))
+    .map((manifest) => manifest.createSkill(resolveManifestCapabilities(manifest)))
 }
 
 export function resolveAgentTools(options: ResolveAgentToolsOptions): ToolsInput {

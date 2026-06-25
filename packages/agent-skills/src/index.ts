@@ -1,2 +1,16 @@
-export type { AgentSkill, AgentSkillContext, AgentSkillTool } from './types.js'
-export { createWorkflowSkill, type WorkflowSkillDeps } from './workflow/index.js'
+export { defaultSkillManifests, webFetchSkillManifest, workflowSkillManifest } from './manifests.js'
+export type { AgentSkill, AgentSkillContext, AgentSkillManifest, AgentSkillTool } from './types.js'
+export {
+  createWorkflowSkill,
+  type WorkflowCapability,
+  type WorkflowNodeExecutionRecord,
+  type WorkflowRecord,
+  type WorkflowSkillDeps,
+} from './workflow/index.js'
+export {
+  createWebFetchSkill,
+  fetchUrl as fetchWebUrl,
+  type WebFetchResult,
+  type WebFetchSkillDeps,
+  type WebFetchUrlInput,
+} from './web-fetch/index.js'

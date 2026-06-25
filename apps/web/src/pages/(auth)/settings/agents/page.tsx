@@ -52,6 +52,7 @@ const TOOL_OPTIONS = [
   { value: 'screening', label: 'Screening' },
   { value: 'risk', label: 'Risk' },
   { value: 'workflow', label: 'Workflow' },
+  { value: 'web_fetch', label: 'Web Fetch' },
 ]
 
 const AGENT_TEMPLATES: AgentTemplate[] = [

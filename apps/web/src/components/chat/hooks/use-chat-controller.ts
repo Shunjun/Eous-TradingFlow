@@ -20,6 +20,16 @@ function pickSession(data: unknown): AgentSessionSummary | null {
   return session as AgentSessionSummary
 }
 
+function upsertSession(
+  sessions: AgentSessionSummary[],
+  nextSession: AgentSessionSummary,
+): AgentSessionSummary[] {
+  const exists = sessions.some((session) => session.id === nextSession.id)
+  return exists
+    ? sessions.map((session) => (session.id === nextSession.id ? nextSession : session))
+    : [nextSession, ...sessions]
+}
+
 export function useChatController() {
   const store = useChatStoreApi()
   const activeSessionId = useChatStore((state) => state.activeSessionId)
@@ -149,19 +159,16 @@ export function useChatController() {
       },
       {
         onEvent: (event) => {
-          if (event.type !== 'session') return
+          if (event.type !== 'session' && event.type !== 'session_updated') return
           const nextSession = pickSession(event.data)
           if (!nextSession) return
 
           const nextState = store.getState()
-          nextState.setStreamingSessionId(nextSession.id)
-          nextState.setActiveSessionId(nextSession.id)
-          nextState.setSessions((current) => {
-            const exists = current.some((session) => session.id === nextSession.id)
-            return exists
-              ? current.map((session) => (session.id === nextSession.id ? nextSession : session))
-              : [nextSession, ...current]
-          })
+          if (event.type === 'session') {
+            nextState.setStreamingSessionId(nextSession.id)
+            nextState.setActiveSessionId(nextSession.id)
+          }
+          nextState.setSessions((current) => upsertSession(current, nextSession))
         },
         onTextDelta: (delta) => {
           store
@@ -185,7 +192,6 @@ export function useChatController() {
                 message.id === STREAMING_MESSAGE_ID ? doneMessage : message,
               ),
             )
-          void api.listAgentSessions().then((res) => store.getState().setSessions(res.sessions))
         },
         onError: (message) => {
           store.getState().setStreamingSessionId(null)

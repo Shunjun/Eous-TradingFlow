@@ -142,58 +142,73 @@ async function* mapMastraStream(stream: AsyncIterable<MastraChunk>): RuntimeStre
   }
 }
 
-export class MastraRuntime implements AgentRuntime {
-  async streamChat({
-    userId,
-    agentId,
-    sessionId,
-    providerId,
-    modelId,
-    toolScope,
-    memory,
-    context,
-    options: streamOptions,
-  }: RuntimeStreamOptions): Promise<RuntimeStream> {
-    const provider = await providerRepo.findByIdAndUser(providerId, userId)
-    if (!provider) throw new Error('Provider not found')
+async function createMastraAgent(options: RuntimeStreamOptions): Promise<{
+  agent: Agent
+  resolvedContext: RuntimeContext
+}> {
+  const provider = await providerRepo.findByIdAndUser(options.providerId, options.userId)
+  if (!provider) throw new Error('Provider not found')
 
-    const keyHex = getEncryptionKey()
-    const apiKey = decrypt(provider.apiKeyEncrypted, provider.apiKeyIv, keyHex)
-    const memoryBlock = await resolveMemoryBlock({
-      userId,
-      agentId,
-      sessionId,
-      providerId,
-      modelId,
-      toolScope,
-      memory,
-      context,
-      options: streamOptions,
-    })
-    const resolvedContext = resolveContext(context, memoryBlock)
-    const tools = resolveAgentTools({ userId, agentId, sessionId, toolScope })
+  const keyHex = getEncryptionKey()
+  const apiKey = decrypt(provider.apiKeyEncrypted, provider.apiKeyIv, keyHex)
+  const memoryBlock = await resolveMemoryBlock(options)
+  const resolvedContext = resolveContext(options.context, memoryBlock)
+  const tools = resolveAgentTools({
+    userId: options.userId,
+    agentId: options.agentId,
+    sessionId: options.sessionId,
+    toolScope: options.toolScope,
+  })
 
-    const agent = new Agent({
+  return {
+    resolvedContext,
+    agent: new Agent({
       id: 'eous-runtime-agent',
       name: 'Eous Runtime Agent',
       instructions: resolvedContext.systemPrompt || '',
       model: {
         providerId: resolveProviderId(provider.kind),
-        modelId,
+        modelId: options.modelId,
         url: normalizeBaseUrl(provider.baseUrl),
         apiKey,
       },
       tools,
-    })
+    }),
+  }
+}
+
+function outputToText(output: unknown): string {
+  if (!output || typeof output !== 'object') return ''
+  const record = output as Record<string, unknown>
+  const text = record.text ?? record.object ?? record.output
+  return typeof text === 'string' ? text : ''
+}
+
+export class MastraRuntime implements AgentRuntime {
+  async streamChat(options: RuntimeStreamOptions): Promise<RuntimeStream> {
+    const { agent, resolvedContext } = await createMastraAgent(options)
 
     const output = await agent.stream(toMastraMessages(resolvedContext), {
       modelSettings: {
-        temperature: streamOptions?.temperature,
-        maxOutputTokens: streamOptions?.maxTokens,
-        topP: streamOptions?.topP,
+        temperature: options.options?.temperature,
+        maxOutputTokens: options.options?.maxTokens,
+        topP: options.options?.topP,
       },
     })
 
     return mapMastraStream(output.fullStream as unknown as AsyncIterable<MastraChunk>)
+  }
+
+  async generateText(options: RuntimeStreamOptions): Promise<string> {
+    const { agent, resolvedContext } = await createMastraAgent(options)
+    const output = await agent.generate(toMastraMessages(resolvedContext), {
+      modelSettings: {
+        temperature: options.options?.temperature,
+        maxOutputTokens: options.options?.maxTokens,
+        topP: options.options?.topP,
+      },
+    })
+
+    return outputToText(output)
   }
 }

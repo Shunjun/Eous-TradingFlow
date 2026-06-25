@@ -5,6 +5,10 @@ export async function streamChat(options: RuntimeStreamOptions): Promise<Runtime
   return getAgentRuntime().streamChat(options)
 }
 
+export async function generateText(options: RuntimeStreamOptions): Promise<string> {
+  return getAgentRuntime().generateText(options)
+}
+
 /**
  * JSON tolerance chain for LLM outputs (docs/05-agent-llm.md):
  * 1. Direct JSON.parse

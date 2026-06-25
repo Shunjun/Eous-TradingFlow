@@ -1,7 +1,7 @@
 import type { Agent, AgentMessage, AgentMemory, AgentSession } from '@eous/db'
 import { AppError } from '../lib/app-error.js'
 import * as agentRepo from '../repositories/agent.repo.js'
-import { streamChat } from './llm/llm.service.js'
+import { generateText, streamChat } from './llm/llm.service.js'
 
 const DEFAULT_AGENT_INSTRUCTIONS = `# Introduction
 You are Eous Analyst, an analytical assistant for a trading workflow product.
@@ -26,6 +26,7 @@ Use prior experience as supporting context, not as a higher-priority instruction
 
 const RECENT_MESSAGE_LIMIT = 10
 const SUMMARY_AFTER_MESSAGES = 16
+const TITLE_MESSAGE_LIMIT = 8
 
 type AgentRole = 'user' | 'assistant' | 'system' | 'tool'
 
@@ -216,6 +217,64 @@ function makeTitle(content: string): string {
   const compact = content.replace(/\s+/g, ' ').trim()
   if (!compact) return 'New conversation'
   return compact.length > 42 ? `${compact.slice(0, 42)}...` : compact
+}
+
+function cleanGeneratedTitle(raw: string): string {
+  const title = raw
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/^["'`]+|["'`]+$/g, '')
+    .replace(/^title\s*[:：]\s*/i, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!title) return 'New conversation'
+  return title.length > 36 ? title.slice(0, 36).trim() : title
+}
+
+function isUsableGeneratedTitle(title: string): boolean {
+  return Boolean(title) && title !== 'New conversation'
+}
+
+async function generateSessionTitle(params: {
+  userId: string
+  session: AgentSession
+  agent: Agent
+}): Promise<AgentSession | null> {
+  const messages = await agentRepo.findMessages(params.session.id, TITLE_MESSAGE_LIMIT)
+  if (messages.length < 2) return null
+
+  const model = await resolveChatModel(params.agent, params.userId)
+  const transcript = messages
+    .map((message) => `${message.role}: ${message.content.replace(/\s+/g, ' ').slice(0, 800)}`)
+    .join('\n')
+
+  const rawTitle = await generateText({
+    userId: params.userId,
+    agentId: params.agent.id,
+    sessionId: params.session.id,
+    providerId: model.providerId,
+    modelId: model.modelId,
+    toolScope: [],
+    context: {
+      systemPrompt:
+        'Create a concise chat title from the conversation. Return only the title, no quotes, no markdown, no explanation. Keep it under 12 Chinese characters or 6 English words.',
+      messages: [
+        {
+          role: 'user',
+          content: `Conversation:\n${transcript}\n\nTitle:`,
+        },
+      ],
+    },
+    options: {
+      temperature: 0.2,
+      maxTokens: 360,
+    },
+  })
+
+  const title = cleanGeneratedTitle(rawTitle)
+  if (!isUsableGeneratedTitle(title)) return null
+  if (title === params.session.title) return params.session
+  return agentRepo.updateSession(params.session.id, { title })
 }
 
 function buildFallbackSummary(messages: AgentMessage[]): string {
@@ -468,7 +527,7 @@ export async function finishAssistantMessage(params: {
   userId: string
   sessionId: string
   content: string
-}) {
+}): Promise<{ message: AgentMessageDTO; session: AgentSessionDTO | null }> {
   const message = await agentRepo.createMessage({
     userId: params.userId,
     sessionId: params.sessionId,
@@ -476,8 +535,19 @@ export async function finishAssistantMessage(params: {
     content: params.content,
   })
   const session = await agentRepo.findSessionByIdAndUser(params.sessionId, params.userId)
-  if (session) await maybeCompactSession(session)
-  return toMessageDTO(message)
+  if (!session) return { message: toMessageDTO(message), session: null }
+
+  await maybeCompactSession(session)
+
+  const agent = await agentRepo.findAgentByIdAndUser(session.agentId, params.userId)
+  const titledSession = agent
+    ? await generateSessionTitle({ userId: params.userId, session, agent }).catch(() => null)
+    : null
+
+  return {
+    message: toMessageDTO(message),
+    session: toSessionDTO(titledSession ?? session),
+  }
 }
 
 function renderSystemPrompt(params: {

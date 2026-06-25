@@ -6,7 +6,9 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./workflow": "./src/workflow/index.ts"
+    "./manifests": "./src/manifests.ts",
+    "./workflow": "./src/workflow/index.ts",
+    "./web-fetch": "./src/web-fetch/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
