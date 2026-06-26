@@ -1,26 +1,25 @@
-import { forwardRef } from 'react'
-import { Textarea } from '@eous/ui'
+import { VariableRichField } from '../../variables/variable-rich-field'
 import type { ParamDef } from '@eous/nodes'
 
 interface TextareaFieldProps {
   param: ParamDef
   value: unknown
   onChange: (value: unknown) => void
+  nodeId: string
+  upstreamOutputs: Record<string, Record<string, unknown>>
 }
 
-const TextareaField = forwardRef<HTMLTextAreaElement, TextareaFieldProps>(function TextareaField(
-  { param, value, onChange },
-  ref,
-) {
+function TextareaField({ param, value, onChange, nodeId, upstreamOutputs }: TextareaFieldProps) {
   return (
-    <Textarea
-      ref={ref}
-      placeholder={param.placeholder}
-      value={String(value ?? param.default ?? '')}
-      className="min-h-24 resize-y bg-background text-xs"
-      onChange={(event) => onChange(event.target.value)}
+    <VariableRichField
+      param={param}
+      value={value}
+      onChange={onChange}
+      nodeId={nodeId}
+      upstreamOutputs={upstreamOutputs}
+      multiline
     />
   )
-})
+}
 
 export { TextareaField }

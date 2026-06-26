@@ -31,7 +31,6 @@ function ConfigField({
   upstreamOutputs,
 }: ConfigFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const value = data[fieldKey]
   const ui = param.ui ?? (param.type === 'number' ? 'number' : 'text')
 
@@ -53,7 +52,7 @@ function ConfigField({
         return
       }
 
-      const input = ui === 'textarea' ? textareaRef.current : inputRef.current
+      const input = inputRef.current
       if (!input) {
         handleValueChange(refValue)
         return
@@ -101,13 +100,25 @@ function ConfigField({
       ) : ui === 'code' ? (
         <CodeField ref={inputRef} param={param} value={value} onChange={handleValueChange} />
       ) : ui === 'textarea' ? (
-        <TextareaField ref={textareaRef} param={param} value={value} onChange={handleValueChange} />
+        <TextareaField
+          param={param}
+          value={value}
+          nodeId={nodeId}
+          upstreamOutputs={upstreamOutputs}
+          onChange={handleValueChange}
+        />
       ) : ui === 'toggle' ? (
         <ToggleField fieldKey={fieldKey} param={param} value={value} onChange={handleValueChange} />
       ) : ui === 'number' ? (
         <NumberField ref={inputRef} param={param} value={value} onChange={handleValueChange} />
       ) : (
-        <TextField ref={inputRef} param={param} value={value} onChange={handleValueChange} />
+        <TextField
+          param={param}
+          value={value}
+          nodeId={nodeId}
+          upstreamOutputs={upstreamOutputs}
+          onChange={handleValueChange}
+        />
       )}
     </FieldShell>
   )

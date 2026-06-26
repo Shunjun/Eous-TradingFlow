@@ -30,8 +30,13 @@ function FieldShell({
   const hasVariable = isVariableRef(value)
   const currentVariable = hasVariable ? parseVariableRef(String(value)) : null
   const label = param.label ?? param.description ?? fieldKey
+  const ui = param.ui ?? (param.type === 'number' ? 'number' : 'text')
   const canUseVariable =
-    param.ui !== 'branches' && param.ui !== 'providerModel' && param.ui !== 'select'
+    ui !== 'branches' &&
+    ui !== 'providerModel' &&
+    ui !== 'select' &&
+    ui !== 'textarea' &&
+    ui !== 'text'
 
   const handleVariableSelect = useCallback(
     (ref: VariableRef) => {

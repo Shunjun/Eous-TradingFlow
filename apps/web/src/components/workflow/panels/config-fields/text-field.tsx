@@ -1,26 +1,24 @@
-import { forwardRef } from 'react'
-import { Input } from '@eous/ui'
+import { VariableRichField } from '../../variables/variable-rich-field'
 import type { ParamDef } from '@eous/nodes'
 
 interface TextFieldProps {
   param: ParamDef
   value: unknown
   onChange: (value: unknown) => void
+  nodeId: string
+  upstreamOutputs: Record<string, Record<string, unknown>>
 }
 
-const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function TextField(
-  { param, value, onChange },
-  ref,
-) {
+function TextField({ param, value, onChange, nodeId, upstreamOutputs }: TextFieldProps) {
   return (
-    <Input
-      ref={ref}
-      size="sm"
-      placeholder={param.placeholder}
-      value={String(value ?? param.default ?? '')}
-      onChange={(event) => onChange(event.target.value)}
+    <VariableRichField
+      param={param}
+      value={value}
+      onChange={onChange}
+      nodeId={nodeId}
+      upstreamOutputs={upstreamOutputs}
     />
   )
-})
+}
 
 export { TextField }

@@ -18,6 +18,11 @@
     "@eous/stores": "workspace:*",
     "@eous/tailwind": "workspace:*",
     "@eous/ui": "workspace:*",
+    "@tiptap/core": "^3.27.1",
+    "@tiptap/pm": "^3.27.1",
+    "@tiptap/react": "^3.27.1",
+    "@tiptap/starter-kit": "^3.27.1",
+    "@tiptap/suggestion": "^3.27.1",
     "@xyflow/react": "^12.0.0",
     "dayjs": "^1.11.13",
     "dockview": "^6.6.1",
@@ -28,6 +33,7 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.6.0",
     "remark-gfm": "^4.0.1",
+    "tippy.js": "^6.3.7",
     "zustand": "^5.0.0"
   },
   "devDependencies": {

@@ -1,24 +1,19 @@
 import type { VariableRef } from './variable-picker'
 
-const VAR_PATTERN = /^{{(.+)}}$/
+const VAR_PATTERN = /^{{node:([^:}]+):([^}]+)}}$/
+const EMBEDDED_VAR_PATTERN = /{{node:([^:}]+):([^}]+)}}/g
 
 function isVariableRef(value: unknown): value is string {
   if (typeof value !== 'string') return false
-  const match = value.match(VAR_PATTERN)
-  return Boolean(match?.[1].startsWith('node:'))
+  return VAR_PATTERN.test(value)
 }
 
 function parseVariableRef(value: string): VariableRef | null {
   const match = value.match(VAR_PATTERN)
   if (!match) return null
 
-  const path = match[1]
-  if (!path.startsWith('node:')) return null
-  const rest = path.slice('node:'.length)
-  const separatorIndex = rest.indexOf(':')
-  if (separatorIndex === -1) return null
-  const nodeId = rest.slice(0, separatorIndex)
-  const fieldName = rest.slice(separatorIndex + 1)
+  const nodeId = match[1]
+  const fieldName = match[2]
   if (!nodeId || !fieldName) return null
   return {
     nodeLabel: nodeId,
@@ -35,8 +30,15 @@ function formatVariableRef(ref: VariableRef) {
 
 function displayVariableRef(value: string) {
   const parsed = parseVariableRef(value)
-  if (!parsed) return value.replace(VAR_PATTERN, '$1')
+  if (!parsed) return value
   return `${parsed.nodeLabel}.${parsed.fieldName}`
 }
 
-export { VAR_PATTERN, displayVariableRef, formatVariableRef, isVariableRef, parseVariableRef }
+export {
+  EMBEDDED_VAR_PATTERN,
+  VAR_PATTERN,
+  displayVariableRef,
+  formatVariableRef,
+  isVariableRef,
+  parseVariableRef,
+}

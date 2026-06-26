@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, Loader2, Search } from 'lucide-react'
+import { Loader2, Search } from 'lucide-react'
 import { Badge, Popover, PopoverContent, PopoverTrigger, ScrollArea, cn } from '@eous/ui'
 import { getNodeDef } from '@eous/nodes'
 import { useWorkflowStore } from '../../store/workflow-store'
 import { getEffectiveOutputs } from '../settings-panel-outputs'
 import { isVariableRef, parseVariableRef } from '../../variables/variable-ref'
+import { VariableTag } from '../../variables'
 import { useOptionsSource } from './use-options-source'
 import type { ParamDef } from '@eous/nodes'
 
@@ -88,15 +89,8 @@ function SelectField({ param, value, onChange, data, upstreamOutputs }: SelectFi
   }, [options, param.default, value])
 
   const variableRef = isVariableRef(value) ? parseVariableRef(String(value)) : null
-  const variableNode = variableRef?.nodeId
-    ? storeNodes.find((node) => node.id === variableRef.nodeId)
-    : null
-  const variableLabel =
-    variableNode && typeof variableNode.data.label === 'string'
-      ? variableNode.data.label
-      : variableRef?.nodeLabel
   const displayValue = variableRef
-    ? `${variableLabel}.${variableRef.fieldName}`
+    ? ''
     : (selectedOption?.label ?? String(value ?? param.default ?? ''))
 
   const handleSelect = (option: SelectOption) => {
@@ -130,7 +124,11 @@ function SelectField({ param, value, onChange, data, upstreamOutputs }: SelectFi
             setTab('options')
           }}
         >
-          <span className="truncate">{displayValue || (param.placeholder ?? '请选择…')}</span>
+          {variableRef ? (
+            <VariableTag refValue={variableRef} className="max-w-[calc(100%-1rem)]" />
+          ) : (
+            <span className="truncate">{displayValue || (param.placeholder ?? '请选择…')}</span>
+          )}
           <svg
             className="h-3 w-3 shrink-0 opacity-50"
             xmlns="http://www.w3.org/2000/svg"
@@ -209,10 +207,15 @@ function SelectField({ param, value, onChange, data, upstreamOutputs }: SelectFi
                         setOpen(false)
                       }}
                     >
-                      <Link className="h-3 w-3 shrink-0 text-muted-foreground" />
-                      <span className="truncate">
-                        {nodeLabel}.{fieldName}
-                      </span>
+                      <VariableTag
+                        refValue={{
+                          nodeId,
+                          nodeLabel,
+                          fieldName,
+                          fieldType: fieldDef?.type ?? '',
+                        }}
+                        className="min-w-0 flex-1"
+                      />
                       {fieldDef && (
                         <Badge variant="secondary" className="ml-auto text-[10px]">
                           {fieldDef.type}
