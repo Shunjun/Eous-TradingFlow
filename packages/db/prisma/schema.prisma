@@ -28,6 +28,8 @@ model User {
   agents              Agent[]
   agentSessions       AgentSession[]
   agentMessages       AgentMessage[]
+  agentResources      AgentResource[]
+  agentObservations   AgentObservationalMemory[]
   agentMemories       AgentMemory[]
   agentExperiences    AgentExperience[]
   agentSkills         AgentSkill[]
@@ -279,6 +281,37 @@ model AgentMessage {
   @@index([sessionId, createdAt])
   @@index([resourceId])
   @@map("agent_messages")
+}
+
+model AgentResource {
+  id            String   @id
+  userId        String   @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workingMemory String?  @map("working_memory")
+  metadata      String   @default("{}")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("agent_resources")
+}
+
+model AgentObservationalMemory {
+  id         String   @id
+  userId     String   @map("user_id")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  threadId   String?  @map("thread_id")
+  resourceId String   @map("resource_id")
+  scope      String
+  originType String   @map("origin_type")
+  payload    String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([resourceId, scope, createdAt])
+  @@index([threadId])
+  @@index([userId])
+  @@map("agent_observational_memories")
 }
 
 model AgentSummary {
