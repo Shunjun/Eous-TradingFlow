@@ -23,7 +23,11 @@ const defaultEdgeOptions = {
   className: 'stroke-muted-foreground',
 }
 
-function WorkflowCanvas() {
+interface WorkflowCanvasProps {
+  onBeforeRun?: () => Promise<unknown>
+}
+
+function WorkflowCanvas({ onBeforeRun }: WorkflowCanvasProps) {
   const workflowStore = useWorkflowStoreApi()
   const nodes = useWorkflowStore((s) => s.nodes)
   const edges = useWorkflowStore((s) => s.edges)
@@ -56,7 +60,7 @@ function WorkflowCanvas() {
     deleteEdges: handleDeleteEdges,
     toggleLockNode: handleToggleLockNode,
     addConnectedNode: handleAddConnectedNode,
-  } = useWorkflowNodeActions({ workflowStore, commitOps, fitView })
+  } = useWorkflowNodeActions({ workflowStore, commitOps, fitView, beforeRun: onBeforeRun })
 
   const { handleNodesChange, handleEdgesChange, handleConnect, handleDelete } =
     useWorkflowChangeHandlers({

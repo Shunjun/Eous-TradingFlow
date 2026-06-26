@@ -3,6 +3,7 @@ export interface WorkflowRecord {
   name: string
   description: string | null
   definition: string
+  currentSeq?: number
   createdAt: Date
   updatedAt: Date
 }

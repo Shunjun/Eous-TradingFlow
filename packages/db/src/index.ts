@@ -9,6 +9,7 @@ export type {
   ChartDrawing,
   UserChartConfig,
   Workflow,
+  WorkflowEditEvent,
   WorkflowVersion,
   WorkflowNodeExecution,
   Agent,

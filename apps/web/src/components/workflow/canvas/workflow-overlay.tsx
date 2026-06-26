@@ -4,15 +4,18 @@ import { CanvasToolbar } from './canvas-toolbar'
 import { FloatToolbar } from './float-toolbar'
 import { GlobalLogPanel, SettingsPanel } from '../panels'
 import { useWorkflowStore } from '../store/workflow-store'
+import type { WorkflowEditEvent } from '@eous/api-client'
 
 interface WorkflowOverlayProps {
   workflowId: string
   saving: boolean
   publishing: boolean
-  isLocalDraft: boolean
+  snapshots: WorkflowEditEvent[]
   showWorkflowList?: boolean
-  onSave: () => void
   onPublish: () => void
+  onBeforeRun?: () => Promise<unknown>
+  onCreateSnapshot: () => void
+  onRestoreSnapshot: (eventId: string) => void
   onWorkflowSelect?: (workflowId: string | null) => void
 }
 
@@ -36,10 +39,12 @@ function WorkflowOverlay({
   workflowId,
   saving,
   publishing,
-  isLocalDraft,
+  snapshots,
   showWorkflowList,
-  onSave,
   onPublish,
+  onBeforeRun,
+  onCreateSnapshot,
+  onRestoreSnapshot,
   onWorkflowSelect,
 }: WorkflowOverlayProps) {
   const logOpen = useWorkflowStore((state) => state.logOpen)
@@ -92,10 +97,11 @@ function WorkflowOverlay({
       <FloatToolbar
         saving={saving}
         publishing={publishing}
-        isLocalDraft={isLocalDraft}
+        snapshots={snapshots}
         showWorkflowList={showWorkflowList}
-        onSave={onSave}
         onPublish={onPublish}
+        onCreateSnapshot={onCreateSnapshot}
+        onRestoreSnapshot={onRestoreSnapshot}
         onWorkflowSelect={onWorkflowSelect}
       />
 
@@ -105,7 +111,7 @@ function WorkflowOverlay({
             <CanvasToolbar />
           </div>
         </div>
-        <SettingsPanel workflowId={workflowId} />
+        <SettingsPanel workflowId={workflowId} onBeforeRun={onBeforeRun} />
       </div>
     </div>
   )

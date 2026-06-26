@@ -25,17 +25,25 @@ function SettingsPanelHeader({
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <Button
-          variant="ghost"
+          variant="ghost-icon"
           size="xs"
-          className={cn(inspectorOpen && 'bg-accent text-accent-foreground')}
+          className={cn('w-6 px-0', inspectorOpen && 'bg-accent text-accent-foreground')}
           onClick={onToggleInspector}
+          title="变量"
+          aria-label="变量"
         >
           <Variable className="h-3 w-3" />
-          变量
         </Button>
-        <Button variant="ghost" size="xs" onClick={onRun} disabled={running}>
+        <Button
+          variant="ghost-icon"
+          size="xs"
+          className="w-6 px-0"
+          onClick={onRun}
+          disabled={running}
+          title="运行"
+          aria-label="运行"
+        >
           {running ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
-          Run
         </Button>
         <button
           type="button"

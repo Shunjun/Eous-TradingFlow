@@ -42,6 +42,7 @@ interface WorkflowHistorySlice {
   pendingOps: WorkflowEditOp[]
 
   commitOps: (ops: WorkflowEditOp[], label: string) => void
+  setHistoryEntries: (entries: WorkflowHistoryEntry[]) => void
   undo: () => void
   redo: () => void
   clearHistory: () => void

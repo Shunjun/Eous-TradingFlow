@@ -6,10 +6,11 @@ import {
   GitBranch,
   ListTree,
   Rocket,
-  Save,
+  Camera,
   ScrollText,
   Trash2,
 } from 'lucide-react'
+import type { WorkflowEditEvent } from '@eous/api-client'
 import {
   Button,
   Dialog,
@@ -37,20 +38,22 @@ const COMPACT_ACTIONS_WIDTH = 640
 interface FloatToolbarProps {
   saving: boolean
   publishing: boolean
-  isLocalDraft: boolean
+  snapshots: WorkflowEditEvent[]
   showWorkflowList?: boolean
-  onSave: () => void
   onPublish: () => void
+  onCreateSnapshot: () => void
+  onRestoreSnapshot: (eventId: string) => void
   onWorkflowSelect?: (workflowId: string | null) => void
 }
 
 function FloatToolbar({
   saving,
   publishing,
-  isLocalDraft,
+  snapshots,
   showWorkflowList = false,
-  onSave,
   onPublish,
+  onCreateSnapshot,
+  onRestoreSnapshot,
   onWorkflowSelect,
 }: FloatToolbarProps) {
   const workflowName = useWorkflowStore((s) => s.workflowName)
@@ -92,8 +95,7 @@ function FloatToolbar({
 
   const isPublished = activeWorkflowId && activeWorkflowId !== 'new'
   const statusText = [
-    saving ? '保存中…' : isDirty ? '未保存' : 'Auto-saved',
-    isLocalDraft ? '本地版本' : null,
+    saving ? '同步中…' : isDirty ? '待同步' : '已同步',
     isPublished ? '已发布' : '未发布',
   ]
     .filter(Boolean)
@@ -111,17 +113,42 @@ function FloatToolbar({
     return () => resizeObserver.disconnect()
   }, [])
 
-  const saveButton = (
-    <Button
-      variant="outline"
-      size="xs"
-      className="shrink-0"
-      onClick={onSave}
-      disabled={saving || !activeWorkflowId}
-    >
-      <Save className="mr-1" />
-      <span>{saving ? '保存中…' : '保存'}</span>
-    </Button>
+  const snapshotButton = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="xs" className="shrink-0" disabled={!activeWorkflowId}>
+          <Camera className="mr-1" />
+          快照
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem className="cursor-pointer gap-2" onClick={onCreateSnapshot}>
+          <Camera className="h-4 w-4" />
+          保存当前快照
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        {snapshots.length === 0 ? (
+          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+            暂无快照
+          </DropdownMenuLabel>
+        ) : (
+          snapshots.map((snapshot) => (
+            <DropdownMenuItem
+              key={snapshot.id}
+              className="cursor-pointer"
+              onClick={() => onRestoreSnapshot(snapshot.id)}
+            >
+              <div className="min-w-0">
+                <div className="truncate text-xs">{snapshot.snapshotName ?? snapshot.label}</div>
+                <div className="text-[10px] text-muted-foreground">
+                  {new Date(snapshot.createdAt).toLocaleString()}
+                </div>
+              </div>
+            </DropdownMenuItem>
+          ))
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 
   const handleDeleteWorkflow = useCallback(async () => {
@@ -249,7 +276,7 @@ function FloatToolbar({
         <div className="ml-auto flex shrink-0 items-center gap-2">
           {compactActions ? (
             <>
-              {saveButton}
+              {snapshotButton}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="xs" className="w-7 px-0" aria-label="更多操作">
@@ -274,6 +301,11 @@ function FloatToolbar({
                     <Rocket className="h-4 w-4" />
                     {publishing ? '发布中…' : '发布'}
                   </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="cursor-pointer gap-2" onClick={onCreateSnapshot}>
+                    <Camera className="h-4 w-4" />
+                    保存快照
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
@@ -292,7 +324,7 @@ function FloatToolbar({
                 <Eye className="mr-1" />
                 <span>预览</span>
               </Button>
-              {saveButton}
+              {snapshotButton}
               <Button size="xs" onClick={onPublish} disabled={publishing || !activeWorkflowId}>
                 <Rocket className="mr-1" />
                 <span>{publishing ? '发布中…' : '发布'}</span>

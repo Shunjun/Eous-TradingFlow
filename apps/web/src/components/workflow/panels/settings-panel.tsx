@@ -34,6 +34,7 @@ interface SettingsPanelContentProps {
   onClose: () => void
   inspectorOpen: boolean
   onToggleInspector: () => void
+  onBeforeRun?: () => Promise<unknown>
 }
 
 function SettingsPanelContent({
@@ -45,11 +46,13 @@ function SettingsPanelContent({
   onClose,
   inspectorOpen,
   onToggleInspector,
+  onBeforeRun,
 }: SettingsPanelContentProps) {
   const nodeDef = getNodeDef(nodeType)
   const { running, lastExecution, loadingExecution, upstreamOutputs, runNode } = useNodeExecution(
     workflowId,
     nodeId,
+    onBeforeRun,
   )
   const title = typeof data.label === 'string' ? data.label : (nodeDef?.meta.label ?? nodeType)
 
@@ -132,9 +135,10 @@ function SettingsInspectorPanel({
 
 interface SettingsPanelProps {
   workflowId: string
+  onBeforeRun?: () => Promise<unknown>
 }
 
-function SettingsPanel({ workflowId }: SettingsPanelProps) {
+function SettingsPanel({ workflowId, onBeforeRun }: SettingsPanelProps) {
   const selectedNodeId = useWorkflowStore((state) => state.selectedNodeId)
   const selectedNode = useWorkflowStore((state) =>
     state.selectedNodeId
@@ -193,6 +197,7 @@ function SettingsPanel({ workflowId }: SettingsPanelProps) {
             onClose={onClose}
             inspectorOpen={inspectorOpen}
             onToggleInspector={handleToggleInspector}
+            onBeforeRun={onBeforeRun}
           />
         </SheetContent>
       </div>

@@ -243,9 +243,12 @@ async function executeNodeSequence({
   const nodeMap = new Map(allNodes.map((node) => [node.id, node]))
   const skippedNodes = new Set<string>()
   const executionResults = new Map<string, WorkflowNodeExecution>()
+  const runnableNodeIds = new Set(nodesToRun.map((node) => node.id))
 
   for (const node of nodesToRun) {
-    const upstreamEdges = allEdges.filter((e) => e.target === node.id)
+    const upstreamEdges = allEdges.filter(
+      (e) => e.target === node.id && runnableNodeIds.has(e.source),
+    )
     const activeUpstreamEdges = upstreamEdges.filter((edge) => {
       if (skippedNodes.has(edge.source)) return false
       if (!varCache[edge.source]) return false
@@ -368,7 +371,8 @@ export async function runNode(
     throw new Error(`Node ${targetNode.id} not found in workflow`)
   }
 
-  const nodesToRun = sorted.slice(0, targetIdx + 1)
+  const reachable = getReachableNodeIds(targetNode.id, allEdges)
+  const nodesToRun = sorted.filter((node) => reachable.has(node.id))
   const executionResults = await executeNodeSequence({
     workflowId,
     userId,

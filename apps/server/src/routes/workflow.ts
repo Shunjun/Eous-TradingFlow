@@ -62,6 +62,60 @@ workflowRouter.patch('/:id', async (c) => {
   return c.json(result)
 })
 
+workflowRouter.post('/:id/events/batch', async (c) => {
+  const body = await c.req.json<{
+    baseSeq: number
+    ops: ApplyWorkflowOpsRequest['ops']
+    label?: string
+    clientBatchId?: string
+  }>()
+  const result = await workflowEditService.applyWorkflowEvent(
+    c.get('userId'),
+    c.req.param('id'),
+    body,
+  )
+  return c.json(result)
+})
+
+workflowRouter.get('/:id/history', async (c) => {
+  const result = await workflowEditService.listWorkflowHistory(c.get('userId'), c.req.param('id'))
+  return c.json(result)
+})
+
+workflowRouter.post('/:id/undo', async (c) => {
+  const result = await workflowEditService.undoWorkflowEvent(c.get('userId'), c.req.param('id'))
+  return c.json(result)
+})
+
+workflowRouter.post('/:id/redo', async (c) => {
+  const result = await workflowEditService.redoWorkflowEvent(c.get('userId'), c.req.param('id'))
+  return c.json(result)
+})
+
+workflowRouter.post('/:id/snapshots', async (c) => {
+  const body = await c.req.json<{ name?: string }>().catch(() => ({}))
+  const result = await workflowEditService.createWorkflowSnapshot(
+    c.get('userId'),
+    c.req.param('id'),
+    body,
+  )
+  return c.json(result)
+})
+
+workflowRouter.get('/:id/snapshots', async (c) => {
+  const result = await workflowEditService.listWorkflowSnapshots(c.get('userId'), c.req.param('id'))
+  return c.json(result)
+})
+
+workflowRouter.post('/:id/snapshots/:eventId/restore', async (c) => {
+  const result = await workflowEditService.restoreWorkflowSnapshot(
+    c.get('userId'),
+    c.req.param('id'),
+    c.req.param('eventId'),
+  )
+  return c.json(result)
+})
+
 workflowRouter.delete('/:id', async (c) => {
   await workflowService.deleteWorkflow(c.get('userId'), c.req.param('id'))
   return c.json({ ok: true })

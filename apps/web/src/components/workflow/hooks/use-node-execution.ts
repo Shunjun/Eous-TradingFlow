@@ -12,7 +12,7 @@ interface NodeExecution {
   error: string | null
 }
 
-function useNodeExecution(workflowId: string, nodeId: string) {
+function useNodeExecution(workflowId: string, nodeId: string, beforeRun?: () => Promise<unknown>) {
   const [running, setRunning] = useState(false)
   const [lastExecution, setLastExecution] = useState<NodeExecution | null>(null)
   const [loadingExecution, setLoadingExecution] = useState(true)
@@ -62,6 +62,7 @@ function useNodeExecution(workflowId: string, nodeId: string) {
   const runNode = useCallback(async () => {
     setRunning(true)
     try {
+      await beforeRun?.()
       const res = await api.runWorkflowNode(workflowId, nodeId)
       setLastExecution(res.execution)
       await loadWorkflowVariables()
@@ -70,7 +71,7 @@ function useNodeExecution(workflowId: string, nodeId: string) {
     } finally {
       setRunning(false)
     }
-  }, [loadWorkflowVariables, nodeId, workflowId])
+  }, [beforeRun, loadWorkflowVariables, nodeId, workflowId])
 
   return {
     running,

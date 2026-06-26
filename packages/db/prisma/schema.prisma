@@ -172,14 +172,39 @@ model Workflow {
   name        String
   description String?
   definition  String
+  currentSeq  Int      @default(0) @map("current_seq")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   versions       WorkflowVersion[]
   nodeExecutions WorkflowNodeExecution[]
+  editEvents     WorkflowEditEvent[]
 
   @@index([userId])
   @@map("workflows")
+}
+
+model WorkflowEditEvent {
+  id                 String   @id @default(cuid())
+  workflowId         String   @map("workflow_id")
+  workflow           Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  userId             String   @map("user_id")
+  seq                Int
+  kind               String
+  label              String?
+  opsJson            String   @default("[]") @map("ops_json")
+  inverseOpsJson     String   @default("[]") @map("inverse_ops_json")
+  snapshotName       String?  @map("snapshot_name")
+  snapshotDefinition String?  @map("snapshot_definition")
+  clientBatchId      String?  @map("client_batch_id")
+  targetSeq          Int?     @map("target_seq")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  @@unique([workflowId, seq])
+  @@unique([workflowId, clientBatchId])
+  @@index([workflowId, kind, seq])
+  @@index([userId])
+  @@map("workflow_edit_events")
 }
 
 model WorkflowVersion {

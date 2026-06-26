@@ -1,4 +1,8 @@
-import { applyWorkflowOpsToState, invertWorkflowOps } from './workflow-ops'
+import {
+  applyWorkflowOpsToState,
+  invertWorkflowOps,
+  tryApplyWorkflowOpsToState,
+} from './workflow-ops'
 import type { WorkflowHistorySlice, WorkflowSliceCreator } from './types'
 import { createHistoryId, workflowContentOps } from './helpers'
 
@@ -11,18 +15,19 @@ const createHistorySlice: WorkflowSliceCreator<WorkflowHistorySlice> = (set) => 
     set((state) => {
       const contentOps = workflowContentOps(ops)
       if (contentOps.length === 0) return state
+      const dryRun = tryApplyWorkflowOpsToState(
+        { nodes: state.nodes, edges: state.edges, workflowName: state.workflowName },
+        contentOps,
+      )
+      if (!dryRun.ok) return state
       const inverseOps = invertWorkflowOps(
         { nodes: state.nodes, edges: state.edges, workflowName: state.workflowName },
         contentOps,
       )
-      const next = applyWorkflowOpsToState(
-        { nodes: state.nodes, edges: state.edges, workflowName: state.workflowName },
-        contentOps,
-      )
       return {
-        nodes: next.nodes,
-        edges: next.edges,
-        workflowName: next.workflowName ?? state.workflowName,
+        nodes: dryRun.nodes,
+        edges: dryRun.edges,
+        workflowName: dryRun.workflowName ?? state.workflowName,
         past: [
           ...state.past,
           {
@@ -39,6 +44,7 @@ const createHistorySlice: WorkflowSliceCreator<WorkflowHistorySlice> = (set) => 
         lastModified: Date.now(),
       }
     }),
+  setHistoryEntries: (entries) => set({ past: entries, future: [] }),
   undo: () =>
     set((state) => {
       const entry = state.past.at(-1)

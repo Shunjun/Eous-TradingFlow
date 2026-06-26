@@ -12,20 +12,25 @@ interface UseWorkflowNodeActionsParams {
   workflowStore: WorkflowStore
   commitOps: (ops: WorkflowEditOp[], label: string) => void
   fitView: (options: typeof WORKFLOW_FIT_VIEW_OPTIONS & { duration?: number }) => Promise<boolean>
+  beforeRun?: () => Promise<unknown>
 }
 
 function useWorkflowNodeActions({
   workflowStore,
   commitOps,
   fitView,
+  beforeRun,
 }: UseWorkflowNodeActionsParams) {
   const runNode = useCallback(
     (nodeId: string) => {
       const workflowId = workflowStore.getState().activeWorkflowId
       if (!workflowId || workflowId === 'new') return
-      void api.runWorkflowNode(workflowId, nodeId)
+      void (async () => {
+        await beforeRun?.()
+        await api.runWorkflowNode(workflowId, nodeId)
+      })()
     },
-    [workflowStore],
+    [beforeRun, workflowStore],
   )
 
   const duplicateNode = useCallback(

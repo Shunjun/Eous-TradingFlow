@@ -5,6 +5,7 @@ import type {
   WorkflowEdge,
   WorkflowNode,
 } from '@eous/api-client'
+import { prisma } from '@eous/db'
 import { nodeRegistry } from '@eous/nodes/server'
 import type { ParamDef } from '@eous/nodes/types'
 import { AppError } from '../lib/app-error.js'
@@ -14,6 +15,33 @@ interface ApplyWorkflowOpsResult {
   workflow: Awaited<ReturnType<typeof workflowRepo.update>>
   appliedOps: number
   warnings: string[]
+}
+
+interface ApplyWorkflowEventRequest {
+  baseSeq: number
+  ops: WorkflowEditOp[]
+  label?: string
+  clientBatchId?: string
+}
+
+interface CreateSnapshotRequest {
+  name?: string
+}
+
+type WorkflowEditEventRecord = {
+  id: string
+  workflowId: string
+  userId: string
+  seq: number
+  kind: string
+  label: string | null
+  opsJson: string
+  inverseOpsJson: string
+  snapshotName: string | null
+  snapshotDefinition: string | null
+  clientBatchId: string | null
+  targetSeq: number | null
+  createdAt: Date
 }
 
 function extractDefaults(input: Record<string, ParamDef>): Record<string, unknown> {
@@ -40,6 +68,15 @@ function parseDefinition(raw: string): WorkflowDefinitionDocument {
 
 function serializeDefinition(definition: WorkflowDefinitionDocument): string {
   return JSON.stringify(definition)
+}
+
+function parseOpsJson(raw: string): WorkflowEditOp[] {
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    return Array.isArray(parsed) ? (parsed as WorkflowEditOp[]) : []
+  } catch {
+    return []
+  }
 }
 
 function ensureWorkflowOwner(
@@ -263,6 +300,178 @@ function applyOp(definition: WorkflowDefinitionDocument, op: WorkflowEditOp, war
   }
 }
 
+function cloneDefinition(definition: WorkflowDefinitionDocument): WorkflowDefinitionDocument {
+  return JSON.parse(JSON.stringify(definition)) as WorkflowDefinitionDocument
+}
+
+function invertOps(
+  initialDefinition: WorkflowDefinitionDocument,
+  ops: WorkflowEditOp[],
+): WorkflowEditOp[] {
+  const cursor = cloneDefinition(initialDefinition)
+  const inverse: WorkflowEditOp[] = []
+  const warnings: string[] = []
+
+  for (const op of ops) {
+    switch (op.type) {
+      case 'workflow.rename':
+        break
+
+      case 'node.add':
+        inverse.unshift({ type: 'node.delete', nodeId: op.node.id, force: true })
+        break
+
+      case 'node.update': {
+        const node = cursor.nodes.find((item) => item.id === op.nodeId)
+        if (node) {
+          const dataPatch: Record<string, unknown> = {}
+          for (const key of Object.keys(op.dataPatch ?? {})) {
+            dataPatch[key] = node.data?.[key]
+          }
+          inverse.unshift({
+            type: 'node.update',
+            nodeId: op.nodeId,
+            ...(op.position ? { position: node.position } : {}),
+            ...(op.dataPatch ? { dataPatch } : {}),
+            ...(op.metaPatch && 'locked' in op.metaPatch
+              ? { metaPatch: { locked: node.meta?.locked } }
+              : {}),
+            force: true,
+          })
+        }
+        break
+      }
+
+      case 'node.delete': {
+        const node = cursor.nodes.find((item) => item.id === op.nodeId)
+        const connectedEdges = cursor.edges.filter(
+          (edge) => edge.source === op.nodeId || edge.target === op.nodeId,
+        )
+        if (node) {
+          inverse.unshift(
+            ...connectedEdges.map((edge): WorkflowEditOp => ({ type: 'edge.add', edge })),
+          )
+          inverse.unshift({ type: 'node.add', node })
+        }
+        break
+      }
+
+      case 'edge.add':
+        inverse.unshift({ type: 'edge.delete', edgeId: op.edge.id })
+        break
+
+      case 'edge.update': {
+        const edge = cursor.edges.find((item) => item.id === op.edgeId)
+        if (edge) {
+          const patch: Partial<WorkflowEdge> = {}
+          for (const key of Object.keys(op.patch) as Array<keyof WorkflowEdge>) {
+            patch[key] = edge[key] as never
+          }
+          inverse.unshift({ type: 'edge.update', edgeId: op.edgeId, patch })
+        }
+        break
+      }
+
+      case 'edge.delete': {
+        const edge = cursor.edges.find((item) => item.id === op.edgeId)
+        if (edge) inverse.unshift({ type: 'edge.add', edge })
+        break
+      }
+
+      case 'node.insertBetween': {
+        const edge = cursor.edges.find((item) => item.id === op.edgeId)
+        if (edge) {
+          inverse.unshift({ type: 'edge.add', edge })
+          inverse.unshift({ type: 'node.delete', nodeId: op.node.id, force: true })
+        }
+        break
+      }
+    }
+
+    applyOp(cursor, op, warnings)
+  }
+
+  return inverse
+}
+
+function serializeEvent(event: WorkflowEditEventRecord) {
+  return {
+    id: event.id,
+    workflowId: event.workflowId,
+    seq: event.seq,
+    kind: event.kind,
+    label: event.label,
+    ops: parseOpsJson(event.opsJson),
+    inverseOps: parseOpsJson(event.inverseOpsJson),
+    snapshotName: event.snapshotName,
+    targetSeq: event.targetSeq,
+    createdAt: event.createdAt.toISOString(),
+  }
+}
+
+function computeHistoryStacks(events: WorkflowEditEventRecord[]) {
+  const bySeq = new Map(events.map((event) => [event.seq, event]))
+  const undoStack: WorkflowEditEventRecord[] = []
+  const redoStack: WorkflowEditEventRecord[] = []
+
+  for (const event of events) {
+    if (event.kind === 'op' || event.kind === 'redo' || event.kind === 'restore') {
+      const target = event.kind === 'redo' && event.targetSeq ? bySeq.get(event.targetSeq) : event
+      if (target) {
+        undoStack.push(target)
+        if (event.kind === 'redo' && event.targetSeq) {
+          const idx = redoStack.findIndex((item) => item.seq === event.targetSeq)
+          if (idx >= 0) redoStack.splice(idx, 1)
+        } else {
+          redoStack.length = 0
+        }
+      }
+    } else if (event.kind === 'undo' && event.targetSeq) {
+      const idx = undoStack.findIndex((item) => item.seq === event.targetSeq)
+      const [target] = idx >= 0 ? undoStack.splice(idx, 1) : [bySeq.get(event.targetSeq)]
+      if (target) redoStack.push(target)
+    }
+  }
+
+  return { undoStack, redoStack }
+}
+
+async function createEditEvent(params: {
+  workflowId: string
+  userId: string
+  kind: string
+  label?: string
+  ops?: WorkflowEditOp[]
+  inverseOps?: WorkflowEditOp[]
+  snapshotName?: string
+  snapshotDefinition?: string
+  clientBatchId?: string
+  targetSeq?: number
+}) {
+  const workflow = ensureWorkflowOwner(
+    await workflowRepo.findById(params.workflowId),
+    params.userId,
+  )
+  const seq = workflow.currentSeq + 1
+  const event = await prisma.workflowEditEvent.create({
+    data: {
+      workflowId: params.workflowId,
+      userId: params.userId,
+      seq,
+      kind: params.kind,
+      label: params.label,
+      opsJson: JSON.stringify(params.ops ?? []),
+      inverseOpsJson: JSON.stringify(params.inverseOps ?? []),
+      snapshotName: params.snapshotName,
+      snapshotDefinition: params.snapshotDefinition,
+      clientBatchId: params.clientBatchId,
+      targetSeq: params.targetSeq,
+    },
+  })
+  const updated = await workflowRepo.update(params.workflowId, { currentSeq: seq })
+  return { workflow: updated, event }
+}
+
 export async function applyWorkflowOps(
   userId: string,
   workflowId: string,
@@ -301,4 +510,225 @@ export async function applyWorkflowOps(
   }
 }
 
-export { parseDefinition, serializeDefinition }
+export async function applyWorkflowEvent(
+  userId: string,
+  workflowId: string,
+  request: ApplyWorkflowEventRequest,
+) {
+  if (!Array.isArray(request.ops) || request.ops.length === 0) {
+    throw new AppError('ops is required', 400)
+  }
+
+  const existing =
+    request.clientBatchId &&
+    (await prisma.workflowEditEvent.findUnique({
+      where: {
+        workflowId_clientBatchId: {
+          workflowId,
+          clientBatchId: request.clientBatchId,
+        },
+      },
+    }))
+  if (existing) {
+    const workflow = ensureWorkflowOwner(await workflowRepo.findById(workflowId), userId)
+    return {
+      workflow,
+      event: serializeEvent(existing),
+      warnings: [],
+    }
+  }
+
+  const workflow = ensureWorkflowOwner(await workflowRepo.findById(workflowId), userId)
+  if (workflow.currentSeq !== request.baseSeq) {
+    throw new AppError('Workflow has changed. Refresh before applying edits.', 409)
+  }
+
+  const definition = parseDefinition(workflow.definition)
+  const inverseOps = invertOps(definition, request.ops)
+  const warnings: string[] = []
+  for (const op of request.ops) {
+    applyOp(definition, op, warnings)
+  }
+  assertAcyclic(definition)
+
+  const seq = workflow.currentSeq + 1
+  const updated = await prisma.$transaction(async (tx) => {
+    const nextWorkflow = await tx.workflow.update({
+      where: { id: workflowId },
+      data: {
+        definition: serializeDefinition(definition),
+        currentSeq: seq,
+      },
+    })
+    const event = await tx.workflowEditEvent.create({
+      data: {
+        workflowId,
+        userId,
+        seq,
+        kind: 'op',
+        label: request.label,
+        opsJson: JSON.stringify(request.ops),
+        inverseOpsJson: JSON.stringify(inverseOps),
+        clientBatchId: request.clientBatchId,
+      },
+    })
+    return { workflow: nextWorkflow, event }
+  })
+
+  return {
+    workflow: updated.workflow,
+    event: serializeEvent(updated.event),
+    warnings,
+  }
+}
+
+export async function listWorkflowHistory(userId: string, workflowId: string) {
+  ensureWorkflowOwner(await workflowRepo.findById(workflowId), userId)
+  const events = await prisma.workflowEditEvent.findMany({
+    where: { workflowId },
+    orderBy: { seq: 'asc' },
+  })
+  const { undoStack, redoStack } = computeHistoryStacks(events)
+  return {
+    events: events.map(serializeEvent),
+    canUndo: undoStack.length > 0,
+    canRedo: redoStack.length > 0,
+  }
+}
+
+export async function undoWorkflowEvent(userId: string, workflowId: string) {
+  const workflow = ensureWorkflowOwner(await workflowRepo.findById(workflowId), userId)
+  const events = await prisma.workflowEditEvent.findMany({
+    where: { workflowId },
+    orderBy: { seq: 'asc' },
+  })
+  const { undoStack } = computeHistoryStacks(events)
+  const target = undoStack.at(-1)
+  if (!target) throw new AppError('Nothing to undo', 400)
+
+  const ops = parseOpsJson(target.inverseOpsJson)
+  const definition = parseDefinition(workflow.definition)
+  const warnings: string[] = []
+  for (const op of ops) applyOp(definition, op, warnings)
+
+  const seq = workflow.currentSeq + 1
+  const result = await prisma.$transaction(async (tx) => {
+    const nextWorkflow = await tx.workflow.update({
+      where: { id: workflowId },
+      data: { definition: serializeDefinition(definition), currentSeq: seq },
+    })
+    const event = await tx.workflowEditEvent.create({
+      data: {
+        workflowId,
+        userId,
+        seq,
+        kind: 'undo',
+        label: `撤销 ${target.label ?? target.kind}`,
+        opsJson: JSON.stringify(ops),
+        inverseOpsJson: target.opsJson,
+        targetSeq: target.seq,
+      },
+    })
+    return { workflow: nextWorkflow, event }
+  })
+
+  return { workflow: result.workflow, event: serializeEvent(result.event), warnings }
+}
+
+export async function redoWorkflowEvent(userId: string, workflowId: string) {
+  const workflow = ensureWorkflowOwner(await workflowRepo.findById(workflowId), userId)
+  const events = await prisma.workflowEditEvent.findMany({
+    where: { workflowId },
+    orderBy: { seq: 'asc' },
+  })
+  const { redoStack } = computeHistoryStacks(events)
+  const target = redoStack.at(-1)
+  if (!target) throw new AppError('Nothing to redo', 400)
+
+  const ops = parseOpsJson(target.opsJson)
+  const definition = parseDefinition(workflow.definition)
+  const warnings: string[] = []
+  for (const op of ops) applyOp(definition, op, warnings)
+
+  const seq = workflow.currentSeq + 1
+  const result = await prisma.$transaction(async (tx) => {
+    const nextWorkflow = await tx.workflow.update({
+      where: { id: workflowId },
+      data: { definition: serializeDefinition(definition), currentSeq: seq },
+    })
+    const event = await tx.workflowEditEvent.create({
+      data: {
+        workflowId,
+        userId,
+        seq,
+        kind: 'redo',
+        label: `重做 ${target.label ?? target.kind}`,
+        opsJson: JSON.stringify(ops),
+        inverseOpsJson: target.inverseOpsJson,
+        targetSeq: target.seq,
+      },
+    })
+    return { workflow: nextWorkflow, event }
+  })
+
+  return { workflow: result.workflow, event: serializeEvent(result.event), warnings }
+}
+
+export async function createWorkflowSnapshot(
+  userId: string,
+  workflowId: string,
+  request: CreateSnapshotRequest,
+) {
+  const workflow = ensureWorkflowOwner(await workflowRepo.findById(workflowId), userId)
+  const result = await createEditEvent({
+    workflowId,
+    userId,
+    kind: 'snapshot',
+    label: request.name ?? '快照',
+    snapshotName: request.name ?? `快照 ${workflow.currentSeq}`,
+    snapshotDefinition: workflow.definition,
+  })
+  return { workflow: result.workflow, snapshot: serializeEvent(result.event) }
+}
+
+export async function listWorkflowSnapshots(userId: string, workflowId: string) {
+  ensureWorkflowOwner(await workflowRepo.findById(workflowId), userId)
+  const snapshots = await prisma.workflowEditEvent.findMany({
+    where: { workflowId, kind: 'snapshot' },
+    orderBy: { seq: 'desc' },
+  })
+  return { snapshots: snapshots.map(serializeEvent) }
+}
+
+export async function restoreWorkflowSnapshot(userId: string, workflowId: string, eventId: string) {
+  const workflow = ensureWorkflowOwner(await workflowRepo.findById(workflowId), userId)
+  const snapshot = await prisma.workflowEditEvent.findFirst({
+    where: { id: eventId, workflowId, kind: 'snapshot' },
+  })
+  if (!snapshot?.snapshotDefinition) throw new AppError('Snapshot not found', 404)
+
+  const previousDefinition = workflow.definition
+  const seq = workflow.currentSeq + 1
+  const result = await prisma.$transaction(async (tx) => {
+    const nextWorkflow = await tx.workflow.update({
+      where: { id: workflowId },
+      data: { definition: snapshot.snapshotDefinition!, currentSeq: seq },
+    })
+    const event = await tx.workflowEditEvent.create({
+      data: {
+        workflowId,
+        userId,
+        seq,
+        kind: 'restore',
+        label: `恢复 ${snapshot.snapshotName ?? '快照'}`,
+        snapshotName: snapshot.snapshotName,
+        snapshotDefinition: previousDefinition,
+        targetSeq: snapshot.seq,
+      },
+    })
+    return { workflow: nextWorkflow, event }
+  })
+  return { workflow: result.workflow, event: serializeEvent(result.event) }
+}
+
+export { parseDefinition, serializeDefinition, invertOps }

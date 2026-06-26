@@ -22,7 +22,7 @@ export function create(data: {
 
 export function update(
   id: string,
-  data: { name?: string; description?: string; definition?: string },
+  data: { name?: string; description?: string; definition?: string; currentSeq?: number },
 ): Promise<Workflow> {
   return prisma.workflow.update({ where: { id }, data })
 }

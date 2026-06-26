@@ -66,6 +66,7 @@ function toWorkflowDefinition(workflow: WorkflowRecord): WorkflowDefinition {
     nodes: definition.nodes.map(normalizeNode),
     edges: definition.edges,
     viewport: definition.viewport,
+    currentSeq: workflow.currentSeq ?? 0,
     createdAt: workflow.createdAt.toISOString(),
     updatedAt: workflow.updatedAt.toISOString(),
   }

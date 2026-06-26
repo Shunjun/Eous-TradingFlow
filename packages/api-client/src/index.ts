@@ -146,6 +146,32 @@ export interface ApplyWorkflowOpsResponse {
   warnings: string[]
 }
 
+export interface WorkflowEditEvent {
+  id: string
+  workflowId: string
+  seq: number
+  kind: string
+  label: string | null
+  ops: WorkflowEditOp[]
+  inverseOps: WorkflowEditOp[]
+  snapshotName: string | null
+  targetSeq: number | null
+  createdAt: string
+}
+
+export interface ApplyWorkflowEventRequest {
+  baseSeq: number
+  ops: WorkflowEditOp[]
+  label?: string
+  clientBatchId?: string
+}
+
+export interface ApplyWorkflowEventResponse {
+  workflow: WorkflowDefinition
+  event: WorkflowEditEvent
+  warnings: string[]
+}
+
 export interface WorkflowDefinition {
   id: string
   name: string
@@ -153,6 +179,7 @@ export interface WorkflowDefinition {
   nodes: WorkflowNode[]
   edges: WorkflowEdge[]
   viewport?: { x: number; y: number; zoom: number }
+  currentSeq: number
   createdAt: string
   updatedAt: string
 }
@@ -356,6 +383,26 @@ export interface ApiClient {
     workflowId: string,
     request: ApplyWorkflowOpsRequest,
   ): Promise<ApplyWorkflowOpsResponse>
+  applyWorkflowEvent(
+    workflowId: string,
+    request: ApplyWorkflowEventRequest,
+  ): Promise<ApplyWorkflowEventResponse>
+  getWorkflowHistory(workflowId: string): Promise<{
+    events: WorkflowEditEvent[]
+    canUndo: boolean
+    canRedo: boolean
+  }>
+  undoWorkflow(workflowId: string): Promise<ApplyWorkflowEventResponse>
+  redoWorkflow(workflowId: string): Promise<ApplyWorkflowEventResponse>
+  createWorkflowSnapshot(
+    workflowId: string,
+    request?: { name?: string },
+  ): Promise<{ workflow: WorkflowDefinition; snapshot: WorkflowEditEvent }>
+  listWorkflowSnapshots(workflowId: string): Promise<{ snapshots: WorkflowEditEvent[] }>
+  restoreWorkflowSnapshot(
+    workflowId: string,
+    eventId: string,
+  ): Promise<{ workflow: WorkflowDefinition; event: WorkflowEditEvent }>
   deleteWorkflow(id: string): Promise<void>
 
   executeWorkflow(id: string, request?: ExecuteWorkflowRequest): Promise<ExecutionRecord>
@@ -632,6 +679,7 @@ interface RawWorkflow {
   name: string
   description?: string
   definition: string
+  currentSeq?: number
   createdAt: string
   updatedAt: string
 }
@@ -659,6 +707,7 @@ function toWorkflowDefinition(raw: RawWorkflow): WorkflowDefinition {
     description: raw.description,
     nodes,
     edges,
+    currentSeq: raw.currentSeq ?? 0,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
   }
@@ -790,6 +839,58 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
         appliedOps: res.appliedOps,
         warnings: res.warnings,
       }
+    },
+    applyWorkflowEvent: async (workflowId, request) => {
+      const res = await post<{
+        workflow: RawWorkflow
+        event: WorkflowEditEvent
+        warnings: string[]
+      }>(`/workflows/${encodeURIComponent(workflowId)}/events/batch`, request)
+      return {
+        workflow: toWorkflowDefinition(res.workflow),
+        event: res.event,
+        warnings: res.warnings,
+      }
+    },
+    getWorkflowHistory: (workflowId) => get(`/workflows/${encodeURIComponent(workflowId)}/history`),
+    undoWorkflow: async (workflowId) => {
+      const res = await post<{
+        workflow: RawWorkflow
+        event: WorkflowEditEvent
+        warnings: string[]
+      }>(`/workflows/${encodeURIComponent(workflowId)}/undo`)
+      return {
+        workflow: toWorkflowDefinition(res.workflow),
+        event: res.event,
+        warnings: res.warnings,
+      }
+    },
+    redoWorkflow: async (workflowId) => {
+      const res = await post<{
+        workflow: RawWorkflow
+        event: WorkflowEditEvent
+        warnings: string[]
+      }>(`/workflows/${encodeURIComponent(workflowId)}/redo`)
+      return {
+        workflow: toWorkflowDefinition(res.workflow),
+        event: res.event,
+        warnings: res.warnings,
+      }
+    },
+    createWorkflowSnapshot: async (workflowId, request) => {
+      const res = await post<{ workflow: RawWorkflow; snapshot: WorkflowEditEvent }>(
+        `/workflows/${encodeURIComponent(workflowId)}/snapshots`,
+        request,
+      )
+      return { workflow: toWorkflowDefinition(res.workflow), snapshot: res.snapshot }
+    },
+    listWorkflowSnapshots: (workflowId) =>
+      get(`/workflows/${encodeURIComponent(workflowId)}/snapshots`),
+    restoreWorkflowSnapshot: async (workflowId, eventId) => {
+      const res = await post<{ workflow: RawWorkflow; event: WorkflowEditEvent }>(
+        `/workflows/${encodeURIComponent(workflowId)}/snapshots/${encodeURIComponent(eventId)}/restore`,
+      )
+      return { workflow: toWorkflowDefinition(res.workflow), event: res.event }
     },
     deleteWorkflow: (id: string) => del(`/workflows/${encodeURIComponent(id)}`, true),
     executeWorkflow: (id: string, request?: ExecuteWorkflowRequest) =>

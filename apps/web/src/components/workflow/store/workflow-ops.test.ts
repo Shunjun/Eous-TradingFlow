@@ -5,6 +5,7 @@ import {
   invertWorkflowOps,
   tryApplyWorkflowOpsToState,
 } from './workflow-ops'
+import { createWorkflowStore } from './workflow-store'
 
 const baseState = {
   workflowName: 'Original',
@@ -176,5 +177,35 @@ describe('workflow ops', () => {
     )
 
     expect(result.ok).toBe(true)
+  })
+
+  it('commitOps rejects duplicate start nodes before they enter pending ops', () => {
+    const store = createWorkflowStore()
+    store.getState().loadWorkflow(
+      'wf-1',
+      'Workflow',
+      [
+        {
+          id: 'start',
+          type: 'trigger.start',
+          position: { x: 0, y: 0 },
+          data: {},
+        },
+      ],
+      [],
+    )
+
+    store.getState().commitOps(
+      [
+        {
+          type: 'node.add',
+          node: { id: 'start-2', type: 'trigger.start', position: { x: 100, y: 0 }, data: {} },
+        },
+      ],
+      '添加节点',
+    )
+
+    expect(store.getState().nodes.map((node) => node.id)).toEqual(['start'])
+    expect(store.getState().pendingOps).toEqual([])
   })
 })

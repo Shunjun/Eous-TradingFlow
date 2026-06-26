@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
-import type { WorkflowEditOp, WorkflowNode } from '@eous/api-client'
+import type { WorkflowEditEvent, WorkflowEditOp } from '@eous/api-client'
 import { api, ApiError } from '../../lib/api'
 import {
   WorkflowStoreProvider,
@@ -7,18 +7,16 @@ import {
   useWorkflowStoreApi,
 } from './store/workflow-store'
 import { tryApplyWorkflowOpsToState } from './store/workflow-ops'
-import { useWorkflow, publishWorkflow, saveWorkflow } from '../../hooks/use-workflows'
+import type { WorkflowHistoryEntry } from './store/workflow-store'
+import { useWorkflow, publishWorkflow } from '../../hooks/use-workflows'
 import { useWorkflowListStore } from '../../stores/workflows'
 import { WorkflowCanvas, WorkflowOverlay } from './canvas'
 import { useKeyboardShortcuts } from './hooks'
 import {
   buildWorkflowDocument,
-  isWorkflowNodeType,
-  readWorkflowDraft,
   removeWorkflowDraft,
   toLocalWorkflowEdges,
   toLocalWorkflowNodes,
-  writeWorkflowDraft,
   workflowContentOps,
 } from './utils'
 import { WorkflowSaveConflictDialog, type WorkflowSaveConflictState } from './dialogs'
@@ -46,8 +44,9 @@ function WorkflowEditorContent({
 
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
-  const [isLocalDraft, setIsLocalDraft] = useState(false)
-  const [baseUpdatedAt, setBaseUpdatedAt] = useState<string | null>(null)
+  const [currentSeq, setCurrentSeq] = useState(0)
+  const currentSeqRef = useRef(0)
+  const [snapshots, setSnapshots] = useState<WorkflowEditEvent[]>([])
   const [conflict, setConflict] = useState<WorkflowSaveConflictState>(null)
   const [resolvingConflict, setResolvingConflict] = useState(false)
   const editorRef = useRef<HTMLDivElement | null>(null)
@@ -59,32 +58,56 @@ function WorkflowEditorContent({
   }, [workflowName])
 
   useEffect(() => {
+    currentSeqRef.current = currentSeq
+  }, [currentSeq])
+
+  const loadSnapshots = useCallback(async (workflowIdToLoad: string) => {
+    const res = await api.listWorkflowSnapshots(workflowIdToLoad)
+    setSnapshots(res.snapshots)
+  }, [])
+
+  const buildHistoryEntries = useCallback((events: WorkflowEditEvent[]): WorkflowHistoryEntry[] => {
+    const bySeq = new Map(events.map((event) => [event.seq, event]))
+    const stack: WorkflowEditEvent[] = []
+
+    for (const event of events) {
+      if (event.kind === 'op' || event.kind === 'redo') {
+        const target = event.kind === 'redo' && event.targetSeq ? bySeq.get(event.targetSeq) : event
+        if (target) stack.push(target)
+      } else if (event.kind === 'undo' && event.targetSeq) {
+        const idx = stack.findIndex((item) => item.seq === event.targetSeq)
+        if (idx >= 0) stack.splice(idx, 1)
+      } else if (event.kind === 'restore') {
+        stack.length = 0
+      }
+    }
+
+    return stack.map((event) => ({
+      id: event.id,
+      label: event.label ?? event.kind,
+      ops: event.ops,
+      inverseOps: event.inverseOps,
+      createdAt: new Date(event.createdAt).getTime(),
+    }))
+  }, [])
+
+  useEffect(() => {
     if (!workflow) return
 
     const serverNodes = toLocalWorkflowNodes(workflow)
     const serverEdges = toLocalWorkflowEdges(workflow)
 
-    const draft = readWorkflowDraft(workflow.id)
-    const serverUpdated = new Date(workflow.updatedAt).getTime()
-    setBaseUpdatedAt(workflow.updatedAt)
+    setCurrentSeq(workflow.currentSeq)
     initialWorkflowNameRef.current = workflow.name
 
-    if (draft && draft.lastModified > serverUpdated) {
-      loadDraftWorkflow(workflow.id, draft.name, draft.nodes, draft.edges, draft.pendingOps ?? [])
-      setIsLocalDraft(true)
-    } else {
-      loadWorkflow(workflow.id, workflow.name, serverNodes, serverEdges)
-      setIsLocalDraft(false)
-      writeWorkflowDraft(workflow.id, {
-        nodes: serverNodes,
-        edges: serverEdges,
-        name: workflow.name,
-        lastModified: serverUpdated,
-      })
-    }
+    loadWorkflow(workflow.id, workflow.name, serverNodes, serverEdges)
+    void api.getWorkflowHistory(workflow.id).then((history) => {
+      workflowStore.getState().setHistoryEntries(buildHistoryEntries(history.events))
+    })
+    void loadSnapshots(workflow.id)
 
     return () => reset()
-  }, [workflow, loadDraftWorkflow, loadWorkflow, reset])
+  }, [buildHistoryEntries, loadSnapshots, loadWorkflow, reset, workflow, workflowStore])
 
   useEffect(() => {
     if (!activeWorkflowId || !workflow || workflowName === initialWorkflowNameRef.current) return
@@ -96,7 +119,6 @@ function WorkflowEditorContent({
         .updateWorkflowMeta(activeWorkflowId, { name: trimmedName })
         .then(async ({ workflow: updatedWorkflow }) => {
           initialWorkflowNameRef.current = updatedWorkflow.name
-          setBaseUpdatedAt(updatedWorkflow.updatedAt)
           if (workflowNameRef.current !== updatedWorkflow.name) {
             workflowStore.getState().setWorkflowName(updatedWorkflow.name)
           }
@@ -110,21 +132,47 @@ function WorkflowEditorContent({
     return () => clearTimeout(timeout)
   }, [activeWorkflowId, refreshWorkflowList, workflow, workflowName, workflowStore])
 
+  const flushPendingOps = useCallback(
+    async (label = '自动保存') => {
+      const workflowIdToSave = workflowStore.getState().activeWorkflowId
+      if (!workflowIdToSave || workflowIdToSave === 'new') return null
+      const pendingOps = workflowContentOps(workflowStore.getState().pendingOps)
+      const contentOps = workflowContentOps(pendingOps)
+      if (contentOps.length === 0) return api.getWorkflow(workflowIdToSave)
+
+      setSaving(true)
+      try {
+        const result = await api.applyWorkflowEvent(workflowIdToSave, {
+          baseSeq: currentSeqRef.current,
+          label,
+          clientBatchId: `batch-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          ops: contentOps,
+        })
+        setCurrentSeq(result.workflow.currentSeq)
+        workflowStore.getState().markSynced()
+        removeWorkflowDraft(workflowIdToSave)
+        await refreshWorkflowList()
+        return result.workflow
+      } finally {
+        setSaving(false)
+      }
+    },
+    [refreshWorkflowList, workflowStore],
+  )
+
   const savePendingOps = useCallback(
-    async (workflowIdToSave: string, nextBaseUpdatedAt: string, pendingOps: WorkflowEditOp[]) => {
+    async (workflowIdToSave: string, _nextBaseUpdatedAt: string, pendingOps: WorkflowEditOp[]) => {
       const contentOps = workflowContentOps(pendingOps)
       if (contentOps.length === 0) {
         workflowStore.getState().markSynced()
-        removeWorkflowDraft(workflowIdToSave)
         return api.getWorkflow(workflowIdToSave)
       }
-      const result = await api.applyWorkflowOps(workflowIdToSave, {
-        baseUpdatedAt: nextBaseUpdatedAt,
+      const result = await api.applyWorkflowEvent(workflowIdToSave, {
+        baseSeq: currentSeqRef.current,
         ops: contentOps,
+        label: '合并保存',
       })
-      setBaseUpdatedAt(result.workflow.updatedAt)
-      removeWorkflowDraft(workflowIdToSave)
-      setIsLocalDraft(false)
+      setCurrentSeq(result.workflow.currentSeq)
       workflowStore.getState().markSynced()
       await refreshWorkflowList()
       return result.workflow
@@ -169,72 +217,25 @@ function WorkflowEditorContent({
   )
 
   const handleSave = useCallback(async () => {
-    if (!activeWorkflowId) return
-    setSaving(true)
     try {
-      const pendingOps = workflowContentOps(workflowStore.getState().pendingOps)
-      if (pendingOps.length > 0 && baseUpdatedAt) {
-        await savePendingOps(activeWorkflowId, baseUpdatedAt, pendingOps)
-        return
-      }
-
-      const currentNodes = workflowStore.getState().nodes
-      const currentEdges = workflowStore.getState().edges
-      const workflowNodes: WorkflowNode[] = []
-      for (const n of currentNodes) {
-        if (!n.type || !isWorkflowNodeType(n.type)) continue
-        workflowNodes.push({
-          id: n.id,
-          type: n.type,
-          position: n.position,
-          data: n.data ?? {},
-        })
-      }
-
-      await saveWorkflow({
-        id: activeWorkflowId,
-        name: workflowName,
-        nodes: workflowNodes,
-        edges: currentEdges.map((e) => ({
-          id: e.id,
-          source: e.source,
-          sourceHandle: e.sourceHandle ?? '',
-          target: e.target,
-          targetHandle: e.targetHandle ?? '',
-        })),
-        createdAt: '',
-        updatedAt: '',
-      })
-      removeWorkflowDraft(activeWorkflowId)
-      setIsLocalDraft(false)
-      await refreshWorkflowList()
-      workflowStore.getState().markClean()
+      await flushPendingOps('手动同步')
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         const pendingOps = workflowContentOps(workflowStore.getState().pendingOps)
         if (pendingOps.length > 0) {
-          await openSaveConflict(activeWorkflowId, pendingOps)
+          await openSaveConflict(activeWorkflowId!, pendingOps)
         }
       }
-      // error handled by global error handler
-    } finally {
-      setSaving(false)
     }
-  }, [
-    activeWorkflowId,
-    baseUpdatedAt,
-    openSaveConflict,
-    refreshWorkflowList,
-    savePendingOps,
-    workflowName,
-    workflowStore,
-  ])
+  }, [activeWorkflowId, flushPendingOps, openSaveConflict, workflowStore])
 
   const handleMergeConflict = useCallback(async () => {
     if (!activeWorkflowId || !conflict?.canMerge || !conflict.rebased) return
 
     setResolvingConflict(true)
     try {
+      currentSeqRef.current = conflict.latestWorkflow.currentSeq
+      setCurrentSeq(conflict.latestWorkflow.currentSeq)
       loadDraftWorkflow(
         activeWorkflowId,
         conflict.rebased.workflowName,
@@ -242,7 +243,7 @@ function WorkflowEditorContent({
         conflict.rebased.edges,
         conflict.pendingOps,
       )
-      await savePendingOps(activeWorkflowId, conflict.latestWorkflow.updatedAt, conflict.pendingOps)
+      await savePendingOps(activeWorkflowId, '', conflict.pendingOps)
       setConflict(null)
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
@@ -258,6 +259,7 @@ function WorkflowEditorContent({
 
     setResolvingConflict(true)
     try {
+      await flushPendingOps('保存副本前同步')
       const current = workflowStore.getState()
       const definition = buildWorkflowDocument(current.nodes, current.edges)
       const workflow = await createWorkflowInList(
@@ -266,7 +268,6 @@ function WorkflowEditorContent({
       )
       removeWorkflowDraft(activeWorkflowId)
       current.markSynced()
-      setIsLocalDraft(false)
       setConflict(null)
       onWorkflowSelect?.(workflow.id)
     } finally {
@@ -279,47 +280,79 @@ function WorkflowEditorContent({
 
     const latest = conflict.latestWorkflow
     loadWorkflow(latest.id, latest.name, toLocalWorkflowNodes(latest), toLocalWorkflowEdges(latest))
-    setBaseUpdatedAt(latest.updatedAt)
+    setCurrentSeq(latest.currentSeq)
     removeWorkflowDraft(activeWorkflowId)
-    setIsLocalDraft(false)
     setConflict(null)
   }, [activeWorkflowId, conflict, loadWorkflow])
 
   const lastModified = useWorkflowStore((s) => s.lastModified)
-  const debouncedDraftRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!activeWorkflowId || lastModified === 0) return
 
-    if (debouncedDraftRef.current) clearTimeout(debouncedDraftRef.current)
-    debouncedDraftRef.current = setTimeout(() => {
-      const { nodes: latestNodes, edges: latestEdges, pendingOps } = workflowStore.getState()
-      writeWorkflowDraft(activeWorkflowId, {
-        nodes: latestNodes,
-        edges: latestEdges,
-        name: workflowName,
-        pendingOps: workflowContentOps(pendingOps),
-        lastModified: Date.now(),
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
+    autosaveTimerRef.current = setTimeout(() => {
+      void flushPendingOps().catch(async (error) => {
+        if (error instanceof ApiError && error.status === 409 && activeWorkflowId) {
+          const pendingOps = workflowContentOps(workflowStore.getState().pendingOps)
+          if (pendingOps.length > 0) await openSaveConflict(activeWorkflowId, pendingOps)
+        }
       })
-    }, 2000)
+    }, 5000)
 
     return () => {
-      if (debouncedDraftRef.current) clearTimeout(debouncedDraftRef.current)
+      if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current)
     }
-  }, [activeWorkflowId, workflowName, lastModified, workflowStore])
+  }, [activeWorkflowId, flushPendingOps, lastModified, openSaveConflict, workflowStore])
+
+  useEffect(() => {
+    const handler = () => {
+      void flushPendingOps('离开前同步')
+    }
+    window.addEventListener('pagehide', handler)
+    return () => window.removeEventListener('pagehide', handler)
+  }, [flushPendingOps])
 
   const handlePublish = useCallback(async () => {
     if (!activeWorkflowId) return
     setPublishing(true)
     try {
-      await handleSave()
+      await flushPendingOps('发布前同步')
       await publishWorkflow(activeWorkflowId)
     } catch {
       // error handled by global error handler
     } finally {
       setPublishing(false)
     }
-  }, [activeWorkflowId, handleSave])
+  }, [activeWorkflowId, flushPendingOps])
+
+  const handleCreateSnapshot = useCallback(async () => {
+    if (!activeWorkflowId) return
+    await flushPendingOps('快照前同步')
+    const res = await api.createWorkflowSnapshot(activeWorkflowId, {
+      name: `快照 ${new Date().toLocaleString()}`,
+    })
+    setCurrentSeq(res.workflow.currentSeq)
+    await loadSnapshots(activeWorkflowId)
+  }, [activeWorkflowId, flushPendingOps, loadSnapshots])
+
+  const handleRestoreSnapshot = useCallback(
+    async (eventId: string) => {
+      if (!activeWorkflowId) return
+      await flushPendingOps('恢复快照前同步')
+      const res = await api.restoreWorkflowSnapshot(activeWorkflowId, eventId)
+      setCurrentSeq(res.workflow.currentSeq)
+      loadWorkflow(
+        res.workflow.id,
+        res.workflow.name,
+        toLocalWorkflowNodes(res.workflow),
+        toLocalWorkflowEdges(res.workflow),
+      )
+      await loadSnapshots(activeWorkflowId)
+    },
+    [activeWorkflowId, flushPendingOps, loadSnapshots, loadWorkflow],
+  )
 
   useKeyboardShortcuts({ targetRef: editorRef })
 
@@ -338,15 +371,17 @@ function WorkflowEditorContent({
       tabIndex={-1}
       onPointerDown={() => editorRef.current?.focus()}
     >
-      <WorkflowCanvas />
+      <WorkflowCanvas onBeforeRun={() => flushPendingOps('运行前同步')} />
       <WorkflowOverlay
         workflowId={workflowId}
         saving={saving}
         publishing={publishing}
-        isLocalDraft={isLocalDraft}
+        snapshots={snapshots}
         showWorkflowList={showWorkflowList}
-        onSave={handleSave}
         onPublish={handlePublish}
+        onBeforeRun={() => flushPendingOps('运行前同步')}
+        onCreateSnapshot={handleCreateSnapshot}
+        onRestoreSnapshot={handleRestoreSnapshot}
         onWorkflowSelect={onWorkflowSelect}
       />
       <WorkflowSaveConflictDialog
