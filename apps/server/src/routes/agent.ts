@@ -87,7 +87,6 @@ agentRouter.post('/chat', async (c) => {
   const readable = new ReadableStream({
     async start(controller) {
       const encoder = new TextEncoder()
-      let fullText = ''
 
       const write = (type: string, data: unknown) => {
         controller.enqueue(encoder.encode(sse(type, data)))
@@ -98,7 +97,6 @@ agentRouter.post('/chat', async (c) => {
       try {
         for await (const event of stream) {
           if (event.type === 'text_delta' && 'delta' in event) {
-            fullText += event.delta
             write('text_delta', { delta: event.delta })
           } else if (event.type === 'error') {
             const error = 'error' in event ? event.error : 'LLM stream error'
@@ -109,7 +107,6 @@ agentRouter.post('/chat', async (c) => {
         const { message, session: updatedSession } = await agentService.finishAssistantMessage({
           userId,
           sessionId: session.id,
-          content: fullText,
         })
         if (updatedSession) write('session_updated', { session: updatedSession })
         write('done', { message, session: updatedSession })

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import type { Agent, AgentMessage, AgentMemory, AgentSession } from '@eous/db'
 import { AppError } from '../lib/app-error.js'
 import * as agentRepo from '../repositories/agent.repo.js'
@@ -126,6 +127,26 @@ function parseJsonObject(raw: string): Record<string, unknown> {
   }
 }
 
+function extractTextFromMastraContent(raw: string): string {
+  const parsed = parseJsonObject(raw)
+  if (parsed.format !== 2 || !Array.isArray(parsed.parts)) return raw
+
+  const text = parsed.parts
+    .map((part) => {
+      if (!part || typeof part !== 'object') return ''
+      const record = part as Record<string, unknown>
+      if (typeof record.text === 'string') return record.text
+      if (typeof record.content === 'string') return record.content
+      return ''
+    })
+    .filter(Boolean)
+    .join('')
+    .trim()
+
+  if (text) return text
+  return typeof parsed.content === 'string' ? parsed.content : ''
+}
+
 function parseJsonArray(raw: string): string[] {
   try {
     const parsed = JSON.parse(raw) as unknown
@@ -142,7 +163,7 @@ function toMessageDTO(message: AgentMessage): AgentMessageDTO {
     id: message.id,
     sessionId: message.sessionId,
     role: message.role as AgentRole,
-    content: message.content,
+    content: extractTextFromMastraContent(message.content),
     metadata: parseJsonObject(message.metadata),
     createdAt: message.createdAt.toISOString(),
   }
@@ -257,8 +278,8 @@ async function generateSessionTitle(params: {
   const assistantMessage = messages.find((message) => message.role === 'assistant')
   if (!userMessage || !assistantMessage) return null
 
-  const userText = userMessage.content.trim()
-  const assistantText = assistantMessage.content.trim()
+  const userText = extractTextFromMastraContent(userMessage.content).trim()
+  const assistantText = extractTextFromMastraContent(assistantMessage.content).trim()
   if (!userText || !assistantText) return null
 
   const temporaryTitle = makeTitle(userText)
@@ -308,7 +329,10 @@ async function generateSessionTitle(params: {
 function buildFallbackSummary(messages: AgentMessage[]): string {
   return messages
     .slice(0, -RECENT_MESSAGE_LIMIT)
-    .map((message) => `${message.role}: ${message.content.replace(/\s+/g, ' ').slice(0, 180)}`)
+    .map(
+      (message) =>
+        `${message.role}: ${extractTextFromMastraContent(message.content).replace(/\s+/g, ' ').slice(0, 180)}`,
+    )
     .join('\n')
     .slice(-3000)
 }
@@ -510,10 +534,7 @@ export async function prepareChat(
     providerId: body.providerId,
     modelId: body.modelId,
   })
-  await agentRepo.createMessage({ userId, sessionId: session.id, role: 'user', content })
-
-  const [recentMessages, memories] = await Promise.all([
-    agentRepo.findMessages(session.id, RECENT_MESSAGE_LIMIT),
+  const [memories] = await Promise.all([
     agentRepo.findMemories({
       userId,
       agentId: session.agentId,
@@ -529,6 +550,9 @@ export async function prepareChat(
     memories,
   })
 
+  const userMessageId = randomUUID()
+  const userMessageCreatedAt = new Date()
+
   const stream = await streamChat({
     userId,
     agentId: agent.id,
@@ -538,13 +562,11 @@ export async function prepareChat(
     toolScope: parseJsonArray(agent.toolScope),
     context: {
       systemPrompt,
-      messages: recentMessages
-        .filter((message) => message.role === 'user')
-        .map((message) => ({
-          role: 'user' as const,
-          content: message.content,
-          timestamp: message.createdAt.getTime(),
-        })),
+      messages: [{ id: userMessageId, role: 'user', content, createdAt: userMessageCreatedAt }],
+    },
+    conversationMemory: {
+      threadId: session.id,
+      resourceId: userId,
     },
   })
 
@@ -554,16 +576,18 @@ export async function prepareChat(
 export async function finishAssistantMessage(params: {
   userId: string
   sessionId: string
-  content: string
 }): Promise<{ message: AgentMessageDTO; session: AgentSessionDTO | null }> {
-  const message = await agentRepo.createMessage({
-    userId: params.userId,
-    sessionId: params.sessionId,
-    role: 'assistant',
-    content: params.content,
-  })
   const session = await agentRepo.findSessionByIdAndUser(params.sessionId, params.userId)
-  if (!session) return { message: toMessageDTO(message), session: null }
+  if (!session) throw new AppError('Agent session not found', 404)
+
+  const messages = await agentRepo.findMessages(params.sessionId)
+  const message = [...messages]
+    .reverse()
+    .find(
+      (item) =>
+        item.role === 'assistant' && extractTextFromMastraContent(item.content).trim().length > 0,
+    )
+  if (!message) throw new AppError('Assistant message was not persisted', 500)
 
   await maybeCompactSession(session)
 

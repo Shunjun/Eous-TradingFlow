@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useLayoutEffect, type RefObject } from 'react'
 import { cn } from '@eous/ui'
 import { Wrench } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
@@ -126,13 +126,19 @@ function MessageContent({ message }: { message: AgentMessage }) {
   )
 }
 
-export function MessageList() {
+export function MessageList({
+  scrollContainerRef,
+}: {
+  scrollContainerRef?: RefObject<HTMLDivElement | null>
+}) {
   const messages = useChatStore((state) => state.messages)
-  const bottomRef = useRef<HTMLDivElement | null>(null)
 
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ block: 'end' })
-  }, [messages])
+  useLayoutEffect(() => {
+    const scrollContainer = scrollContainerRef?.current
+    if (!scrollContainer) return
+
+    scrollContainer.scrollTop = scrollContainer.scrollHeight
+  }, [messages, scrollContainerRef])
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-4">
@@ -159,7 +165,6 @@ export function MessageList() {
           </div>
         </div>
       ))}
-      <div ref={bottomRef} />
     </div>
   )
 }

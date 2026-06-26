@@ -129,11 +129,11 @@ function AddProviderForm({
           {/* Template selector */}
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-              Provider Type
+              Vendor
             </Label>
             <Select value={kind || undefined} onValueChange={handleKindChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Select provider type…" />
+                <SelectValue placeholder="Select vendor..." />
               </SelectTrigger>
               <SelectContent>
                 {templates.map((t) => (
@@ -913,7 +913,7 @@ export default function ProvidersPage() {
           <div>
             <h1 className="text-xl font-semibold">Providers</h1>
             <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-              Configure model families, API formats, and custom endpoints
+              Configure vendors, API formats, and custom endpoints
             </p>
           </div>
         </div>

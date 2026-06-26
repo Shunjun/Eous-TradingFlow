@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { Button, ResizableHandle, ResizablePanel, ResizablePanelGroup, cn } from '@eous/ui'
 import { Eye, PanelLeftOpen } from 'lucide-react'
 import { AgentViewPanel } from '../../../components/chat/agent-view-panel'
@@ -34,6 +35,7 @@ function ChatPageLayout() {
   const setSessionListOpen = useChatStore((state) => state.setSessionListOpen)
   const setViewOpen = useChatStore((state) => state.setViewOpen)
   const viewOpen = useChatStore((state) => state.viewOpen)
+  const messageScrollRef = useRef<HTMLDivElement | null>(null)
 
   return (
     <div className="h-[calc(100dvh-3.5rem)] min-h-0 overflow-hidden">
@@ -88,8 +90,8 @@ function ChatPageLayout() {
                 ) : null}
                 {hasMessages ? (
                   <div className="relative min-h-0 flex-1 overflow-hidden">
-                    <div className="h-full overflow-y-auto px-5 pb-40 pt-5">
-                      <MessageList />
+                    <div ref={messageScrollRef} className="h-full overflow-y-auto px-5 pb-40 pt-5">
+                      <MessageList scrollContainerRef={messageScrollRef} />
                     </div>
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-background via-background/95 to-transparent pb-5 pt-8">
                       <div className="pointer-events-auto">

@@ -93,6 +93,8 @@ export function createMessage(data: {
   userId: string
   sessionId: string
   role: string
+  type?: string
+  resourceId?: string | null
   content: string
   metadata?: string
 }): Promise<AgentMessage> {

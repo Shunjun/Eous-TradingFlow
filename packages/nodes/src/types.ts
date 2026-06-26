@@ -33,15 +33,14 @@ export interface LlmService {
   streamChat(options: {
     providerId: string
     modelId: string
-    memory?: {
-      enabled?: boolean
-      agentId?: string
-      query?: string
-      limit?: number
-    }
     context: {
       systemPrompt?: string
-      messages: { role: 'user' | 'assistant'; content: string; timestamp: number }[]
+      messages: {
+        id?: string
+        role: 'user' | 'assistant'
+        content: string
+        createdAt?: Date | string | number
+      }[]
     }
     options?: Record<string, unknown>
   }): Promise<AsyncIterable<{ type: string; [key: string]: unknown }>>

@@ -8,17 +8,7 @@ const SIGNAL_SCHEMA = `{
 }`
 
 async function execute(input: ExecuteInput, ctx: ExecuteContext): Promise<ExecuteOutput> {
-  const {
-    providerId,
-    modelId,
-    systemPrompt,
-    userPrompt,
-    injectMemory,
-    memoryAgentId,
-    memoryQuery,
-    temperature,
-    maxTokens,
-  } = input
+  const { providerId, modelId, systemPrompt, userPrompt, temperature, maxTokens } = input
 
   if (!providerId) throw new Error('providerId is required')
   if (!modelId) throw new Error('modelId is required')
@@ -32,14 +22,9 @@ async function execute(input: ExecuteInput, ctx: ExecuteContext): Promise<Execut
   const stream = await ctx.llmService.streamChat({
     providerId,
     modelId,
-    memory: {
-      enabled: Boolean(injectMemory),
-      agentId: memoryAgentId || undefined,
-      query: memoryQuery || userPrompt,
-    },
     context: {
       systemPrompt: jsonSystemPrompt,
-      messages: [{ role: 'user', content: userPrompt, timestamp: Date.now() }],
+      messages: [{ role: 'user', content: userPrompt, createdAt: Date.now() }],
     },
     options: { temperature, maxTokens },
   })
@@ -63,20 +48,15 @@ async function execute(input: ExecuteInput, ctx: ExecuteContext): Promise<Execut
     const retryStream = await ctx.llmService.streamChat({
       providerId,
       modelId,
-      memory: {
-        enabled: Boolean(injectMemory),
-        agentId: memoryAgentId || undefined,
-        query: memoryQuery || userPrompt,
-      },
       context: {
         systemPrompt: jsonSystemPrompt,
         messages: [
-          { role: 'user', content: userPrompt, timestamp: Date.now() },
-          { role: 'assistant', content: fullText, timestamp: Date.now() },
+          { role: 'user', content: userPrompt, createdAt: Date.now() },
+          { role: 'assistant', content: fullText, createdAt: Date.now() },
           {
             role: 'user',
             content: '请只输出有效的 JSON，不要包含任何其他文字。',
-            timestamp: Date.now(),
+            createdAt: Date.now(),
           },
         ],
       },

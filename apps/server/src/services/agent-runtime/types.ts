@@ -1,9 +1,11 @@
 export type RuntimeMessageRole = 'user' | 'assistant' | 'system' | 'tool'
 
 export interface RuntimeMessage {
+  id?: string
   role: RuntimeMessageRole
   content: string
-  timestamp?: number
+  createdAt?: Date | string | number
+  type?: 'text' | 'tool-call' | 'tool-result'
 }
 
 export interface RuntimeContext {
@@ -45,11 +47,9 @@ export interface RuntimeStreamOptions {
   providerId: string
   modelId: string
   toolScope?: string[]
-  memory?: {
-    enabled?: boolean
-    agentId?: string
-    query?: string
-    limit?: number
+  conversationMemory?: {
+    threadId: string
+    resourceId: string
   }
   context: RuntimeContext
   options?: RuntimeStreamSettings

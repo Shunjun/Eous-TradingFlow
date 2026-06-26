@@ -9,7 +9,7 @@
 - 同一个业务意图只描述一次
 - 模型能力先归一，再翻译成协议参数
 - 协议层只处理 wire format
-- 供应商层只处理同协议下的特殊差异
+- Vendor 层只处理同协议下的特殊差异
 - 响应解析和历史 replay 也走同一条兼容链路
 
 ## 问题
@@ -75,11 +75,11 @@
 - OpenAI Chat 走 `messages + max_tokens + reasoningEffort`
 - Anthropic Messages 走 `messages + thinking + output_config`
 
-### 3. 供应商适配层
+### 3. Vendor 适配层
 
 这是协议层之上的可选补丁层，不是必需层。
 
-同一模型族在不同供应商下如果存在差异，就放这里，例如：
+同一模型族在不同 Vendor 下如果存在差异，就放这里，例如：
 
 - DeepSeek 官方
 - DeepSeek via OpenRouter
@@ -89,17 +89,17 @@
 职责：
 
 - 拦截并修正请求参数
-- 处理供应商特例
+- 处理 Vendor 特例
 - 处理历史消息 replay 规则
 - 覆盖响应解析的特殊字段
 
 关键规则：
 
-- 供应商实例自己判断是否命中
+- Vendor 实例自己判断是否命中
 - 传入 provider / baseUrl / modelId / capabilities 后，能处理就处理
 - 不能处理就直接回退到标准协议层
-- 如果供应商行为与标准协议完全一致，就不需要单独创建供应商适配器
-- 供应商能力是协议能力的补集，不是另一套平行体系
+- 如果 Vendor 行为与标准协议完全一致，就不需要单独创建 Vendor 适配器
+- Vendor 能力是协议能力的补集，不是另一套平行体系
 
 ### 4. 共享策略层
 
@@ -235,7 +235,7 @@ interface ProviderAdapter {
 
 ## 为什么要先归一，再翻译
 
-因为“用户想要什么”和“供应商要什么字段”不是一回事。
+因为“用户想要什么”和“Vendor 要什么字段”不是一回事。
 
 例子：
 
@@ -249,7 +249,7 @@ interface ProviderAdapter {
 1. 统一用户语义
 2. 统一模型能力
 3. 统一协议 dialect
-4. 再翻译成供应商字段
+4. 再翻译成 Vendor 字段
 
 ## 迁移顺序
 
@@ -277,9 +277,9 @@ matches({ provider, baseUrl, modelId, capabilities }) {
 
 这样同一套调用流程可以同时支持：
 
-- 只有 dialect 的标准供应商
-- 需要少量修补的兼容供应商
-- 需要完整重写请求/响应的特殊供应商
+- 只有 dialect 的标准 Vendor
+- 需要少量修补的兼容 Vendor
+- 需要完整重写请求/响应的特殊 Vendor
 
 ### 第三阶段
 
@@ -297,5 +297,5 @@ matches({ provider, baseUrl, modelId, capabilities }) {
 - 业务层不写协议细节
 - 协议层不写业务语义
 - 模型族文件只描述能力，不发请求
-- 供应商适配器只处理协议差异，不碰产品逻辑
+- Vendor 适配器只处理协议差异，不碰产品逻辑
 - 解析必须和请求使用同一套能力图谱

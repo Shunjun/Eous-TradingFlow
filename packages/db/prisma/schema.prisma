@@ -263,18 +263,21 @@ model AgentSession {
 }
 
 model AgentMessage {
-  id        String       @id @default(cuid())
-  userId    String       @map("user_id")
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  sessionId String       @map("session_id")
-  session   AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  role      String
-  content   String
-  metadata  String       @default("{}")
-  createdAt DateTime     @default(now()) @map("created_at")
+  id         String       @id @default(cuid())
+  userId     String       @map("user_id")
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionId  String       @map("session_id")
+  session    AgentSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role       String
+  type       String       @default("text")
+  resourceId String?      @map("resource_id")
+  content    String
+  metadata   String       @default("{}")
+  createdAt  DateTime     @default(now()) @map("created_at")
 
   @@index([userId])
   @@index([sessionId, createdAt])
+  @@index([resourceId])
   @@map("agent_messages")
 }
 
