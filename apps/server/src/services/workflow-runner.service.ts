@@ -10,8 +10,9 @@ import type {
   LlmService,
 } from '@eous/nodes/types'
 import { resolveString, resolveValue } from '../lib/var-resolver.js'
+import { parseJsonWithTolerance } from '../lib/json-utils.js'
 import * as dataSourceService from './data-source.service.js'
-import * as llmServiceModule from './llm/llm.service.js'
+import { getAgentRuntime } from './agent-runtime/runtime.js'
 
 type NodeExecutor = (
   input: Record<string, unknown>,
@@ -217,14 +218,15 @@ const dataSourceServiceImpl: DataSourceService = {
 }
 
 function createLlmService(userId: string): LlmService {
+  const agentRuntime = getAgentRuntime()
   return {
     streamChat: (options) =>
-      llmServiceModule.streamChat({
+      agentRuntime.streamChat({
         userId,
         ...options,
-        context: options.context as Parameters<typeof llmServiceModule.streamChat>[0]['context'],
+        context: options.context,
       }),
-    parseJsonWithTolerance: llmServiceModule.parseJsonWithTolerance,
+    parseJsonWithTolerance,
   }
 }
 

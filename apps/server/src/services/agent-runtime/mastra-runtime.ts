@@ -4,7 +4,7 @@ import * as providerRepo from '../../repositories/provider.repo.js'
 import { decrypt, getEncryptionKey } from '../../lib/crypto-utils.js'
 import { planLlmRequest } from '../../llm/planner.js'
 import type { ProviderOptions } from '../../llm/types.js'
-import { eousMastraMemory } from './eous-mastra-memory.js'
+import { mastraMemory } from './mastra-memory.js'
 import { resolveAgentTools } from './skill-registry.js'
 import type {
   AgentRuntime,
@@ -180,7 +180,6 @@ async function* mapMastraStream(stream: AsyncIterable<MastraChunk>): RuntimeStre
 
 async function createMastraAgent(options: RuntimeStreamOptions): Promise<{
   agent: Agent
-  resolvedContext: RuntimeContext
   providerOptions?: ProviderOptions
 }> {
   const provider = await providerRepo.findByIdAndUser(options.providerId, options.userId)
@@ -200,7 +199,6 @@ async function createMastraAgent(options: RuntimeStreamOptions): Promise<{
 
   const keyHex = getEncryptionKey()
   const apiKey = decrypt(provider.apiKeyEncrypted, provider.apiKeyIv, keyHex)
-  const resolvedContext = options.context
   const tools = resolveAgentTools({
     userId: options.userId,
     agentId: options.agentId,
@@ -209,19 +207,18 @@ async function createMastraAgent(options: RuntimeStreamOptions): Promise<{
   })
 
   return {
-    resolvedContext,
     providerOptions: plan.providerOptions,
     agent: new Agent({
       id: 'eous-runtime-agent',
       name: 'Eous Runtime Agent',
-      instructions: resolvedContext.systemPrompt || '',
+      instructions: options.context.systemPrompt || '',
       model: {
         providerId: plan.providerId,
         modelId: options.modelId,
         url: normalizeBaseUrl(provider.baseUrl),
         apiKey,
       },
-      memory: eousMastraMemory,
+      memory: mastraMemory,
       tools,
     }),
   }
@@ -245,9 +242,9 @@ function outputToText(output: unknown): string {
 
 export class MastraRuntime implements AgentRuntime {
   async streamChat(options: RuntimeStreamOptions): Promise<RuntimeStream> {
-    const { agent, resolvedContext, providerOptions } = await createMastraAgent(options)
+    const { agent, providerOptions } = await createMastraAgent(options)
 
-    const output = await agent.stream(toMastraInput(resolvedContext), {
+    const output = await agent.stream(toMastraInput(options.context), {
       memory: options.conversationMemory
         ? {
             thread: options.conversationMemory.threadId,
@@ -267,8 +264,8 @@ export class MastraRuntime implements AgentRuntime {
   }
 
   async generateText(options: RuntimeStreamOptions): Promise<string> {
-    const { agent, resolvedContext, providerOptions } = await createMastraAgent(options)
-    const output = await agent.generate(toMastraInput(resolvedContext), {
+    const { agent, providerOptions } = await createMastraAgent(options)
+    const output = await agent.generate(toMastraInput(options.context), {
       memory: options.conversationMemory
         ? {
             thread: options.conversationMemory.threadId,

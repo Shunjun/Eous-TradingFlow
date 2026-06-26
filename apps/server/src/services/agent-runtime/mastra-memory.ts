@@ -108,7 +108,7 @@ function normalizeMessageIds(input: MessageDeleteInput): string[] {
     .filter((item): item is string => Boolean(item))
 }
 
-export class EousMastraMemory extends MastraMemory {
+export class MastraRuntimeMemory extends MastraMemory {
   constructor() {
     super({
       name: 'Eous Mastra Memory',
@@ -329,4 +329,4 @@ function totalSkip(page: number, perPage: number | false, total: number): number
   return Math.max(total - perPage, 0)
 }
 
-export const eousMastraMemory = new EousMastraMemory()
+export const mastraMemory = new MastraRuntimeMemory()

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { Agent, AgentMessage, AgentMemory, AgentSession } from '@eous/db'
 import { AppError } from '../lib/app-error.js'
 import * as agentRepo from '../repositories/agent.repo.js'
-import { generateText, streamChat } from './llm/llm.service.js'
+import { getAgentRuntime } from './agent-runtime/runtime.js'
 
 const DEFAULT_AGENT_INSTRUCTIONS = `# Introduction
 You are Eous Analyst, an analytical assistant for a trading workflow product.
@@ -291,7 +291,7 @@ async function generateSessionTitle(params: {
 
   let rawTitle: string | null = null
   try {
-    rawTitle = await generateText({
+    rawTitle = await getAgentRuntime().generateText({
       userId: params.userId,
       agentId: params.agent.id,
       sessionId: params.session.id,
@@ -553,7 +553,7 @@ export async function prepareChat(
   const userMessageId = randomUUID()
   const userMessageCreatedAt = new Date()
 
-  const stream = await streamChat({
+  const stream = await getAgentRuntime().streamChat({
     userId,
     agentId: agent.id,
     sessionId: session.id,
