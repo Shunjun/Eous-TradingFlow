@@ -1,12 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import {
-  RefreshCw,
-  ChevronDown,
-  ChevronRight,
-  ChevronsDown,
-  ChevronsUp,
-  Loader2,
-} from 'lucide-react'
+import { RefreshCw, ChevronsDown, ChevronsUp, Loader2 } from 'lucide-react'
 import { Badge, Button, ScrollArea, cn } from '@eous/ui'
 import { api } from '../../../lib/api'
 import { useWorkflowStore } from '../store/workflow-store'
@@ -53,7 +46,7 @@ function formatDuration(ms: number | null): string {
 function GlobalLogPanel({ workflowId }: GlobalLogPanelProps) {
   const [executions, setExecutions] = useState<ExecutionEntry[]>([])
   const [loading, setLoading] = useState(false)
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [selectedExecutionId, setSelectedExecutionId] = useState<string | null>(null)
   const storeNodes = useWorkflowStore((s) => s.nodes)
   const open = useWorkflowStore((s) => s.logOpen)
   const executionRefreshToken = useWorkflowStore((s) => s.executionRefreshToken)
@@ -64,6 +57,10 @@ function GlobalLogPanel({ workflowId }: GlobalLogPanelProps) {
     try {
       const res = await api.getWorkflowExecutions(workflowId, 50)
       setExecutions(res.executions)
+      setSelectedExecutionId((current) => {
+        if (current && res.executions.some((execution) => execution.id === current)) return current
+        return res.executions[0]?.id ?? null
+      })
     } catch {
       setExecutions([])
     } finally {
@@ -75,15 +72,6 @@ function GlobalLogPanel({ workflowId }: GlobalLogPanelProps) {
     if (open) fetchExecutions()
   }, [open, fetchExecutions, executionRefreshToken])
 
-  const toggleExpand = useCallback((id: string) => {
-    setExpandedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }, [])
-
   const getNodeLabel = (entry: ExecutionEntry) => {
     const node = storeNodes.find((n) => n.id === entry.nodeId)
     if (node && typeof node.data.label === 'string') return node.data.label
@@ -94,6 +82,9 @@ function GlobalLogPanel({ workflowId }: GlobalLogPanelProps) {
     }
     return labels[entry.nodeType] ?? entry.nodeType
   }
+
+  const selectedExecution =
+    executions.find((execution) => execution.id === selectedExecutionId) ?? executions[0] ?? null
 
   return (
     <div
@@ -126,111 +117,140 @@ function GlobalLogPanel({ workflowId }: GlobalLogPanelProps) {
 
       {/* Content */}
       {open && (
-        <ScrollArea className="min-h-0 flex-1">
-          {loading && executions.length === 0 ? (
-            <div className="flex h-full items-center justify-center">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-            </div>
-          ) : executions.length === 0 ? (
-            <div className="flex h-full items-center justify-center">
-              <p className="text-xs text-muted-foreground">暂无运行记录</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1 p-3">
-              {executions.map((entry) => {
-                const isExpanded = expandedIds.has(entry.id)
-                const nodeLabel = getNodeLabel(entry)
+        <div className="grid min-h-0 flex-1 grid-cols-[320px_minmax(0,1fr)]">
+          <div className="min-h-0 border-r border-border">
+            <ScrollArea className="h-full">
+              {loading && executions.length === 0 ? (
+                <div className="flex h-full items-center justify-center">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                </div>
+              ) : executions.length === 0 ? (
+                <div className="flex h-full items-center justify-center">
+                  <p className="text-xs text-muted-foreground">暂无运行记录</p>
+                </div>
+              ) : (
+                <div className="flex flex-col p-2">
+                  {executions.map((entry) => {
+                    const nodeLabel = getNodeLabel(entry)
+                    const selected = selectedExecution?.id === entry.id
 
-                return (
-                  <div key={entry.id} className="rounded-md border border-border/50 bg-muted/30">
-                    {/* Summary row */}
-                    <button
-                      type="button"
-                      onClick={() => toggleExpand(entry.id)}
-                      className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-accent/50"
-                    >
-                      {isExpanded ? (
-                        <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" />
-                      ) : (
-                        <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />
-                      )}
-                      <span className="text-[10px] text-muted-foreground">
-                        {formatTime(entry.startedAt)}
-                      </span>
-                      <Badge
-                        variant={entry.status === 'succeeded' ? 'default' : 'destructive'}
-                        className="h-4 px-1 text-[9px]"
+                    return (
+                      <button
+                        key={entry.id}
+                        type="button"
+                        onClick={() => setSelectedExecutionId(entry.id)}
+                        className={cn(
+                          'flex items-center gap-2 rounded-md px-2 py-2 text-left transition-colors',
+                          selected
+                            ? 'bg-accent text-accent-foreground'
+                            : 'hover:bg-accent/50 hover:text-accent-foreground',
+                        )}
                       >
-                        {entry.status === 'succeeded' ? '✓' : '✗'}
-                      </Badge>
-                      <span className="flex-1 truncate text-xs font-medium text-foreground">
-                        {nodeLabel}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">({entry.nodeType})</span>
-                      {entry.durationMs != null && (
-                        <span className="text-[10px] text-muted-foreground">
-                          {formatDuration(entry.durationMs)}
+                        <span className="w-14 shrink-0 text-[10px] text-muted-foreground">
+                          {formatTime(entry.startedAt)}
                         </span>
-                      )}
-                    </button>
-
-                    {/* Expanded detail */}
-                    {isExpanded && (
-                      <div className="border-t border-border/50 px-3 py-2">
-                        {/* Logs */}
-                        {entry.logs.length > 0 && (
-                          <div className="mb-2 flex flex-col gap-0.5">
-                            {entry.logs.map((log, i) => (
-                              <div key={i} className="flex items-start gap-1.5 text-[10px]">
-                                <Badge
-                                  variant={
-                                    log.level === 'error'
-                                      ? 'destructive'
-                                      : log.level === 'warn'
-                                        ? 'outline'
-                                        : 'secondary'
-                                  }
-                                  className="shrink-0 text-[9px]"
-                                >
-                                  {log.level}
-                                </Badge>
-                                <span className="text-foreground">{log.message}</span>
-                              </div>
-                            ))}
-                          </div>
+                        <Badge
+                          variant={entry.status === 'succeeded' ? 'default' : 'destructive'}
+                          className="h-4 shrink-0 px-1 text-[9px]"
+                        >
+                          {entry.status === 'succeeded' ? '✓' : '✗'}
+                        </Badge>
+                        <span className="min-w-0 flex-1 truncate text-xs font-medium">
+                          {nodeLabel}
+                        </span>
+                        {entry.durationMs != null && (
+                          <span className="shrink-0 text-[10px] text-muted-foreground">
+                            {formatDuration(entry.durationMs)}
+                          </span>
                         )}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </ScrollArea>
+          </div>
 
-                        {entry.error && (
-                          <p className="mb-2 text-[10px] text-destructive">{entry.error}</p>
-                        )}
+          <ScrollArea className="min-h-0">
+            {selectedExecution ? (
+              <div className="flex flex-col gap-3 p-3">
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant={selectedExecution.status === 'succeeded' ? 'default' : 'destructive'}
+                    className="h-5 px-1.5 text-[10px]"
+                  >
+                    {selectedExecution.status}
+                  </Badge>
+                  <span className="truncate text-sm font-medium">
+                    {getNodeLabel(selectedExecution)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {selectedExecution.nodeType}
+                  </span>
+                  {selectedExecution.durationMs != null && (
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {formatDuration(selectedExecution.durationMs)}
+                    </span>
+                  )}
+                </div>
 
-                        {/* Inputs */}
-                        {entry.inputs && (
-                          <div className="mb-1 flex flex-col gap-0.5">
-                            <p className="text-[10px] font-medium text-muted-foreground">输入</p>
-                            <pre className="overflow-x-auto rounded bg-muted/50 p-1.5 text-[10px] text-foreground">
-                              {JSON.stringify(entry.inputs, null, 2)}
-                            </pre>
-                          </div>
-                        )}
+                {selectedExecution.logs.length > 0 && (
+                  <section className="flex flex-col gap-1">
+                    <p className="text-[10px] font-medium text-muted-foreground">日志</p>
+                    <div className="flex flex-col gap-1 rounded-md bg-muted/40 p-2">
+                      {selectedExecution.logs.map((log, i) => (
+                        <div key={i} className="flex items-start gap-2 text-[11px]">
+                          <Badge
+                            variant={
+                              log.level === 'error'
+                                ? 'destructive'
+                                : log.level === 'warn'
+                                  ? 'outline'
+                                  : 'secondary'
+                            }
+                            className="shrink-0 text-[9px]"
+                          >
+                            {log.level}
+                          </Badge>
+                          <span className="text-muted-foreground">{formatTime(log.ts)}</span>
+                          <span className="text-foreground">{log.message}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
 
-                        {/* Outputs */}
-                        {entry.outputs && (
-                          <div className="flex flex-col gap-0.5">
-                            <p className="text-[10px] font-medium text-muted-foreground">输出</p>
-                            <pre className="overflow-x-auto rounded bg-muted/50 p-1.5 text-[10px] text-foreground">
-                              {JSON.stringify(entry.outputs, null, 2)}
-                            </pre>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </ScrollArea>
+                {selectedExecution.error && (
+                  <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
+                    {selectedExecution.error}
+                  </p>
+                )}
+
+                {selectedExecution.inputs && (
+                  <section className="flex flex-col gap-1">
+                    <p className="text-[10px] font-medium text-muted-foreground">输入</p>
+                    <pre className="overflow-x-auto rounded-md bg-muted/50 p-2 text-[10px] text-foreground">
+                      {JSON.stringify(selectedExecution.inputs, null, 2)}
+                    </pre>
+                  </section>
+                )}
+
+                {selectedExecution.outputs && (
+                  <section className="flex flex-col gap-1">
+                    <p className="text-[10px] font-medium text-muted-foreground">输出</p>
+                    <pre className="overflow-x-auto rounded-md bg-muted/50 p-2 text-[10px] text-foreground">
+                      {JSON.stringify(selectedExecution.outputs, null, 2)}
+                    </pre>
+                  </section>
+                )}
+              </div>
+            ) : (
+              <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                选择一条运行记录
+              </div>
+            )}
+          </ScrollArea>
+        </div>
       )}
     </div>
   )

@@ -22,6 +22,7 @@ interface WorkflowOverlayProps {
 const LOG_COLLAPSED_SIZE = 0
 const LOG_DEFAULT_OPEN_SIZE = '34%'
 const LOG_MAX_OPEN_SIZE = '55%'
+const LOG_MIN_OPEN_HEIGHT = 120
 const LOG_RESIZE_TRANSITION_MS = 220
 
 interface ResizablePanelHandle {
@@ -63,6 +64,10 @@ function WorkflowOverlay({
     }
 
     logPanelRef.current?.resize(logOpen ? lastOpenLogSizeRef.current : LOG_COLLAPSED_SIZE)
+    logPanelElementRef.current?.style.setProperty(
+      'min-height',
+      logOpen ? `${LOG_MIN_OPEN_HEIGHT}px` : '0px',
+    )
 
     if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current)
     transitionTimerRef.current = setTimeout(() => {
@@ -80,6 +85,7 @@ function WorkflowOverlay({
       for (const panel of panels) {
         panel?.style.removeProperty('transition')
       }
+      logPanelElementRef.current?.style.removeProperty('min-height')
     }
   }, [logOpen])
 
