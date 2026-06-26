@@ -123,6 +123,7 @@ export {
   SheetDescription,
 } from './components/ui/sheet'
 export { ScrollArea, ScrollBar } from './components/ui/scroll-area'
+export { Toaster, toast } from './components/ui/sonner'
 export {
   Sidebar,
   SidebarContent,

@@ -15,8 +15,8 @@ const createDocumentSlice: WorkflowSliceCreator<WorkflowDocumentSlice> = (set, g
   onEdgesChange: (edges) => set({ edges, isDirty: true, lastModified: Date.now() }),
   addNode: (node) =>
     set((state) => ({ nodes: [...state.nodes, node], isDirty: true, lastModified: Date.now() })),
-  addDefaultNode: (nodeType) => {
-    const node = createDefaultWorkflowNode(nodeType)
+  addDefaultNode: (nodeType, position) => {
+    const node = createDefaultWorkflowNode(nodeType, { position })
     get().commitOps([{ type: 'node.add', node: toWorkflowNode(node) }], '添加节点')
   },
   removeNodes: (ids) =>

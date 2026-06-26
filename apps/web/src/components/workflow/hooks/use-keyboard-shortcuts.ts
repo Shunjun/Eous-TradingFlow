@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, type RefObject } from 'react'
 import { useReactFlow } from '@xyflow/react'
 import type { CanvasInteractionMode } from '../canvas'
 import { useWorkflowStore } from '../store/workflow-store'
+import { getFlowViewportCenterPosition } from '../canvas/flow-position'
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
@@ -34,11 +35,8 @@ function useKeyboardShortcuts({ targetRef }: UseKeyboardShortcutsParams) {
   }, [canvasMode])
 
   const getViewportCenterPosition = useCallback(() => {
-    return screenToFlowPosition({
-      x: window.innerWidth / 2,
-      y: window.innerHeight / 2,
-    })
-  }, [screenToFlowPosition])
+    return getFlowViewportCenterPosition(screenToFlowPosition, targetRef.current)
+  }, [screenToFlowPosition, targetRef])
 
   useEffect(() => {
     const target = targetRef.current

@@ -3,7 +3,7 @@ import '@eous/tailwind/globals.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
-import { ThemeProvider, TooltipProvider } from '@eous/ui'
+import { ThemeProvider, Toaster, TooltipProvider } from '@eous/ui'
 import { router } from './router.js'
 
 createRoot(document.getElementById('root')!).render(
@@ -11,6 +11,7 @@ createRoot(document.getElementById('root')!).render(
     <ThemeProvider defaultTheme="dark">
       <TooltipProvider delayDuration={2000}>
         <RouterProvider router={router} />
+        <Toaster position="top-center" richColors />
       </TooltipProvider>
     </ThemeProvider>
   </StrictMode>,

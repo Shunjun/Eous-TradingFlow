@@ -9,11 +9,13 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  toast,
 } from '@eous/ui'
 import { NodeSelector } from '../nodes'
 import { WORKFLOW_FIT_VIEW_OPTIONS } from './viewport'
 import { useWorkflowStore, useWorkflowStoreApi } from '../store/workflow-store'
 import { useWorkflowNodeActions } from '../hooks'
+import { getFlowViewportCenterPosition } from './flow-position'
 
 export type CanvasInteractionMode = 'pan' | 'select'
 
@@ -50,7 +52,7 @@ function ToolbarTooltip({
 }
 
 function CanvasToolbar() {
-  const { fitView } = useReactFlow()
+  const { fitView, screenToFlowPosition } = useReactFlow()
   const workflowStore = useWorkflowStoreApi()
   const mode = useWorkflowStore((state) => state.canvasMode)
   const setCanvasMode = useWorkflowStore((state) => state.setCanvasMode)
@@ -62,9 +64,19 @@ function CanvasToolbar() {
     void fitView({ ...WORKFLOW_FIT_VIEW_OPTIONS, duration: 240 })
   }, [fitView])
 
+  const handleAddNode = useCallback(
+    (nodeType: string) => {
+      if (workflowStore.getState().nodes.some((node) => node.type !== 'trigger.start')) {
+        toast.info('已放置到当前可视区域中心')
+      }
+      addDefaultNode(nodeType, getFlowViewportCenterPosition(screenToFlowPosition))
+    },
+    [addDefaultNode, screenToFlowPosition, workflowStore],
+  )
+
   return (
     <div className="pointer-events-auto flex w-10 flex-col items-center gap-1 rounded-lg border border-border bg-card/90 py-1.5 shadow-sm backdrop-blur">
-      <NodeSelector onSelectNode={addDefaultNode}>
+      <NodeSelector onSelectNode={handleAddNode}>
         <ToolbarTooltip label="添加节点">
           <Button size="sm" variant="default" className="h-7 w-7">
             <Plus className="h-4 w-4" />

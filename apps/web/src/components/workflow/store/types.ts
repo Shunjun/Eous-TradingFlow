@@ -23,7 +23,7 @@ interface WorkflowDocumentSlice {
   onNodesChange: (nodes: Node[]) => void
   onEdgesChange: (edges: Edge[]) => void
   addNode: (node: Node) => void
-  addDefaultNode: (nodeType: string) => void
+  addDefaultNode: (nodeType: string, position?: { x: number; y: number }) => void
   removeNodes: (ids: string[]) => void
   loadWorkflow: (id: string, name: string, nodes: Node[], edges: Edge[]) => void
   loadDraft: (
