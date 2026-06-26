@@ -245,12 +245,6 @@ async function executeNodeSequence({
   const executionResults = new Map<string, WorkflowNodeExecution>()
   const runnableNodeIds = new Set(nodesToRun.map((node) => node.id))
 
-  console.info('[workflow.runner.sequence]', {
-    workflowId,
-    nodesToRun: nodesToRun.map((node) => ({ id: node.id, type: node.type })),
-    allEdges,
-  })
-
   for (const node of nodesToRun) {
     const upstreamEdges = allEdges.filter(
       (e) => e.target === node.id && runnableNodeIds.has(e.source),
@@ -261,24 +255,7 @@ async function executeNodeSequence({
       return isBranchEdgeActive(edge, nodeMap.get(edge.source), varCache)
     })
 
-    console.info('[workflow.runner.node]', {
-      workflowId,
-      nodeId: node.id,
-      nodeType: node.type,
-      upstreamEdges,
-      activeUpstreamEdges,
-      skippedUpstreamSources: upstreamEdges
-        .filter((edge) => skippedNodes.has(edge.source))
-        .map((edge) => edge.source),
-      cachedEnabled: useCache && !node.type.startsWith('trigger.'),
-    })
-
     if (upstreamEdges.length > 0 && activeUpstreamEdges.length === 0) {
-      console.info('[workflow.runner.skip]', {
-        workflowId,
-        nodeId: node.id,
-        reason: 'no active upstream edge output',
-      })
       skippedNodes.add(node.id)
       continue
     }
@@ -299,11 +276,6 @@ async function executeNodeSequence({
       : null
 
     if (cached) {
-      console.info('[workflow.runner.cache-hit]', {
-        workflowId,
-        nodeId: node.id,
-        executionId: cached.id,
-      })
       executionResults.set(node.id, cached)
       if (cached.outputs) {
         varCache[node.id] = JSON.parse(cached.outputs)
@@ -377,15 +349,6 @@ async function executeNodeSequence({
 
     executionResults.set(node.id, execution)
 
-    console.info('[workflow.runner.executed]', {
-      workflowId,
-      nodeId: node.id,
-      nodeType: node.type,
-      status,
-      executionId: execution.id,
-      error,
-    })
-
     if (outputs) {
       varCache[node.id] = outputs
     }
@@ -410,14 +373,6 @@ export async function runNode(
 
   const reachable = getReachableNodeIds(targetNode.id, allEdges)
   const nodesToRun = sorted.filter((node) => reachable.has(node.id))
-  console.info('[workflow.runner.run-node]', {
-    workflowId,
-    targetNode: { id: targetNode.id, type: targetNode.type },
-    sorted: sorted.map((node) => ({ id: node.id, type: node.type })),
-    reachable: [...reachable],
-    nodesToRun: nodesToRun.map((node) => ({ id: node.id, type: node.type })),
-    allEdges,
-  })
   const executionResults = await executeNodeSequence({
     workflowId,
     userId,

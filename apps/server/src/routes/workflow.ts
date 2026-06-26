@@ -154,13 +154,6 @@ workflowRouter.post('/:id/nodes/:nodeId/run', async (c) => {
   if (!targetNode) {
     return c.json({ error: 'Node not found' }, 404)
   }
-  console.info('[workflow.run-node.route]', {
-    workflowId: workflow.id,
-    requestedNodeId: c.req.param('nodeId'),
-    targetNode: { id: targetNode.id, type: targetNode.type },
-    nodes: def.nodes.map((node) => ({ id: node.id, type: node.type })),
-    edges: def.edges,
-  })
   const result = await workflowRunner.runNode(workflow.id, userId, targetNode, def.nodes, def.edges)
   return c.json({
     execution: parseExecutionJson(result.targetExecution),

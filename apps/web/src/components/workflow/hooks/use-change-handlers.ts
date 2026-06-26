@@ -25,6 +25,10 @@ function hasPersistableNodeChange(changes: NodeChange[]): boolean {
   )
 }
 
+function isDraggingPositionChange(change: NodeChange): boolean {
+  return change.type === 'position' && change.dragging === true
+}
+
 function hasPersistableEdgeChange(changes: EdgeChange[]): boolean {
   return changes.some(
     (change) => change.type === 'add' || change.type === 'remove' || change.type === 'replace',
@@ -56,6 +60,11 @@ function useWorkflowChangeHandlers({
     (changes) => {
       const currentNodes = workflowStore.getState().nodes
       const nextNodes = applyNodeChanges(changes, currentNodes)
+      if (changes.some(isDraggingPositionChange)) {
+        setNodes(nextNodes)
+        return
+      }
+
       if (hasPersistableNodeChange(changes)) {
         const ops: WorkflowEditOp[] = []
         for (const change of changes) {

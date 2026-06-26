@@ -140,16 +140,19 @@ interface SettingsPanelProps {
 
 function SettingsPanel({ workflowId, onBeforeRun }: SettingsPanelProps) {
   const selectedNodeId = useWorkflowStore((state) => state.selectedNodeId)
-  const selectedNode = useWorkflowStore((state) =>
+  const nodeType = useWorkflowStore((state) =>
     state.selectedNodeId
-      ? (state.nodes.find((node) => node.id === state.selectedNodeId) ?? null)
+      ? (state.nodes.find((node) => node.id === state.selectedNodeId)?.type ?? null)
+      : null,
+  )
+  const data = useWorkflowStore((state) =>
+    state.selectedNodeId
+      ? (state.nodes.find((node) => node.id === state.selectedNodeId)?.data ?? null)
       : null,
   )
   const commitOps = useWorkflowStore((state) => state.commitOps)
   const onClose = useWorkflowStore((state) => state.closeSettingsPanel)
   const nodeId = selectedNodeId
-  const nodeType = selectedNode?.type ?? null
-  const data = selectedNode?.data ?? null
   const isVisible = nodeId !== null && nodeType !== null && data !== null
   const [inspectorOpen, setInspectorOpen] = useState(false)
 
