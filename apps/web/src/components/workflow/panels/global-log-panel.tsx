@@ -56,6 +56,7 @@ function GlobalLogPanel({ workflowId }: GlobalLogPanelProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const storeNodes = useWorkflowStore((s) => s.nodes)
   const open = useWorkflowStore((s) => s.logOpen)
+  const executionRefreshToken = useWorkflowStore((s) => s.executionRefreshToken)
   const toggleLogOpen = useWorkflowStore((s) => s.toggleLogOpen)
 
   const fetchExecutions = useCallback(async () => {
@@ -72,7 +73,7 @@ function GlobalLogPanel({ workflowId }: GlobalLogPanelProps) {
 
   useEffect(() => {
     if (open) fetchExecutions()
-  }, [open, fetchExecutions])
+  }, [open, fetchExecutions, executionRefreshToken])
 
   const toggleExpand = useCallback((id: string) => {
     setExpandedIds((prev) => {

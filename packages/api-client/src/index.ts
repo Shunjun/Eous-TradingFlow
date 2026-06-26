@@ -423,6 +423,16 @@ export interface ApiClient {
       durationMs: number | null
       error: string | null
     } | null
+    executions?: Array<{
+      id: string
+      nodeId: string
+      status: string
+      inputs: Record<string, unknown> | null
+      outputs: Record<string, unknown> | null
+      logs: Array<{ ts: string; level: string; message: string }>
+      durationMs: number | null
+      error: string | null
+    }>
   }>
   getNodeLastExecution(
     workflowId: string,

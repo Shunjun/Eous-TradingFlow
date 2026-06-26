@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '../../../lib/api'
+import { useWorkflowStore } from '../store/workflow-store'
 
 interface NodeExecution {
   id: string
@@ -19,6 +20,7 @@ function useNodeExecution(workflowId: string, nodeId: string, beforeRun?: () => 
   const [upstreamOutputs, setUpstreamOutputs] = useState<Record<string, Record<string, unknown>>>(
     {},
   )
+  const markExecutionChanged = useWorkflowStore((state) => state.markExecutionChanged)
 
   const loadWorkflowVariables = useCallback(
     async (cancelled?: () => boolean) => {
@@ -65,13 +67,14 @@ function useNodeExecution(workflowId: string, nodeId: string, beforeRun?: () => 
       await beforeRun?.()
       const res = await api.runWorkflowNode(workflowId, nodeId)
       setLastExecution(res.execution)
+      markExecutionChanged((res.executions ?? []).map((execution) => execution.id))
       await loadWorkflowVariables()
     } catch {
       // error handled by global error handler
     } finally {
       setRunning(false)
     }
-  }, [beforeRun, loadWorkflowVariables, nodeId, workflowId])
+  }, [beforeRun, loadWorkflowVariables, markExecutionChanged, nodeId, workflowId])
 
   return {
     running,

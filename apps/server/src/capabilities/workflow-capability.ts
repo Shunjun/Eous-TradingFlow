@@ -66,7 +66,7 @@ export class ServerWorkflowCapability implements WorkflowCapability {
     const targetNode = definition.nodes.find((node) => node.id === params.nodeId)
     if (!targetNode) throw new AppError(`Node not found: ${params.nodeId}`, 404)
 
-    return workflowRunner.runNode(
+    const result = await workflowRunner.runNode(
       workflow.id,
       params.userId,
       targetNode,
@@ -74,6 +74,7 @@ export class ServerWorkflowCapability implements WorkflowCapability {
       definition.edges,
       params.input,
     )
+    return result.targetExecution
   }
 
   getVariables(params: { workflowId: string }): Promise<Record<string, Record<string, unknown>>> {

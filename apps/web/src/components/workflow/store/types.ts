@@ -52,9 +52,12 @@ interface WorkflowHistorySlice {
 interface WorkflowStatusSlice {
   isDirty: boolean
   lastModified: number
+  executionRefreshToken: number
+  recentExecutionIds: string[]
 
   markDirty: () => void
   markClean: () => void
+  markExecutionChanged: (executionIds?: string[]) => void
 }
 
 interface WorkflowUiSlice {

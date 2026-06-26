@@ -27,7 +27,10 @@ function useWorkflowNodeActions({
       if (!workflowId || workflowId === 'new') return
       void (async () => {
         await beforeRun?.()
-        await api.runWorkflowNode(workflowId, nodeId)
+        const res = await api.runWorkflowNode(workflowId, nodeId)
+        workflowStore
+          .getState()
+          .markExecutionChanged((res.executions ?? []).map((execution) => execution.id))
       })()
     },
     [beforeRun, workflowStore],

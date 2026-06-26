@@ -22,6 +22,8 @@ function createWorkflowStore(): WorkflowStore {
         workflowName: '',
         isDirty: false,
         lastModified: 0,
+        executionRefreshToken: 0,
+        recentExecutionIds: [],
         past: [],
         future: [],
         pendingOps: [],
