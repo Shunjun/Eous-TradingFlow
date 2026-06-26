@@ -35,7 +35,7 @@ import {
   LayoutDashboard,
   Grid3x3,
   Bell,
-  BrainCircuit,
+  MessageCircle,
   BarChart3,
   Newspaper,
   LogOut,
@@ -63,7 +63,7 @@ const navSections: { title: string; items: NavItem[] }[] = [
   {
     title: 'OVERVIEW',
     items: [
-      { id: 'agents', label: 'Chat', icon: BrainCircuit },
+      { id: 'agents', label: 'Chat', icon: MessageCircle },
       { id: 'home', label: 'Home', icon: LayoutDashboard },
       { id: 'dashboard', label: 'Dashboard', icon: Grid3x3 },
       { id: 'watchlist', label: 'Watchlist', icon: BarChart3 },
@@ -81,7 +81,7 @@ const navToPath: Record<string, string> = {
   dashboard: '/dashboard',
   watchlist: '/watchlist',
   news: '/news',
-  agents: '/agents',
+  agents: '/chat',
   datasets: '/datasets',
   settings: '/settings',
 }

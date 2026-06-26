@@ -48,6 +48,11 @@ agentRouter.get('/sessions/:id', async (c) => {
   return c.json(result)
 })
 
+agentRouter.delete('/sessions/:id', async (c) => {
+  await agentService.deleteSession(c.get('userId'), c.req.param('id'))
+  return c.json({ ok: true })
+})
+
 agentRouter.get('/memories', async (c) => {
   const memories = await agentService.listMemories(c.get('userId'), {
     agentId: c.req.query('agentId'),

@@ -568,6 +568,7 @@ export interface ApiClient {
     session: AgentSessionSummary
     messages: AgentMessage[]
   }>
+  deleteAgentSession(id: string): Promise<void>
   listAgentMemories(params?: {
     agentId?: string
     sessionId?: string
@@ -897,6 +898,7 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
     listAgentSessions: () => get('/agents/sessions'),
     createAgentSession: (params) => post('/agents/sessions', params),
     getAgentSession: (id: string) => get(`/agents/sessions/${encodeURIComponent(id)}`),
+    deleteAgentSession: (id: string) => del(`/agents/sessions/${encodeURIComponent(id)}`, true),
     listAgentMemories: (params = {}) => {
       const query = new URLSearchParams()
       if (params.agentId) query.set('agentId', params.agentId)

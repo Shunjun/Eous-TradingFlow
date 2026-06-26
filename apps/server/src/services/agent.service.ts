@@ -444,6 +444,12 @@ export async function getSession(userId: string, sessionId: string) {
   }
 }
 
+export async function deleteSession(userId: string, sessionId: string): Promise<void> {
+  const existing = await agentRepo.findSessionByIdAndUser(sessionId, userId)
+  if (!existing) throw new AppError('Agent session not found', 404)
+  await agentRepo.deleteSession(sessionId)
+}
+
 export async function listMemories(
   userId: string,
   params: { agentId?: string; sessionId?: string; query?: string },

@@ -81,6 +81,10 @@ export function updateSession(
   return prisma.agentSession.update({ where: { id }, data })
 }
 
+export function deleteSession(id: string): Promise<AgentSession> {
+  return prisma.agentSession.delete({ where: { id } })
+}
+
 export function findMessages(sessionId: string, limit?: number): Promise<AgentMessage[]> {
   return prisma.agentMessage.findMany({
     where: { sessionId },
