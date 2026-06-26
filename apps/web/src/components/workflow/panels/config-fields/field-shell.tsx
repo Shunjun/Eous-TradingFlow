@@ -34,7 +34,7 @@ function FieldShell({
   const [variablePickerOpen, setVariablePickerOpen] = useState(false)
   const hasVariable = isVariableRef(value)
   const label = param.label ?? param.description ?? fieldKey
-  const canUseVariable = param.ui !== 'branches'
+  const canUseVariable = param.ui !== 'branches' && param.ui !== 'providerModel'
 
   const handleVariableSelect = useCallback(
     (ref: VariableRef) => {

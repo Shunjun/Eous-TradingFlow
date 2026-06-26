@@ -5,9 +5,11 @@ import { CodeField } from './code-field'
 import { FieldShell } from './field-shell'
 import { formatVariableRef } from './variable-utils'
 import { NumberField } from './number-field'
+import { ProviderModelField } from './provider-model-field'
 import { ScheduleField } from './schedule-field'
 import { SelectField } from './select-field'
 import { TextField } from './text-field'
+import { TextareaField } from './textarea-field'
 import { ToggleField } from './toggle-field'
 import type { ParamDef } from '@eous/nodes'
 
@@ -29,8 +31,11 @@ function ConfigField({
   upstreamOutputs,
 }: ConfigFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const value = data[fieldKey]
   const ui = param.ui ?? (param.type === 'number' ? 'number' : 'text')
+
+  if (param.hidden) return null
 
   const handleValueChange = useCallback(
     (nextValue: unknown) => {
@@ -48,7 +53,7 @@ function ConfigField({
         return
       }
 
-      const input = inputRef.current
+      const input = ui === 'textarea' ? textareaRef.current : inputRef.current
       if (!input) {
         handleValueChange(refValue)
         return
@@ -83,6 +88,8 @@ function ConfigField({
         <BranchesField param={param} value={value} onChange={handleValueChange} />
       ) : ui === 'schedule' ? (
         <ScheduleField param={param} value={value} onChange={handleValueChange} />
+      ) : ui === 'providerModel' ? (
+        <ProviderModelField param={param} data={data} onChange={onChange} />
       ) : ui === 'select' ? (
         <SelectField
           param={param}
@@ -93,6 +100,8 @@ function ConfigField({
         />
       ) : ui === 'code' ? (
         <CodeField ref={inputRef} param={param} value={value} onChange={handleValueChange} />
+      ) : ui === 'textarea' ? (
+        <TextareaField ref={textareaRef} param={param} value={value} onChange={handleValueChange} />
       ) : ui === 'toggle' ? (
         <ToggleField fieldKey={fieldKey} param={param} value={value} onChange={handleValueChange} />
       ) : ui === 'number' ? (

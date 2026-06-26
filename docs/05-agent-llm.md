@@ -87,21 +87,22 @@ Chat 渲染：
 
 当前 LLM 节点在 `packages/nodes/src/nodes`：
 
-| 节点         | 输出                                | 说明                        |
-| ------------ | ----------------------------------- | --------------------------- |
-| `llm.free`   | `content`                           | 自由文本生成                |
-| `llm.signal` | `signal`、`confidence`、`reasoning` | 交易信号 JSON，使用容错解析 |
-| `llm.report` | `report`                            | Markdown 报告               |
+| 节点  | 输出                     | 说明                                                         |
+| ----- | ------------------------ | ------------------------------------------------------------ |
+| `llm` | `content`、`json`、`raw` | 通过 `responseFormat` 配置文本、Markdown 或 JSON Schema 输出 |
 
-三个节点都支持：
+节点支持：
 
 - `providerId`
 - `modelId`
 - `systemPrompt`
 - `userPrompt`
+- `responseFormat`
+- `schemaName`
+- `schemaJson`
+- `strictSchema`
 - `temperature`
 - `maxTokens`
-- 可选注入 Agent Memory：`injectMemory`、`memoryAgentId`、`memoryQuery`
 
 ## Agent 数据模型
 

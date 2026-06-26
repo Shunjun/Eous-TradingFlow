@@ -17,7 +17,7 @@ const baseState = {
     },
     {
       id: 'b',
-      type: 'llm.free',
+      type: 'llm',
       position: { x: 200, y: 0 },
       data: { modelId: 'gpt' },
     },
@@ -125,5 +125,56 @@ describe('workflow ops', () => {
     ])
 
     expect(result).toEqual({ ok: false, reason: '节点不存在: missing' })
+  })
+
+  it('dry-runs duplicate start nodes as unmergeable', () => {
+    const result = tryApplyWorkflowOpsToState(
+      {
+        ...baseState,
+        nodes: [
+          ...baseState.nodes,
+          {
+            id: 'start',
+            type: 'trigger.start',
+            position: { x: -100, y: 0 },
+            data: {},
+          },
+        ],
+      },
+      [
+        {
+          type: 'node.add',
+          node: { id: 'start-2', type: 'trigger.start', position: { x: 0, y: 0 }, data: {} },
+        },
+      ],
+    )
+
+    expect(result).toEqual({ ok: false, reason: '一个工作流只能有一个开始节点' })
+  })
+
+  it('dry-runs replacing a start node as mergeable', () => {
+    const result = tryApplyWorkflowOpsToState(
+      {
+        ...baseState,
+        nodes: [
+          ...baseState.nodes,
+          {
+            id: 'start',
+            type: 'trigger.start',
+            position: { x: -100, y: 0 },
+            data: {},
+          },
+        ],
+      },
+      [
+        { type: 'node.delete', nodeId: 'start', force: true },
+        {
+          type: 'node.add',
+          node: { id: 'start-2', type: 'trigger.start', position: { x: 0, y: 0 }, data: {} },
+        },
+      ],
+    )
+
+    expect(result.ok).toBe(true)
   })
 })

@@ -156,6 +156,14 @@ function hasCycle(nodes: WorkflowNodeState[], edges: WorkflowEdgeState[]): boole
   return nodes.some((node) => visit(node.id))
 }
 
+function isStartNode(node: Pick<WorkflowNodeState, 'type'>) {
+  return node.type === 'trigger.start'
+}
+
+function wouldCreateSecondStartNode(nodes: WorkflowNodeState[], node: WorkflowNode): boolean {
+  return node.type === 'trigger.start' && nodes.some(isStartNode)
+}
+
 function tryApplyWorkflowOpsToState(
   state: WorkflowGraphState,
   ops: WorkflowEditOp[],
@@ -174,6 +182,9 @@ function tryApplyWorkflowOpsToState(
       case 'node.add':
         if (cursor.nodes.some((node) => node.id === op.node.id)) {
           return { ok: false, reason: `节点已存在: ${op.node.id}` }
+        }
+        if (wouldCreateSecondStartNode(cursor.nodes, op.node)) {
+          return { ok: false, reason: '一个工作流只能有一个开始节点' }
         }
         break
 
@@ -227,6 +238,9 @@ function tryApplyWorkflowOpsToState(
         }
         if (cursor.nodes.some((node) => node.id === op.node.id)) {
           return { ok: false, reason: `节点已存在: ${op.node.id}` }
+        }
+        if (wouldCreateSecondStartNode(cursor.nodes, op.node)) {
+          return { ok: false, reason: '一个工作流只能有一个开始节点' }
         }
         break
     }

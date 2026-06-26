@@ -78,6 +78,52 @@ describe('workflow-edit.service', () => {
     expect(node?.data.symbol).toBe('MSFT')
   })
 
+  it('rejects adding a second start node', async () => {
+    workflowRepo.findById.mockResolvedValue({
+      ...workflowRepo.workflow,
+      definition: JSON.stringify({
+        nodes: [{ id: 'start', type: 'trigger.start', position: { x: 0, y: 0 }, data: {} }],
+        edges: [],
+      }),
+    })
+    const { applyWorkflowOps } = await importService()
+
+    await expect(
+      applyWorkflowOps('user-1', 'wf-1', {
+        ops: [
+          {
+            type: 'node.add',
+            node: { id: 'start-2', type: 'trigger.start', position: { x: 100, y: 0 }, data: {} },
+          },
+        ],
+      }),
+    ).rejects.toThrow('Workflow can only contain one start node')
+  })
+
+  it('allows replacing a start node in ordered ops', async () => {
+    workflowRepo.findById.mockResolvedValue({
+      ...workflowRepo.workflow,
+      definition: JSON.stringify({
+        nodes: [{ id: 'start', type: 'trigger.start', position: { x: 0, y: 0 }, data: {} }],
+        edges: [],
+      }),
+    })
+    const { applyWorkflowOps } = await importService()
+
+    await applyWorkflowOps('user-1', 'wf-1', {
+      ops: [
+        { type: 'node.delete', nodeId: 'start', force: true },
+        {
+          type: 'node.add',
+          node: { id: 'start-2', type: 'trigger.start', position: { x: 100, y: 0 }, data: {} },
+        },
+      ],
+    })
+
+    const definition = getWrittenDefinition()
+    expect(definition.nodes.map((node) => node.id)).toEqual(['start-2'])
+  })
+
   it('updates node data and returns warnings for unknown fields', async () => {
     const { applyWorkflowOps } = await importService()
 
@@ -104,7 +150,7 @@ describe('workflow-edit.service', () => {
       definition: JSON.stringify({
         nodes: [
           { id: 'a', type: 'source.price', position: { x: 0, y: 0 }, data: {} },
-          { id: 'b', type: 'llm.free', position: { x: 100, y: 0 }, data: {} },
+          { id: 'b', type: 'llm', position: { x: 100, y: 0 }, data: {} },
         ],
         edges: [{ id: 'a-b', source: 'a', target: 'b' }],
       }),
@@ -124,7 +170,7 @@ describe('workflow-edit.service', () => {
       definition: JSON.stringify({
         nodes: [
           { id: 'a', type: 'source.price', position: { x: 0, y: 0 }, data: {} },
-          { id: 'b', type: 'llm.free', position: { x: 100, y: 0 }, data: {} },
+          { id: 'b', type: 'llm', position: { x: 100, y: 0 }, data: {} },
         ],
         edges: [{ id: 'a-b', source: 'a', target: 'b' }],
       }),
@@ -144,7 +190,7 @@ describe('workflow-edit.service', () => {
       definition: JSON.stringify({
         nodes: [
           { id: 'a', type: 'source.price', position: { x: 0, y: 0 }, data: {} },
-          { id: 'b', type: 'llm.free', position: { x: 100, y: 0 }, data: {} },
+          { id: 'b', type: 'llm', position: { x: 100, y: 0 }, data: {} },
         ],
         edges: [{ id: 'a-b', source: 'a', target: 'b' }],
       }),
@@ -166,6 +212,33 @@ describe('workflow-edit.service', () => {
       { id: 'a-branch-1', source: 'a', target: 'branch-1' },
       { id: 'branch-1-b', source: 'branch-1', target: 'b' },
     ])
+  })
+
+  it('rejects inserting a second start node', async () => {
+    workflowRepo.findById.mockResolvedValue({
+      ...workflowRepo.workflow,
+      definition: JSON.stringify({
+        nodes: [
+          { id: 'start', type: 'trigger.start', position: { x: 0, y: 0 }, data: {} },
+          { id: 'a', type: 'source.price', position: { x: 100, y: 0 }, data: {} },
+          { id: 'b', type: 'llm', position: { x: 200, y: 0 }, data: {} },
+        ],
+        edges: [{ id: 'a-b', source: 'a', target: 'b' }],
+      }),
+    })
+    const { applyWorkflowOps } = await importService()
+
+    await expect(
+      applyWorkflowOps('user-1', 'wf-1', {
+        ops: [
+          {
+            type: 'node.insertBetween',
+            edgeId: 'a-b',
+            node: { id: 'start-2', type: 'trigger.start', position: { x: 150, y: 0 }, data: {} },
+          },
+        ],
+      }),
+    ).rejects.toThrow('Workflow can only contain one start node')
   })
 
   it('rejects stale baseUpdatedAt', async () => {

@@ -68,7 +68,16 @@ export interface NodeMeta {
   color: string
 }
 
-export type FieldUIType = 'text' | 'number' | 'select' | 'code' | 'toggle' | 'branches' | 'schedule'
+export type FieldUIType =
+  | 'text'
+  | 'textarea'
+  | 'number'
+  | 'select'
+  | 'code'
+  | 'toggle'
+  | 'branches'
+  | 'schedule'
+  | 'providerModel'
 
 export interface BranchCondition {
   id: string
@@ -138,9 +147,11 @@ export interface ParamDef {
   description?: string
   /** UI rendering hint — 'text' is the default when omitted */
   ui?: FieldUIType
+  hidden?: boolean
   /** Display label for the config panel (falls back to description) */
   label?: string
   placeholder?: string
+  options?: { label: string; value: string }[]
   /** Dynamic options source — replaces static options */
   optionsSource?: OptionsSource
   /** Which variable types are acceptable for this field (undefined = all) */

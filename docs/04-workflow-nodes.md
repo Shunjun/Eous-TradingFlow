@@ -118,16 +118,14 @@ import { allNodeMetas, getNodeDef, getNodeOutputs } from '@eous/nodes'
 
 ## 当前节点
 
-| 类型               | 类别    | 状态                                         |
-| ------------------ | ------- | -------------------------------------------- |
-| `trigger.start`    | trigger | 已实现，手动启动                             |
-| `trigger.schedule` | trigger | 已实现节点定义和执行；调度器能力仍需继续完善 |
-| `source.price`     | source  | 已实现，从 DataSourceInstance 获取报价       |
-| `source.kline`     | source  | 已实现，从 DataSourceInstance 获取 K 线      |
-| `control.branch`   | control | 已实现条件分支                               |
-| `llm.free`         | llm     | 已实现，输出原始文本                         |
-| `llm.signal`       | llm     | 已实现，容错解析 JSON 信号                   |
-| `llm.report`       | llm     | 已实现，输出 Markdown 报告                   |
+| 类型               | 类别    | 状态                                             |
+| ------------------ | ------- | ------------------------------------------------ |
+| `trigger.start`    | trigger | 已实现，手动启动                                 |
+| `trigger.schedule` | trigger | 已实现节点定义和执行；调度器能力仍需继续完善     |
+| `source.price`     | source  | 已实现，从 DataSourceInstance 获取报价           |
+| `source.kline`     | source  | 已实现，从 DataSourceInstance 获取 K 线          |
+| `control.branch`   | control | 已实现条件分支                                   |
+| `llm`              | llm     | 已实现，可配置文本、Markdown 或 JSON Schema 输出 |
 
 未实现或待增强：
 

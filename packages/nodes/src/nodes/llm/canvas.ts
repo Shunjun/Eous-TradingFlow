@@ -6,10 +6,17 @@ function emptyValue(value: string | number | undefined | null): string | number 
   return value
 }
 
+function formatLabel(value: unknown): string {
+  if (value === 'json_schema') return 'JSON Schema'
+  if (value === 'markdown') return 'Markdown'
+  return 'Text'
+}
+
 function getCanvasView({ data }: NodeCanvasViewInput) {
   const label = typeof data.label === 'string' ? data.label : def.meta.label
   const color = typeof data.color === 'string' ? data.color : undefined
   const modelId = typeof data.modelId === 'string' ? data.modelId : ''
+  const responseFormat = data.responseFormat ?? 'text'
   const maxTokens = typeof data.maxTokens === 'number' ? data.maxTokens : undefined
 
   return {
@@ -18,7 +25,7 @@ function getCanvasView({ data }: NodeCanvasViewInput) {
     color,
     rows: [
       { label: 'Model', value: emptyValue(modelId) },
-      { label: 'Output', value: 'Markdown' },
+      { label: 'Output', value: formatLabel(responseFormat) },
       { label: 'Tokens', value: emptyValue(maxTokens) },
     ],
   }

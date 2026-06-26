@@ -29,7 +29,7 @@ Data Source Layer
 
 ### LLM 是节点，也是 Agent runtime 的能力
 
-LLM 在 Workflow 中是普通节点：`llm.free`、`llm.signal`、`llm.report`。LLM 也被 Agent 服务用于对话流式回复和 Memory 注入。两者共用 server 端 LLM service。
+LLM 在 Workflow 中是普通节点：`llm`。它通过请求参数配置文本、Markdown 或 JSON Schema 输出。LLM 也被 Agent 服务用于对话流式回复和 Memory 注入。两者共用 server 端 LLM service。
 
 ### Agent 是独立实体
 

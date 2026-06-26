@@ -33,6 +33,7 @@ function useWorkflowNodeActions({
       const currentNodes = workflowStore.getState().nodes
       const sourceNode = currentNodes.find((node) => node.id === nodeId)
       if (!sourceNode) return
+      if (sourceNode.type === 'trigger.start') return
 
       const nextNode = {
         ...sourceNode,

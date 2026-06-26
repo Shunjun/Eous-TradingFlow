@@ -89,6 +89,17 @@ function assertUniqueEdgeId(definition: WorkflowDefinitionDocument, edgeId: stri
   }
 }
 
+function isStartNode(node: Pick<WorkflowNode, 'type'>) {
+  return node.type === 'trigger.start'
+}
+
+function assertSingleStartNode(definition: WorkflowDefinitionDocument, nextNode: WorkflowNode) {
+  if (!isStartNode(nextNode)) return
+  if (definition.nodes.some(isStartNode)) {
+    throw new AppError('Workflow can only contain one start node', 400)
+  }
+}
+
 function findNode(definition: WorkflowDefinitionDocument, nodeId: string): WorkflowNode {
   const node = definition.nodes.find((item) => item.id === nodeId)
   if (!node) throw new AppError(`Node not found: ${nodeId}`, 404)
@@ -163,6 +174,7 @@ function applyOp(definition: WorkflowDefinitionDocument, op: WorkflowEditOp, war
 
     case 'node.add': {
       assertUniqueNodeId(definition, op.node.id)
+      assertSingleStartNode(definition, op.node)
       definition.nodes.push(normalizeNode(op.node, warnings))
       return
     }
@@ -218,6 +230,7 @@ function applyOp(definition: WorkflowDefinitionDocument, op: WorkflowEditOp, war
       if (!edge) throw new AppError(`Edge not found: ${op.edgeId}`, 404)
 
       assertUniqueNodeId(definition, op.node.id)
+      assertSingleStartNode(definition, op.node)
       const node = normalizeNode(op.node, warnings)
       const sourceToNewEdgeId = op.sourceToNewEdge?.id ?? `${edge.source}-${node.id}`
       const newToTargetEdgeId = op.newToTargetEdge?.id ?? `${node.id}-${edge.target}`

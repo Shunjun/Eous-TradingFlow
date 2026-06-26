@@ -65,7 +65,9 @@ function SelectField({ param, value, onChange, data, upstreamOutputs }: SelectFi
   const storeNodes = useWorkflowStore((state) => state.nodes)
   const debouncedQuery = useDebouncedValue(rawQuery, 200)
   const apiQuery = param.optionsSource?.source === 'instanceSymbols' ? debouncedQuery : undefined
-  const { options, loading } = useOptionsSource(param.optionsSource, data, apiQuery)
+  const dynamicOptions = useOptionsSource(param.optionsSource, data, apiQuery)
+  const options = param.options ?? dynamicOptions.options
+  const loading = param.options ? false : dynamicOptions.loading
   const hasSearch = Boolean(param.optionsSource)
   const isInstanceSymbols = param.optionsSource?.source === 'instanceSymbols'
 
