@@ -3,7 +3,31 @@ import { encrypt, decrypt, getEncryptionKey } from '../lib/crypto-utils.js'
 import { fetchModelsFromProvider } from '../lib/model-sync.js'
 import * as providerRepo from '../repositories/provider.repo.js'
 
-const VALID_KINDS = ['openai', 'anthropic', 'deepseek', 'ollama', 'custom'] as const
+const VALID_KINDS = [
+  'openai',
+  'anthropic',
+  'deepseek',
+  'kimi',
+  'mimo',
+  'glm',
+  'google',
+  'openrouter',
+  'ollama',
+  'custom',
+] as const
+
+const VALID_API_FORMATS = [
+  'openai-chat',
+  'openai-responses',
+  'anthropic-messages',
+  'google-generative',
+] as const
+
+function normalizeApiFormat(apiFormat?: string | null): string {
+  return apiFormat && VALID_API_FORMATS.includes(apiFormat as (typeof VALID_API_FORMATS)[number])
+    ? apiFormat
+    : 'openai-chat'
+}
 
 export function listProviders(userId: string) {
   return providerRepo.findAllByUser(userId)
@@ -26,6 +50,7 @@ export async function getProvider(userId: string, id: string) {
       id: provider.id,
       name: provider.name,
       kind: provider.kind,
+      apiFormat: provider.apiFormat,
       baseUrl: provider.baseUrl,
       isActive: provider.isActive,
       createdAt: provider.createdAt,
@@ -39,11 +64,13 @@ export async function createProvider(
   body: {
     name: string
     kind: string
+    apiFormat?: string
     baseUrl: string
     apiKey: string
   },
 ) {
   const { name, kind, baseUrl, apiKey } = body
+  const apiFormat = normalizeApiFormat(body.apiFormat)
 
   if (!name || !kind || !baseUrl) {
     throw new AppError('Missing required fields: name, kind, baseUrl', 400)
@@ -63,6 +90,7 @@ export async function createProvider(
   const provider = await providerRepo.create({
     name,
     kind,
+    apiFormat,
     baseUrl,
     apiKeyEncrypted: ciphertext,
     apiKeyIv: iv,
@@ -71,7 +99,7 @@ export async function createProvider(
 
   // Async fetch models — don't block the response on failure
   try {
-    const models = await fetchModelsFromProvider(kind, baseUrl, apiKey)
+    const models = await fetchModelsFromProvider(kind, baseUrl, apiKey, apiFormat)
     for (const m of models) {
       await providerRepo.upsertModel(provider.id, m)
     }
@@ -88,12 +116,13 @@ export async function updateProvider(
   body: {
     name?: string
     baseUrl?: string
+    apiFormat?: string
     apiKey?: string
   },
 ) {
   const { name, baseUrl, apiKey } = body
 
-  if (!name && !baseUrl && !apiKey) {
+  if (!name && !baseUrl && !apiKey && body.apiFormat === undefined) {
     throw new AppError('At least one field must be provided', 400)
   }
 
@@ -112,6 +141,7 @@ export async function updateProvider(
   const updateData: Record<string, string> = {}
   if (name) updateData.name = name
   if (baseUrl) updateData.baseUrl = baseUrl
+  if (body.apiFormat !== undefined) updateData.apiFormat = normalizeApiFormat(body.apiFormat)
   if (apiKey) {
     const keyHex = getEncryptionKey()
     const { ciphertext, iv } = encrypt(apiKey, keyHex)
@@ -140,7 +170,12 @@ export async function syncModels(userId: string, id: string) {
   const keyHex = getEncryptionKey()
   const apiKey = decrypt(provider.apiKeyEncrypted, provider.apiKeyIv, keyHex)
 
-  const models = await fetchModelsFromProvider(provider.kind, provider.baseUrl, apiKey)
+  const models = await fetchModelsFromProvider(
+    provider.kind,
+    provider.baseUrl,
+    apiKey,
+    provider.apiFormat,
+  )
 
   let newCount = 0
   for (const m of models) {
@@ -175,7 +210,12 @@ export async function testConnection(userId: string, id: string) {
   const keyHex = getEncryptionKey()
   const apiKey = decrypt(provider.apiKeyEncrypted, provider.apiKeyIv, keyHex)
 
-  const models = await fetchModelsFromProvider(provider.kind, provider.baseUrl, apiKey)
+  const models = await fetchModelsFromProvider(
+    provider.kind,
+    provider.baseUrl,
+    apiKey,
+    provider.apiFormat,
+  )
 
   if (models.length > 0) {
     return { ok: true, modelCount: models.length }

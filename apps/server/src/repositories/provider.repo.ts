@@ -20,6 +20,7 @@ export function findByNameAndUser(name: string, userId: string): Promise<Provide
 export function create(data: {
   name: string
   kind: string
+  apiFormat: string
   baseUrl: string
   apiKeyEncrypted: string
   apiKeyIv: string

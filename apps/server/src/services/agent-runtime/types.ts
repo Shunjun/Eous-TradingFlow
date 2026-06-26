@@ -15,6 +15,7 @@ export interface RuntimeStreamSettings {
   temperature?: number
   maxTokens?: number
   topP?: number
+  thinkingLevel?: 'off' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'
 }
 
 export type RuntimeStreamEvent =

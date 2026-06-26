@@ -289,6 +289,7 @@ async function generateSessionTitle(params: {
       options: {
         temperature: 0.2,
         maxTokens: 60,
+        thinkingLevel: 'off',
       },
     })
   } catch {

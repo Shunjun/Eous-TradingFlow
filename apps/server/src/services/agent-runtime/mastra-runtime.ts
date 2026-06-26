@@ -2,6 +2,8 @@ import { Agent } from '@mastra/core/agent'
 import * as providerRepo from '../../repositories/provider.repo.js'
 import * as agentRepo from '../../repositories/agent.repo.js'
 import { decrypt, getEncryptionKey } from '../../lib/crypto-utils.js'
+import { planLlmRequest } from '../../llm/planner.js'
+import type { ProviderOptions } from '../../llm/types.js'
 import { resolveAgentTools } from './skill-registry.js'
 import type {
   AgentRuntime,
@@ -14,14 +16,6 @@ import type {
 type MastraChunk = {
   type?: string
   payload?: Record<string, unknown>
-}
-
-const PROVIDER_ID_BY_KIND: Record<string, string> = {
-  openai: 'openai',
-  anthropic: 'anthropic',
-  deepseek: 'deepseek',
-  ollama: 'ollama',
-  custom: 'openai-compatible',
 }
 
 function appendMemoryToSystemPrompt(systemPrompt: string | undefined, memoryBlock: string): string {
@@ -77,8 +71,75 @@ function normalizeBaseUrl(baseUrl: string): string | undefined {
   return trimmed
 }
 
-function resolveProviderId(kind: string): string {
-  return PROVIDER_ID_BY_KIND[kind] ?? kind
+function extractTextFromMessageContent(content: unknown): string | null {
+  if (typeof content === 'string') return content
+
+  if (Array.isArray(content)) {
+    const parts = content
+      .map((part) => {
+        if (!part || typeof part !== 'object') return ''
+        const record = part as Record<string, unknown>
+        if (typeof record.text === 'string') return record.text
+        if (typeof record.content === 'string') return record.content
+        return ''
+      })
+      .filter(Boolean)
+
+    return parts.length > 0 ? parts.join('') : null
+  }
+
+  if (content && typeof content === 'object') {
+    const record = content as Record<string, unknown>
+    if (typeof record.text === 'string') return record.text
+    if (typeof record.content === 'string') return record.content
+    if (typeof record.output === 'string') return record.output
+  }
+
+  return null
+}
+
+function extractTextFromBody(body: unknown): string | null {
+  if (!body || typeof body !== 'object') return null
+
+  const record = body as Record<string, unknown>
+  const direct = extractTextFromMessageContent(record.text ?? record.output)
+  if (direct) return direct
+
+  const choices = record.choices
+  if (!Array.isArray(choices) || choices.length === 0) return null
+
+  for (const choice of choices) {
+    if (!choice || typeof choice !== 'object') continue
+    const choiceRecord = choice as Record<string, unknown>
+    const message = choiceRecord.message
+    if (message && typeof message === 'object') {
+      const messageRecord = message as Record<string, unknown>
+      const messageText = extractTextFromMessageContent(messageRecord.content)
+      if (messageText) return messageText
+    }
+
+    const text = extractTextFromMessageContent(choiceRecord.text)
+    if (text) return text
+  }
+
+  return null
+}
+
+function extractTextFromOutput(output: unknown): string | null {
+  if (!output || typeof output !== 'object') return null
+
+  const record = output as Record<string, unknown>
+  const direct = extractTextFromMessageContent(record.text ?? record.output)
+  if (direct) return direct
+
+  const response = record.response
+  if (!response || typeof response !== 'object') return null
+
+  const responseRecord = response as Record<string, unknown>
+  const responseDirect = extractTextFromMessageContent(responseRecord.text ?? responseRecord.output)
+  if (responseDirect) return responseDirect
+
+  return extractTextFromBody(responseRecord.body)
 }
 
 function chunkToRuntimeEvent(chunk: MastraChunk): RuntimeStreamEvent | null {
@@ -145,9 +206,22 @@ async function* mapMastraStream(stream: AsyncIterable<MastraChunk>): RuntimeStre
 async function createMastraAgent(options: RuntimeStreamOptions): Promise<{
   agent: Agent
   resolvedContext: RuntimeContext
+  providerOptions?: ProviderOptions
 }> {
   const provider = await providerRepo.findByIdAndUser(options.providerId, options.userId)
   if (!provider) throw new Error('Provider not found')
+  const providerModel = await providerRepo.findModel(provider.id, options.modelId)
+  const capabilities = providerModel ? parseJsonStringArray(providerModel.capabilities) : []
+  const plan = planLlmRequest(
+    {
+      providerKind: provider.kind,
+      apiFormat: provider.apiFormat,
+      baseUrl: provider.baseUrl,
+      modelId: options.modelId,
+      capabilities,
+    },
+    { thinkingLevel: options.options?.thinkingLevel },
+  )
 
   const keyHex = getEncryptionKey()
   const apiKey = decrypt(provider.apiKeyEncrypted, provider.apiKeyIv, keyHex)
@@ -162,12 +236,13 @@ async function createMastraAgent(options: RuntimeStreamOptions): Promise<{
 
   return {
     resolvedContext,
+    providerOptions: plan.providerOptions,
     agent: new Agent({
       id: 'eous-runtime-agent',
       name: 'Eous Runtime Agent',
       instructions: resolvedContext.systemPrompt || '',
       model: {
-        providerId: resolveProviderId(provider.kind),
+        providerId: plan.providerId,
         modelId: options.modelId,
         url: normalizeBaseUrl(provider.baseUrl),
         apiKey,
@@ -177,16 +252,25 @@ async function createMastraAgent(options: RuntimeStreamOptions): Promise<{
   }
 }
 
+function parseJsonStringArray(raw: string): string[] {
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === 'string')
+      : []
+  } catch {
+    return []
+  }
+}
+
 function outputToText(output: unknown): string {
-  if (!output || typeof output !== 'object') return ''
-  const record = output as Record<string, unknown>
-  const text = record.text ?? record.object ?? record.output
-  return typeof text === 'string' ? text : ''
+  const text = extractTextFromOutput(output)
+  return text ?? ''
 }
 
 export class MastraRuntime implements AgentRuntime {
   async streamChat(options: RuntimeStreamOptions): Promise<RuntimeStream> {
-    const { agent, resolvedContext } = await createMastraAgent(options)
+    const { agent, resolvedContext, providerOptions } = await createMastraAgent(options)
 
     const output = await agent.stream(toMastraMessages(resolvedContext), {
       modelSettings: {
@@ -194,19 +278,21 @@ export class MastraRuntime implements AgentRuntime {
         maxOutputTokens: options.options?.maxTokens,
         topP: options.options?.topP,
       },
+      providerOptions,
     })
 
     return mapMastraStream(output.fullStream as unknown as AsyncIterable<MastraChunk>)
   }
 
   async generateText(options: RuntimeStreamOptions): Promise<string> {
-    const { agent, resolvedContext } = await createMastraAgent(options)
+    const { agent, resolvedContext, providerOptions } = await createMastraAgent(options)
     const output = await agent.generate(toMastraMessages(resolvedContext), {
       modelSettings: {
         temperature: options.options?.temperature,
         maxOutputTokens: options.options?.maxTokens,
         topP: options.options?.topP,
       },
+      providerOptions,
     })
 
     return outputToText(output)

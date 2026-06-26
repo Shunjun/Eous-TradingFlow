@@ -105,6 +105,52 @@ async function fetchAnthropic(baseUrl: string, apiKey: string): Promise<SyncMode
   }
 }
 
+// ── Google Generative ──────────────────────────────────────────────────────
+
+interface GoogleModel {
+  name: string
+  displayName?: string
+  inputTokenLimit?: number
+  outputTokenLimit?: number
+  supportedGenerationMethods?: string[]
+}
+
+interface GoogleModelsResponse {
+  models: GoogleModel[]
+}
+
+async function fetchGoogleGenerative(baseUrl: string, apiKey: string): Promise<SyncModel[]> {
+  const base = baseUrl.replace(/\/+$/, '')
+  const url = `${base}/models?key=${encodeURIComponent(apiKey)}`
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+
+  try {
+    const res = await fetch(url, { signal: controller.signal })
+    if (!res.ok) return []
+
+    const body = (await res.json()) as GoogleModelsResponse
+    return (body.models ?? [])
+      .filter((m) => m.supportedGenerationMethods?.includes('generateContent') ?? true)
+      .map((m) => {
+        const modelId = m.name.replace(/^models\//, '')
+        const caps = new Set<string>()
+        if (modelId.toLowerCase().includes('gemini')) caps.add('vision')
+        if (modelId.toLowerCase().includes('thinking')) caps.add('reasoning')
+        return {
+          modelId,
+          displayName: m.displayName,
+          maxTokens: m.outputTokenLimit,
+          capabilities: [...caps],
+        }
+      })
+  } catch {
+    return []
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 // ── Ollama ──────────────────────────────────────────────────────────────────
 
 interface OllamaModel {
@@ -152,8 +198,12 @@ export async function fetchModelsFromProvider(
   kind: string,
   baseUrl: string,
   apiKey: string,
+  apiFormat = 'openai-chat',
 ): Promise<SyncModel[]> {
   try {
+    if (apiFormat === 'anthropic-messages') return await fetchAnthropic(baseUrl, apiKey)
+    if (apiFormat === 'google-generative') return await fetchGoogleGenerative(baseUrl, apiKey)
+
     switch (kind) {
       case 'ollama':
         return await fetchOllama(baseUrl)

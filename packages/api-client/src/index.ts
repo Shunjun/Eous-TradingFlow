@@ -167,6 +167,7 @@ export interface Provider {
   id: string
   name: string
   kind: string
+  apiFormat: string
   baseUrl: string
   isActive: boolean
   createdAt: string
@@ -185,6 +186,8 @@ export interface ProviderTemplate {
   kind: string
   label: string
   defaultBaseUrl: string
+  defaultApiFormat: string
+  apiFormats: { value: string; label: string }[]
   hint?: string
 }
 
@@ -420,13 +423,23 @@ export interface ApiClient {
   logout(): Promise<void>
 
   listProviders(): Promise<{ providers: Provider[] }>
-  getProvider(id: string): Promise<{ models: ProviderModel[] }>
+  getProvider(id: string): Promise<{ provider: Provider; models: ProviderModel[] }>
   createProvider(params: {
     name: string
     kind: string
+    apiFormat?: string
     baseUrl: string
     apiKey: string
   }): Promise<{ provider: Provider }>
+  updateProvider(
+    id: string,
+    params: {
+      name?: string
+      apiFormat?: string
+      baseUrl?: string
+      apiKey?: string
+    },
+  ): Promise<{ provider: Provider }>
   deleteProvider(id: string): Promise<void>
   testProvider(id: string): Promise<TestResult>
   syncProvider(id: string): Promise<void>
@@ -809,6 +822,7 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
     listProviders: () => get('/providers'),
     getProvider: (id: string) => get(`/providers/${encodeURIComponent(id)}`),
     createProvider: (params) => post('/providers', params),
+    updateProvider: (id, params) => patch(`/providers/${encodeURIComponent(id)}`, params),
     deleteProvider: (id: string) => del(`/providers/${encodeURIComponent(id)}`, true),
     testProvider: (id: string) => post(`/providers/${encodeURIComponent(id)}/test`),
     syncProvider: (id: string) =>

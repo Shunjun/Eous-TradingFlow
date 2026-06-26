@@ -18,13 +18,24 @@ providerRouter.get('/:id', async (c) => {
 })
 
 providerRouter.post('/', async (c) => {
-  const body = await c.req.json<{ name: string; kind: string; baseUrl: string; apiKey: string }>()
+  const body = await c.req.json<{
+    name: string
+    kind: string
+    apiFormat?: string
+    baseUrl: string
+    apiKey: string
+  }>()
   const provider = await providerService.createProvider(c.get('userId'), body)
   return c.json({ provider }, 201)
 })
 
 providerRouter.patch('/:id', async (c) => {
-  const body = await c.req.json<{ name?: string; baseUrl?: string; apiKey?: string }>()
+  const body = await c.req.json<{
+    name?: string
+    baseUrl?: string
+    apiFormat?: string
+    apiKey?: string
+  }>()
   const provider = await providerService.updateProvider(c.get('userId'), c.req.param('id'), body)
   return c.json({ provider })
 })

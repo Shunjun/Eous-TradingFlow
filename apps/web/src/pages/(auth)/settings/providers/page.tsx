@@ -35,6 +35,9 @@ import {
   Loader2,
   Pencil,
   Save,
+  ServerCog,
+  KeyRound,
+  Route,
 } from 'lucide-react'
 import type { Provider, ProviderModel, ProviderTemplate, TestResult } from '@eous/api-client'
 import { api } from '@/lib/api'
@@ -49,6 +52,18 @@ const CAP_COLORS: Record<string, string> = {
   streaming: 'text-emerald-400 bg-emerald-400/10',
 }
 
+const API_FORMAT_LABELS: Record<string, string> = {
+  'openai-chat': 'OpenAI Chat',
+  'openai-responses': 'OpenAI Responses',
+  'anthropic-messages': 'Anthropic Messages',
+  'google-generative': 'Google Generative',
+}
+
+const FALLBACK_API_FORMATS = Object.entries(API_FORMAT_LABELS).map(([value, label]) => ({
+  value,
+  label,
+}))
+
 /* ── Add Provider Form ─────────────────────────────────── */
 
 function AddProviderForm({
@@ -61,6 +76,7 @@ function AddProviderForm({
   onCreated: () => void
 }) {
   const [kind, setKind] = useState('')
+  const [apiFormat, setApiFormat] = useState('')
   const [name, setName] = useState('')
   const [baseUrl, setBaseUrl] = useState('')
   const [apiKey, setApiKey] = useState('')
@@ -75,10 +91,16 @@ function AddProviderForm({
     if (tpl) {
       setName(tpl.label)
       setBaseUrl(tpl.defaultBaseUrl)
+      setApiFormat(tpl.defaultApiFormat)
     } else {
       setName('')
       setBaseUrl('')
+      setApiFormat('')
     }
+  }
+
+  function handleApiFormatChange(nextApiFormat: string) {
+    setApiFormat(nextApiFormat)
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -86,7 +108,7 @@ function AddProviderForm({
     setError('')
     setLoading(true)
     try {
-      await api.createProvider({ name, kind, baseUrl, apiKey })
+      await api.createProvider({ name, kind, apiFormat, baseUrl, apiKey })
       onCreated()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to create provider')
@@ -98,14 +120,14 @@ function AddProviderForm({
   return (
     <CardPanel className="mb-4">
       <CardPanelHeader
-        icon={Plus}
+        icon={ServerCog}
         title="Add Provider"
         action={{ label: <X size={14} />, onClick: onClose }}
       />
       <CardPanelBody className="p-4">
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Template selector */}
-          <div className="space-y-1.5">
+          <div className="flex flex-col gap-1.5">
             <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
               Provider Type
             </Label>
@@ -131,21 +153,40 @@ function AddProviderForm({
           {kind && (
             <>
               {/* Name */}
-              <div className="space-y-1.5">
-                <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-                  Name
-                </Label>
-                <Input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="My Provider"
-                  className="font-mono text-xs"
-                  required
-                />
+              <div className="grid gap-3 md:grid-cols-[1fr_220px]">
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                    Name
+                  </Label>
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="My Provider"
+                    className="font-mono text-xs"
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                    API Format
+                  </Label>
+                  <Select value={apiFormat || undefined} onValueChange={handleApiFormatChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select API format…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(selected?.apiFormats ?? []).map((format) => (
+                        <SelectItem key={format.value} value={format.value}>
+                          {format.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Base URL */}
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
                   Base URL
                 </Label>
@@ -160,7 +201,7 @@ function AddProviderForm({
 
               {/* API Key */}
               {kind !== 'ollama' && (
-                <div className="space-y-1.5">
+                <div className="flex flex-col gap-1.5">
                   <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
                     API Key
                   </Label>
@@ -206,6 +247,122 @@ function AddProviderForm({
   )
 }
 
+/* ── Edit Provider Form ───────────────────────────────── */
+
+function EditProviderForm({
+  provider,
+  template,
+  onCancel,
+  onSaved,
+}: {
+  provider: Provider
+  template?: ProviderTemplate
+  onCancel: () => void
+  onSaved: () => void
+}) {
+  const [name, setName] = useState(provider.name)
+  const [apiFormat, setApiFormat] = useState(provider.apiFormat)
+  const [baseUrl, setBaseUrl] = useState(provider.baseUrl)
+  const [apiKey, setApiKey] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const apiFormats = template?.apiFormats?.length ? template.apiFormats : FALLBACK_API_FORMATS
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      await api.updateProvider(provider.id, {
+        name,
+        apiFormat,
+        baseUrl,
+        apiKey: apiKey || undefined,
+      })
+      onSaved()
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to update provider')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-3 border-b border-border/50 bg-muted/20 px-4 py-3"
+    >
+      <div className="grid gap-2 lg:grid-cols-[1fr_220px_1.5fr_1fr]">
+        <div className="flex flex-col gap-1">
+          <Label className="text-[10px] font-mono text-muted-foreground">Name</Label>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="h-8 font-mono text-xs"
+            required
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label className="text-[10px] font-mono text-muted-foreground">API Format</Label>
+          <Select value={apiFormat} onValueChange={setApiFormat}>
+            <SelectTrigger className="h-8 font-mono text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {apiFormats.map((format) => (
+                <SelectItem key={format.value} value={format.value}>
+                  {format.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label className="text-[10px] font-mono text-muted-foreground">Base URL</Label>
+          <Input
+            value={baseUrl}
+            onChange={(e) => setBaseUrl(e.target.value)}
+            className="h-8 font-mono text-xs"
+            required
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label className="text-[10px] font-mono text-muted-foreground">New API Key</Label>
+          <Input
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="Leave unchanged"
+            className="h-8 font-mono text-xs"
+          />
+        </div>
+      </div>
+      {error && <p className="text-[10px] font-mono text-red-400">{error}</p>}
+      <div className="flex items-center gap-2">
+        <Button
+          type="submit"
+          variant="accent-outline"
+          size="sm"
+          disabled={loading}
+          className="h-7 gap-1.5 font-mono text-[11px]"
+        >
+          {loading ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />}
+          Save Provider
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onCancel}
+          className="h-7 font-mono text-[11px] text-muted-foreground"
+        >
+          Cancel
+        </Button>
+      </div>
+    </form>
+  )
+}
+
 /* ── Add Model Inline Form ─────────────────────────────── */
 
 function AddModelForm({
@@ -248,9 +405,12 @@ function AddModelForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="px-4 py-3 border-t border-border/50 space-y-3">
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col gap-3 border-t border-border/50 px-4 py-3"
+    >
       <div className="grid grid-cols-4 gap-2">
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           <Label className="text-[10px] font-mono text-muted-foreground">Model ID *</Label>
           <Input
             value={modelId}
@@ -260,7 +420,7 @@ function AddModelForm({
             required
           />
         </div>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           <Label className="text-[10px] font-mono text-muted-foreground">Display Name</Label>
           <Input
             value={displayName}
@@ -269,7 +429,7 @@ function AddModelForm({
             className="font-mono text-xs h-8"
           />
         </div>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           <Label className="text-[10px] font-mono text-muted-foreground">Max Tokens</Label>
           <Input
             type="number"
@@ -279,7 +439,7 @@ function AddModelForm({
             className="font-mono text-xs h-8"
           />
         </div>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           <Label className="text-[10px] font-mono text-muted-foreground">Capabilities</Label>
           <Input
             value={capsInput}
@@ -359,10 +519,10 @@ function EditModelForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="px-4 py-3 bg-muted/20 border-t border-border/50 space-y-3"
+      className="flex flex-col gap-3 border-t border-border/50 bg-muted/20 px-4 py-3"
     >
       <div className="grid grid-cols-3 gap-2">
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           <Label className="text-[10px] font-mono text-muted-foreground">Display Name</Label>
           <Input
             value={displayName}
@@ -370,7 +530,7 @@ function EditModelForm({
             className="font-mono text-xs h-8"
           />
         </div>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           <Label className="text-[10px] font-mono text-muted-foreground">Max Tokens</Label>
           <Input
             type="number"
@@ -379,7 +539,7 @@ function EditModelForm({
             className="font-mono text-xs h-8"
           />
         </div>
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           <Label className="text-[10px] font-mono text-muted-foreground">
             Capabilities (comma-separated)
           </Label>
@@ -418,10 +578,19 @@ function EditModelForm({
 
 /* ── Provider Card ─────────────────────────────────────── */
 
-function ProviderCard({ provider, onRefresh }: { provider: Provider; onRefresh: () => void }) {
+function ProviderCard({
+  provider,
+  templates,
+  onRefresh,
+}: {
+  provider: Provider
+  templates: ProviderTemplate[]
+  onRefresh: () => void
+}) {
   const [models, setModels] = useState<ProviderModel[]>([])
   const [loaded, setLoaded] = useState(false)
   const [expanded, setExpanded] = useState(true)
+  const [editingProvider, setEditingProvider] = useState(false)
   const [showAddModel, setShowAddModel] = useState(false)
   const [editingModelId, setEditingModelId] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
@@ -490,6 +659,7 @@ function ProviderCard({ provider, onRefresh }: { provider: Provider; onRefresh: 
   }
 
   const enabledCount = models.filter((m) => m.enabled).length
+  const template = templates.find((item) => item.kind === provider.kind)
 
   return (
     <CardPanel className="mb-4">
@@ -503,10 +673,15 @@ function ProviderCard({ provider, onRefresh }: { provider: Provider; onRefresh: 
           >
             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </Button>
-          <Bot size={14} className="text-muted-foreground shrink-0" />
+          <IconBox size="md">
+            <ServerCog size={14} className="text-muted-foreground" />
+          </IconBox>
           <span className="text-sm font-medium truncate">{provider.name}</span>
           <Badge variant="secondary" className="font-mono text-[10px] uppercase tracking-wider">
             {provider.kind}
+          </Badge>
+          <Badge variant="secondary" className="font-mono text-[10px] tracking-wider">
+            {API_FORMAT_LABELS[provider.apiFormat] ?? provider.apiFormat}
           </Badge>
           <span className="font-mono text-[11px] text-muted-foreground truncate hidden sm:inline">
             {provider.baseUrl}
@@ -541,6 +716,16 @@ function ProviderCard({ provider, onRefresh }: { provider: Provider; onRefresh: 
           </Button>
           <Button
             variant="ghost"
+            onClick={() => {
+              setExpanded(true)
+              setEditingProvider((v) => !v)
+            }}
+            className="text-muted-foreground"
+          >
+            <Pencil size={12} />
+          </Button>
+          <Button
+            variant="ghost"
             onClick={handleDelete}
             disabled={deleting}
             className="text-muted-foreground hover:text-red-400"
@@ -553,6 +738,18 @@ function ProviderCard({ provider, onRefresh }: { provider: Provider; onRefresh: 
       {/* Body */}
       {expanded && (
         <CardPanelBody>
+          {editingProvider && (
+            <EditProviderForm
+              provider={provider}
+              template={template}
+              onCancel={() => setEditingProvider(false)}
+              onSaved={() => {
+                setEditingProvider(false)
+                onRefresh()
+              }}
+            />
+          )}
+
           {!loaded ? (
             <div className="px-4 py-8 space-y-2">
               <Skeleton className="h-4 w-full" />
@@ -706,14 +903,19 @@ export default function ProvidersPage() {
   }, [loadProviders])
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto">
+    <div className="mx-auto max-w-[1400px] p-6">
       {/* Page header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-semibold">Providers</h1>
-          <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-            Manage AI model providers and their models
-          </p>
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <IconBox size="md" className="border-primary bg-primary/10" interactive={false}>
+            <Route size={14} className="text-primary" />
+          </IconBox>
+          <div>
+            <h1 className="text-xl font-semibold">Providers</h1>
+            <p className="mt-0.5 font-mono text-xs text-muted-foreground">
+              Configure model families, API formats, and custom endpoints
+            </p>
+          </div>
         </div>
         <Button
           variant="accent-outline"
@@ -724,6 +926,48 @@ export default function ProvidersPage() {
           <Plus size={14} />
           Add Provider
         </Button>
+      </div>
+
+      <div className="mb-4 grid gap-3 md:grid-cols-3">
+        <CardPanel>
+          <CardPanelBody className="flex items-center gap-3 p-3">
+            <IconBox size="md">
+              <ServerCog size={14} className="text-muted-foreground" />
+            </IconBox>
+            <div>
+              <div className="text-sm font-medium">{providers.length} providers</div>
+              <div className="font-mono text-[11px] text-muted-foreground">
+                Custom endpoints supported
+              </div>
+            </div>
+          </CardPanelBody>
+        </CardPanel>
+        <CardPanel>
+          <CardPanelBody className="flex items-center gap-3 p-3">
+            <IconBox size="md">
+              <Route size={14} className="text-muted-foreground" />
+            </IconBox>
+            <div>
+              <div className="text-sm font-medium">4 API formats</div>
+              <div className="font-mono text-[11px] text-muted-foreground">
+                OpenAI, Anthropic, Google
+              </div>
+            </div>
+          </CardPanelBody>
+        </CardPanel>
+        <CardPanel>
+          <CardPanelBody className="flex items-center gap-3 p-3">
+            <IconBox size="md">
+              <KeyRound size={14} className="text-muted-foreground" />
+            </IconBox>
+            <div>
+              <div className="text-sm font-medium">Encrypted keys</div>
+              <div className="font-mono text-[11px] text-muted-foreground">
+                Stored server-side only
+              </div>
+            </div>
+          </CardPanelBody>
+        </CardPanel>
       </div>
 
       {/* Add form */}
@@ -741,7 +985,7 @@ export default function ProvidersPage() {
       {/* Content */}
       {loading ? (
         <CardPanel>
-          <CardPanelBody className="p-12 space-y-3">
+          <CardPanelBody className="flex flex-col gap-3 p-12">
             <Skeleton className="h-5 w-1/3 mx-auto" />
             <Skeleton className="h-4 w-1/2 mx-auto" />
           </CardPanelBody>
@@ -759,7 +1003,9 @@ export default function ProvidersPage() {
           </Empty>
         </CardPanel>
       ) : (
-        providers.map((p) => <ProviderCard key={p.id} provider={p} onRefresh={loadProviders} />)
+        providers.map((p) => (
+          <ProviderCard key={p.id} provider={p} templates={templates} onRefresh={loadProviders} />
+        ))
       )}
     </div>
   )
