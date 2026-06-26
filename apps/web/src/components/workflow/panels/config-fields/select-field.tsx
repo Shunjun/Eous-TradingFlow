@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Loader2, Search } from 'lucide-react'
-import { Badge, Popover, PopoverContent, PopoverTrigger, ScrollArea, cn } from '@eous/ui'
+import { Popover, PopoverContent, PopoverTrigger, ScrollArea, cn } from '@eous/ui'
 import { getNodeDef } from '@eous/nodes'
 import { useWorkflowStore } from '../../store/workflow-store'
 import { getEffectiveOutputs } from '../settings-panel-outputs'
@@ -46,8 +46,8 @@ function SelectOptionButton({
     <button
       type="button"
       className={cn(
-        'flex w-full items-center rounded-sm px-2 py-1.5 text-xs hover:bg-accent/50',
-        selected && 'bg-accent',
+        'flex w-full items-center rounded-sm px-2 py-1.5 text-xs hover:bg-muted',
+        selected && 'bg-muted',
       )}
       onPointerDown={(event) => {
         event.preventDefault()
@@ -214,12 +214,12 @@ function SelectField({ param, value, onChange, data, upstreamOutputs }: SelectFi
                           fieldName,
                           fieldType: fieldDef?.type ?? '',
                         }}
-                        className="min-w-0 flex-1"
+                        className="min-w-0"
                       />
                       {fieldDef && (
-                        <Badge variant="secondary" className="ml-auto text-[10px]">
+                        <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
                           {fieldDef.type}
-                        </Badge>
+                        </span>
                       )}
                     </SelectOptionButton>
                   )
