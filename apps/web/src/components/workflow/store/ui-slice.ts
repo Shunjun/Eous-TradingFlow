@@ -7,11 +7,15 @@ const createUiSlice: WorkflowSliceCreator<WorkflowUiSlice> = (set, get) => ({
   selectedNodeId: null,
   canvasMode: 'pan',
   logOpen: false,
+  utilityPanel: null,
   clipboardNode: null,
 
   setSelectedNodeId: (nodeId) => set({ selectedNodeId: nodeId }),
   setCanvasMode: (mode) => set({ canvasMode: mode }),
   toggleLogOpen: () => set((state) => ({ logOpen: !state.logOpen })),
+  toggleUtilityPanel: (panel) =>
+    set((state) => ({ utilityPanel: state.utilityPanel === panel ? null : panel })),
+  closeUtilityPanel: () => set({ utilityPanel: null }),
   closeSettingsPanel: () => set({ selectedNodeId: null }),
   copyNode: (nodeId) => {
     const node = get().nodes.find((item) => item.id === nodeId)

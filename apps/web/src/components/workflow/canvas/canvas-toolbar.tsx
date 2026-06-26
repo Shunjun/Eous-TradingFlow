@@ -9,13 +9,13 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-  toast,
 } from '@eous/ui'
 import { NodeSelector } from '../nodes'
 import { WORKFLOW_FIT_VIEW_OPTIONS } from './viewport'
 import { useWorkflowStore, useWorkflowStoreApi } from '../store/workflow-store'
 import { useWorkflowNodeActions } from '../hooks'
 import { getFlowViewportCenterPosition } from './flow-position'
+import { validateCanAddNodeType } from '../utils'
 
 export type CanvasInteractionMode = 'pan' | 'select'
 
@@ -66,9 +66,7 @@ function CanvasToolbar() {
 
   const handleAddNode = useCallback(
     (nodeType: string) => {
-      if (workflowStore.getState().nodes.some((node) => node.type !== 'trigger.start')) {
-        toast.info('已放置到当前可视区域中心')
-      }
+      if (!validateCanAddNodeType(nodeType, workflowStore.getState().nodes)) return
       addDefaultNode(nodeType, getFlowViewportCenterPosition(screenToFlowPosition))
     },
     [addDefaultNode, screenToFlowPosition, workflowStore],

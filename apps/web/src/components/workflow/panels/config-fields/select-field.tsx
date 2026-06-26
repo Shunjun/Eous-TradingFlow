@@ -4,7 +4,7 @@ import { Badge, Popover, PopoverContent, PopoverTrigger, ScrollArea, cn } from '
 import { getNodeDef } from '@eous/nodes'
 import { useWorkflowStore } from '../../store/workflow-store'
 import { getEffectiveOutputs } from '../settings-panel-outputs'
-import { displayVariableRef, isVariableRef } from './variable-utils'
+import { isVariableRef, parseVariableRef } from '../../variables/variable-ref'
 import { useOptionsSource } from './use-options-source'
 import type { ParamDef } from '@eous/nodes'
 
@@ -62,6 +62,7 @@ function SelectOptionButton({
 function SelectField({ param, value, onChange, data, upstreamOutputs }: SelectFieldProps) {
   const [open, setOpen] = useState(false)
   const [rawQuery, setRawQuery] = useState('')
+  const [tab, setTab] = useState<'options' | 'variables'>('options')
   const storeNodes = useWorkflowStore((state) => state.nodes)
   const debouncedQuery = useDebouncedValue(rawQuery, 200)
   const apiQuery = param.optionsSource?.source === 'instanceSymbols' ? debouncedQuery : undefined
@@ -86,8 +87,16 @@ function SelectField({ param, value, onChange, data, upstreamOutputs }: SelectFi
     return options.find((option) => option.value === selectedValue)
   }, [options, param.default, value])
 
-  const displayValue = isVariableRef(value)
-    ? displayVariableRef(String(value))
+  const variableRef = isVariableRef(value) ? parseVariableRef(String(value)) : null
+  const variableNode = variableRef?.nodeId
+    ? storeNodes.find((node) => node.id === variableRef.nodeId)
+    : null
+  const variableLabel =
+    variableNode && typeof variableNode.data.label === 'string'
+      ? variableNode.data.label
+      : variableRef?.nodeLabel
+  const displayValue = variableRef
+    ? `${variableLabel}.${variableRef.fieldName}`
     : (selectedOption?.label ?? String(value ?? param.default ?? ''))
 
   const handleSelect = (option: SelectOption) => {
@@ -118,6 +127,7 @@ function SelectField({ param, value, onChange, data, upstreamOutputs }: SelectFi
           onClick={() => {
             setOpen(true)
             setRawQuery('')
+            setTab('options')
           }}
         >
           <span className="truncate">{displayValue || (param.placeholder ?? '请选择…')}</span>
@@ -140,7 +150,29 @@ function SelectField({ param, value, onChange, data, upstreamOutputs }: SelectFi
         align="start"
         onPointerDown={(event) => event.stopPropagation()}
       >
-        {hasSearch && (
+        <div className="flex border-b border-border p-1">
+          <button
+            type="button"
+            className={cn(
+              'flex-1 rounded-sm px-2 py-1 text-xs transition-colors',
+              tab === 'options' ? 'bg-muted text-foreground' : 'text-muted-foreground',
+            )}
+            onClick={() => setTab('options')}
+          >
+            选项
+          </button>
+          <button
+            type="button"
+            className={cn(
+              'flex-1 rounded-sm px-2 py-1 text-xs transition-colors',
+              tab === 'variables' ? 'bg-muted text-foreground' : 'text-muted-foreground',
+            )}
+            onClick={() => setTab('variables')}
+          >
+            变量
+          </button>
+        </div>
+        {tab === 'options' && hasSearch && (
           <div className="flex items-center border-b border-border px-2">
             <Search className="h-3 w-3 shrink-0 text-muted-foreground" />
             <input
@@ -154,43 +186,43 @@ function SelectField({ param, value, onChange, data, upstreamOutputs }: SelectFi
         )}
         <ScrollArea className="max-h-[400px]">
           <div className="p-1">
-            {Object.entries(upstreamOutputs).map(([nodeId, fieldValues]) => {
-              const node = storeNodes.find((item) => item.id === nodeId)
-              const nodeLabel = node
-                ? typeof node.data.label === 'string'
-                  ? node.data.label
-                  : (node.type ?? nodeId)
-                : nodeId
-              const nodeType = node?.type ?? ''
-              const outputs = getEffectiveOutputs(node?.data ?? {}, getNodeDef(nodeType))
+            {tab === 'variables' ? (
+              Object.entries(upstreamOutputs).map(([nodeId, fieldValues]) => {
+                const node = storeNodes.find((item) => item.id === nodeId)
+                const nodeLabel = node
+                  ? typeof node.data.label === 'string'
+                    ? node.data.label
+                    : (node.type ?? nodeId)
+                  : nodeId
+                const nodeType = node?.type ?? ''
+                const outputs = getEffectiveOutputs(node?.data ?? {}, getNodeDef(nodeType))
 
-              return Object.keys(fieldValues).map((fieldName) => {
-                const fieldDef = outputs.find((output) => output.name === fieldName)
-                const variableValue = `{{${nodeLabel}.${fieldName}}}`
-                return (
-                  <SelectOptionButton
-                    key={`var-${nodeId}-${fieldName}`}
-                    selected={value === variableValue}
-                    onSelect={() => {
-                      onChange(variableValue)
-                      setOpen(false)
-                    }}
-                  >
-                    <Link className="h-3 w-3 shrink-0 text-muted-foreground" />
-                    <span className="truncate">
-                      {nodeLabel}.{fieldName}
-                    </span>
-                    {fieldDef && (
-                      <Badge variant="secondary" className="ml-auto text-[10px]">
-                        {fieldDef.type}
-                      </Badge>
-                    )}
-                  </SelectOptionButton>
-                )
+                return Object.keys(fieldValues).map((fieldName) => {
+                  const fieldDef = outputs.find((output) => output.name === fieldName)
+                  const variableValue = `{{node:${nodeId}:${fieldName}}}`
+                  return (
+                    <SelectOptionButton
+                      key={`var-${nodeId}-${fieldName}`}
+                      selected={value === variableValue}
+                      onSelect={() => {
+                        onChange(variableValue)
+                        setOpen(false)
+                      }}
+                    >
+                      <Link className="h-3 w-3 shrink-0 text-muted-foreground" />
+                      <span className="truncate">
+                        {nodeLabel}.{fieldName}
+                      </span>
+                      {fieldDef && (
+                        <Badge variant="secondary" className="ml-auto text-[10px]">
+                          {fieldDef.type}
+                        </Badge>
+                      )}
+                    </SelectOptionButton>
+                  )
+                })
               })
-            })}
-
-            {loading ? (
+            ) : loading ? (
               <div className="flex items-center justify-center gap-1.5 px-2 py-3 text-xs text-muted-foreground">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 加载中…

@@ -1,3 +1,5 @@
 export { SettingsPanel } from './settings-panel'
 export type { SettingsPanelProps } from './settings-panel'
 export { GlobalLogPanel } from './global-log-panel'
+export { StackedSidePanels } from './stacked-side-panels'
+export { WorkflowUtilityPanel } from './workflow-utility-panel'

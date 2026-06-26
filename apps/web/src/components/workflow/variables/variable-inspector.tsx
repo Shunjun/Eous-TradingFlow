@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
-import { Badge, ScrollArea } from '@eous/ui'
+import { Badge, ScrollArea, toast } from '@eous/ui'
 import { getNodeDef, allNodeMetas } from '@eous/nodes'
 import { api } from '../../../lib/api'
 import { useWorkflowStore } from '../store/workflow-store'
@@ -39,23 +39,11 @@ function resolvePath(obj: unknown, path: string): { value: unknown; ok: boolean 
   }
 }
 
-function inferTypeDisplay(value: unknown): string {
-  if (value === null || value === undefined) return 'null'
-  if (Array.isArray(value)) {
-    if (value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
-      const keys = Object.keys(value[0])
-      if (keys.includes('open') && keys.includes('close')) return 'OHLCVBar[]'
-    }
-    return `array(${value.length})`
-  }
-  if (typeof value === 'object') return 'object'
-  return typeof value
-}
-
 function VariableInspector({ workflowId }: VariableInspectorProps) {
   const [variables, setVariables] = useState<Record<string, Record<string, unknown>>>({})
   const [loading, setLoading] = useState(true)
   const storeNodes = useWorkflowStore((s) => s.nodes)
+  const executionRefreshToken = useWorkflowStore((s) => s.executionRefreshToken)
 
   useEffect(() => {
     let cancelled = false
@@ -74,7 +62,19 @@ function VariableInspector({ workflowId }: VariableInspectorProps) {
     return () => {
       cancelled = true
     }
-  }, [workflowId])
+  }, [workflowId, executionRefreshToken])
+
+  const entries = useMemo(
+    () =>
+      storeNodes
+        .map((node) => ({
+          node,
+          outputs: getEffectiveOutputs(node.data ?? {}, getNodeDef(node.type ?? '')),
+          rawOutputs: variables[node.id],
+        }))
+        .filter((entry) => entry.outputs.length > 0),
+    [storeNodes, variables],
+  )
 
   if (loading) {
     return (
@@ -84,56 +84,74 @@ function VariableInspector({ workflowId }: VariableInspectorProps) {
     )
   }
 
-  const entries = Object.entries(variables)
   if (entries.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-xs text-muted-foreground">暂无变量缓存</p>
+        <p className="text-xs text-muted-foreground">当前工作流暂无可用变量</p>
       </div>
     )
   }
 
   return (
-    <ScrollArea className="h-full">
-      <div className="flex flex-col gap-4 p-4">
-        {entries.map(([nodeId, rawOutputs]) => {
-          const node = storeNodes.find((n) => n.id === nodeId)
-          const nodeLabel = node
-            ? typeof node.data.label === 'string'
+    <ScrollArea className="h-full w-full overflow-hidden [&_[data-radix-scroll-area-viewport]>div]:!block [&_[data-radix-scroll-area-viewport]>div]:!w-full [&_[data-radix-scroll-area-viewport]>div]:!min-w-0 [&_[data-radix-scroll-area-viewport]>div]:!max-w-full [&_[data-slot=scroll-area-viewport]]:overflow-x-hidden">
+      <div className="box-border flex w-full min-w-0 max-w-full flex-col gap-4 overflow-hidden px-4 py-4">
+        {entries.map(({ node, outputs, rawOutputs }) => {
+          const nodeLabel =
+            typeof node.data.label === 'string'
               ? node.data.label
-              : getNodeTypeLabel(node.type ?? nodeId)
-            : getNodeTypeLabel(nodeId)
-          const nodeType = node?.type ?? ''
-          const nodeDef = getNodeDef(nodeType)
-          const effectiveOutputs = getEffectiveOutputs(node?.data ?? {}, nodeDef)
+              : getNodeTypeLabel(node.type ?? node.id)
+          const hasCachedOutputs = Boolean(rawOutputs)
 
           return (
-            <div key={nodeId} className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-medium text-foreground">{nodeLabel}</p>
-                <span className="text-[10px] text-muted-foreground">({nodeId})</span>
+            <div key={node.id} className="flex min-w-0 flex-col gap-1.5">
+              <div className="flex min-w-0 items-center gap-1.5">
+                <p className="min-w-0 truncate text-[11px] font-medium text-foreground">
+                  {nodeLabel}
+                </p>
+                <Badge
+                  variant={hasCachedOutputs ? 'secondary' : 'outline'}
+                  className="shrink-0 text-[10px]"
+                >
+                  {hasCachedOutputs ? '有运行值' : '未运行'}
+                </Badge>
               </div>
-              <div className="flex flex-col gap-1 pl-2">
-                {effectiveOutputs.map((output) => {
-                  const raw = rawOutputs[output.source.field]
-                  const { value, ok } = output.source.path
-                    ? resolvePath(raw, output.source.path)
-                    : { value: raw, ok: true }
+              <div className="flex min-w-0 flex-col gap-1">
+                {outputs.map((output) => {
+                  const raw = rawOutputs?.[output.source.field]
+                  const ok = output.source.path ? resolvePath(raw, output.source.path).ok : true
+                  const variableDisplay = `${nodeLabel}.${output.name}`
+                  const variableRef = `{{node:${node.id}:${output.name}}}`
+                  const detailText = output.description ?? '无说明'
 
                   return (
-                    <div key={output.name} className="flex items-center gap-2">
-                      <span className="font-mono text-[11px] text-foreground">{output.name}</span>
-                      <Badge variant="secondary" className="text-[10px]">
-                        {output.type}
-                      </Badge>
-                      {!ok ? (
-                        <span className="text-[10px] text-destructive">路径无效</span>
-                      ) : typeof value !== 'object' && value !== undefined && value !== null ? (
-                        <span className="truncate text-[10px] text-muted-foreground">
-                          {String(value).slice(0, 50)}
+                    <button
+                      key={output.name}
+                      type="button"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(variableRef)
+                        toast.success('已复制变量引用')
+                      }}
+                      className="box-border flex w-full min-w-0 max-w-full flex-col gap-0.5 overflow-hidden rounded-md bg-muted/25 px-2 py-1.5 text-left transition-colors hover:bg-muted/45"
+                      title={`复制 ${variableRef}`}
+                    >
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="block min-w-0 flex-1 truncate font-mono text-xs text-foreground">
+                          {variableDisplay}
                         </span>
-                      ) : null}
-                    </div>
+                        <Badge variant="secondary" className="shrink-0 text-[10px]">
+                          {output.type}
+                        </Badge>
+                      </div>
+                      <span
+                        className={
+                          ok || !hasCachedOutputs
+                            ? 'block min-w-0 max-w-full truncate text-[10px] text-muted-foreground'
+                            : 'block min-w-0 max-w-full truncate text-[10px] text-destructive'
+                        }
+                      >
+                        {detailText}
+                      </span>
+                    </button>
                   )
                 })}
               </div>

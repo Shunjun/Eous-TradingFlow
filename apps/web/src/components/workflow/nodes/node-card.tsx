@@ -1,4 +1,6 @@
 import type { NodeCanvasViewRow } from '@eous/nodes'
+import { isVariableRef } from '../variables/variable-ref'
+import { VariableTag } from '../variables'
 import { NodeHandle, type NodeHandleProps } from './node-handle'
 
 type NodeConnection = {
@@ -62,6 +64,8 @@ interface NodeDetailRowProps {
 }
 
 function NodeDetailRow({ nodeId, row, onAddConnectedNode }: NodeDetailRowProps) {
+  const isVariable = isVariableRef(row.value)
+
   return (
     <div className="relative grid grid-cols-[58px_minmax(0,1fr)] gap-2 px-2.5 py-1.5">
       {row.field && row.target ? (
@@ -70,9 +74,15 @@ function NodeDetailRow({ nodeId, row, onAddConnectedNode }: NodeDetailRowProps) 
       <span className="truncate text-[10px] font-medium uppercase leading-4 text-muted-foreground">
         {row.label}
       </span>
-      <span className="truncate text-right font-mono text-[10px] leading-4 text-foreground/85">
-        {row.value}
-      </span>
+      <div className="flex min-w-0 justify-end">
+        {isVariable ? (
+          <VariableTag value={String(row.value)} size="xs" className="max-w-full" />
+        ) : (
+          <span className="truncate text-right font-mono text-[10px] leading-4 text-foreground/85">
+            {row.value}
+          </span>
+        )}
+      </div>
       {row.field && row.source ? (
         <NodeHandle
           nodeId={nodeId}

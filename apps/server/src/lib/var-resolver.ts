@@ -11,6 +11,7 @@
 
 const WHOLE_VAR_RE = /^{{([^{}]+)}}$/
 const EMBEDDED_VAR_RE = /{{([^{}]+)}}/g
+const NODE_ID_REF_PREFIX = 'node:'
 
 /**
  * Resolve a value that may contain variable references.
@@ -67,34 +68,51 @@ function resolvePath(
   nodes: Array<{ id: string; type: string; data?: Record<string, unknown> }>,
   embedded: boolean,
 ): unknown {
-  const parts = splitPath(path)
-  if (parts.length < 2) {
-    throw new Error(`变量引用格式错误: {{{path}}}，需要 "label.field" 格式`)
+  const explicitNodeRef = parseExplicitNodeRef(path)
+  if (!explicitNodeRef) {
+    throw new Error(`变量引用格式错误: {{{path}}}，需要 "node:<nodeId>:<field>" 格式`)
   }
 
-  // Find node: try label match first, then try progressively longer type prefixes
-  const node = findNodeByPath(parts, nodes)
+  const node = nodes.find((item) => item.id === explicitNodeRef.nodeId)
   if (!node) {
-    throw new Error(`变量引用解析失败: {{{path}}}, 原因: 找不到标签或类型为 "${parts[0]}" 的节点`)
+    throw new Error(`变量引用解析失败: {{{path}}}, 原因: 找不到节点 "${explicitNodeRef.nodeId}"`)
   }
 
-  // The field path is everything after the matched label/type prefix
-  const labelParts = node.data?.label === parts[0]
-    ? 1
-    : node.type.split('.').length
-  const fieldPath = parts.slice(labelParts).join('.')
-  if (!fieldPath) {
-    throw new Error(`变量引用格式错误: {{{path}}}，需要 "label.field" 格式`)
-  }
+  return resolveNodeField(node.id, explicitNodeRef.fieldPath, path, cache, embedded)
+}
 
-  const nodeCache = cache[node.id]
+function parseExplicitNodeRef(path: string): { nodeId: string; fieldPath: string } | null {
+  if (!path.startsWith(NODE_ID_REF_PREFIX)) return null
+  const rest = path.slice(NODE_ID_REF_PREFIX.length)
+  const separatorIndex = rest.indexOf(':')
+  if (separatorIndex === -1) {
+    throw new Error(`变量引用格式错误: {{{path}}}，需要 "node:<nodeId>:<field>" 格式`)
+  }
+  const nodeId = rest.slice(0, separatorIndex)
+  const fieldPath = rest.slice(separatorIndex + 1)
+  if (!nodeId || !fieldPath) {
+    throw new Error(`变量引用格式错误: {{{path}}}，需要 "node:<nodeId>:<field>" 格式`)
+  }
+  return { nodeId, fieldPath }
+}
+
+function resolveNodeField(
+  nodeId: string,
+  fieldPath: string,
+  originalPath: string,
+  cache: Record<string, Record<string, unknown>>,
+  embedded: boolean,
+): unknown {
+  const nodeCache = cache[nodeId]
   if (!nodeCache) {
-    throw new Error(`变量引用解析失败: {{{path}}}, 原因: 节点 "${parts[0]}" 没有输出缓存`)
+    throw new Error(`变量引用解析失败: {{{originalPath}}}, 原因: 节点 "${nodeId}" 没有输出缓存`)
   }
 
   const val = accessPath(nodeCache, fieldPath)
   if (val === undefined) {
-    throw new Error(`变量引用解析失败: {{{path}}}, 原因: 节点 "${parts[0]}" 没有字段 "${fieldPath}"`)
+    throw new Error(
+      `变量引用解析失败: {{{originalPath}}}, 原因: 节点 "${nodeId}" 没有字段 "${fieldPath}"`,
+    )
   }
 
   // When embedded in a string expression, auto-quote string values
@@ -103,25 +121,6 @@ function resolvePath(
   }
 
   return val
-}
-
-function findNodeByPath(
-  parts: string[],
-  nodes: Array<{ id: string; type: string; data?: Record<string, unknown> }>,
-): { id: string; type: string; data?: Record<string, unknown> } | undefined {
-  // First try: match by label (single part)
-  const byLabel = nodes.find((n) => n.data?.label === parts[0])
-  if (byLabel) return byLabel
-
-  // Second try: match by progressively longer type prefix
-  // e.g. for path ["source", "kline", "symbol"], try "source.kline" against node types
-  for (let len = 2; len <= parts.length; len++) {
-    const prefix = parts.slice(0, len).join('.')
-    const byType = nodes.find((n) => n.type === prefix)
-    if (byType) return byType
-  }
-
-  return undefined
 }
 
 function splitPath(path: string): string[] {

@@ -53,6 +53,13 @@ function VariablePicker({
 }: VariablePickerProps) {
   const edges = useWorkflowStore((s) => s.edges)
   const storeNodes = useWorkflowStore((s) => s.nodes)
+  const currentNode = currentValue?.nodeId
+    ? storeNodes.find((node) => node.id === currentValue.nodeId)
+    : null
+  const currentNodeLabel =
+    currentNode && typeof currentNode.data.label === 'string'
+      ? currentNode.data.label
+      : currentValue?.nodeLabel
 
   const groups = useMemo(() => {
     const upstreamIds = new Set<string>()
@@ -119,7 +126,7 @@ function VariablePicker({
             )}
           >
             <Link className="h-3 w-3" />
-            {currentValue ? `${currentValue.nodeLabel} > ${currentValue.fieldName}` : '+var'}
+            {currentValue ? `${currentNodeLabel} > ${currentValue.fieldName}` : '+var'}
           </button>
         )}
       </PopoverTrigger>

@@ -30,6 +30,7 @@ function createWorkflowStore(): WorkflowStore {
         selectedNodeId: null,
         canvasMode: 'pan',
         logOpen: false,
+        utilityPanel: null,
         clipboardNode: null,
       }),
   }))

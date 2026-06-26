@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup, cn } from '@eous/ui'
 import { CanvasToolbar } from './canvas-toolbar'
 import { FloatToolbar } from './float-toolbar'
-import { GlobalLogPanel, SettingsPanel } from '../panels'
+import { GlobalLogPanel, SettingsPanel, StackedSidePanels, WorkflowUtilityPanel } from '../panels'
 import { useWorkflowStore } from '../store/workflow-store'
 import type { WorkflowEditEvent } from '@eous/api-client'
 
@@ -49,11 +49,17 @@ function WorkflowOverlay({
   onWorkflowSelect,
 }: WorkflowOverlayProps) {
   const logOpen = useWorkflowStore((state) => state.logOpen)
+  const selectedNodeId = useWorkflowStore((state) => state.selectedNodeId)
+  const utilityPanel = useWorkflowStore((state) => state.utilityPanel)
+  const closeUtilityPanel = useWorkflowStore((state) => state.closeUtilityPanel)
   const logPanelRef = useRef<ResizablePanelHandle | null>(null)
   const workspacePanelElementRef = useRef<HTMLDivElement | null>(null)
   const logPanelElementRef = useRef<HTMLDivElement | null>(null)
   const lastOpenLogSizeRef = useRef(LOG_DEFAULT_OPEN_SIZE)
   const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [panelOrder, setPanelOrder] = useState<Array<'settings' | 'utility'>>([])
+  const settingsOpen = selectedNodeId !== null
+  const utilityOpen = utilityPanel !== null
 
   useEffect(() => {
     const transition = `flex ${LOG_RESIZE_TRANSITION_MS}ms cubic-bezier(0.16, 1, 0.3, 1), flex-basis ${LOG_RESIZE_TRANSITION_MS}ms cubic-bezier(0.16, 1, 0.3, 1), height ${LOG_RESIZE_TRANSITION_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`
@@ -98,16 +104,55 @@ function WorkflowOverlay({
     [logOpen],
   )
 
+  useEffect(() => {
+    setPanelOrder((current) => {
+      let next = current.filter(
+        (panel) => (panel !== 'settings' || settingsOpen) && (panel !== 'utility' || utilityOpen),
+      )
+      if (settingsOpen && !next.includes('settings')) next = [...next, 'settings']
+      if (utilityOpen && !next.includes('utility')) next = [...next, 'utility']
+      return next
+    })
+  }, [settingsOpen, utilityOpen])
+
+  const sidePanels = useMemo(
+    () =>
+      panelOrder.map((panel) => {
+        if (panel === 'settings') {
+          return <SettingsPanel key="settings" workflowId={workflowId} onBeforeRun={onBeforeRun} />
+        }
+        if (!utilityPanel) return null
+        return (
+          <WorkflowUtilityPanel
+            key="utility"
+            workflowId={workflowId}
+            panel={utilityPanel}
+            snapshots={snapshots}
+            onClose={closeUtilityPanel}
+            onCreateSnapshot={onCreateSnapshot}
+            onRestoreSnapshot={onRestoreSnapshot}
+          />
+        )
+      }),
+    [
+      closeUtilityPanel,
+      onBeforeRun,
+      onCreateSnapshot,
+      onRestoreSnapshot,
+      panelOrder,
+      snapshots,
+      utilityPanel,
+      workflowId,
+    ],
+  )
+
   const workspaceLayer = (
     <div className={cn('grid h-full w-full grid-rows-[auto_1fr] gap-3 p-3', logOpen && 'pb-2')}>
       <FloatToolbar
         saving={saving}
         publishing={publishing}
-        snapshots={snapshots}
         showWorkflowList={showWorkflowList}
         onPublish={onPublish}
-        onCreateSnapshot={onCreateSnapshot}
-        onRestoreSnapshot={onRestoreSnapshot}
         onWorkflowSelect={onWorkflowSelect}
       />
 
@@ -117,7 +162,7 @@ function WorkflowOverlay({
             <CanvasToolbar />
           </div>
         </div>
-        <SettingsPanel workflowId={workflowId} onBeforeRun={onBeforeRun} />
+        <StackedSidePanels open={panelOrder.length > 0}>{sidePanels}</StackedSidePanels>
       </div>
     </div>
   )

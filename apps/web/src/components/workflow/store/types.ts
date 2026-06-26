@@ -64,11 +64,14 @@ interface WorkflowUiSlice {
   selectedNodeId: string | null
   canvasMode: CanvasInteractionMode
   logOpen: boolean
+  utilityPanel: 'variables' | 'snapshots' | null
   clipboardNode: Node<WorkflowNodeData> | null
 
   setSelectedNodeId: (nodeId: string | null) => void
   setCanvasMode: (mode: CanvasInteractionMode) => void
   toggleLogOpen: () => void
+  toggleUtilityPanel: (panel: 'variables' | 'snapshots') => void
+  closeUtilityPanel: () => void
   closeSettingsPanel: () => void
   copyNode: (nodeId: string) => void
   cutNode: (nodeId: string) => void

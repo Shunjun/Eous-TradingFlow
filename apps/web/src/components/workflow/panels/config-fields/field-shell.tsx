@@ -1,14 +1,9 @@
 import { useCallback, useState, type ReactNode } from 'react'
 import { X } from 'lucide-react'
-import { Badge, Label } from '@eous/ui'
+import { Label } from '@eous/ui'
 import type { ParamDef } from '@eous/nodes'
-import { VariablePicker, type VariableRef } from '../../variables'
-import {
-  displayVariableRef,
-  formatVariableRef,
-  isVariableRef,
-  parseVariableRef,
-} from './variable-utils'
+import { VariablePicker, VariableTag, type VariableRef } from '../../variables'
+import { formatVariableRef, isVariableRef, parseVariableRef } from '../../variables/variable-ref'
 
 interface FieldShellProps {
   fieldKey: string
@@ -33,8 +28,10 @@ function FieldShell({
 }: FieldShellProps) {
   const [variablePickerOpen, setVariablePickerOpen] = useState(false)
   const hasVariable = isVariableRef(value)
+  const currentVariable = hasVariable ? parseVariableRef(String(value)) : null
   const label = param.label ?? param.description ?? fieldKey
-  const canUseVariable = param.ui !== 'branches' && param.ui !== 'providerModel'
+  const canUseVariable =
+    param.ui !== 'branches' && param.ui !== 'providerModel' && param.ui !== 'select'
 
   const handleVariableSelect = useCallback(
     (ref: VariableRef) => {
@@ -62,16 +59,14 @@ function FieldShell({
             onSelect={handleVariableSelect}
             open={variablePickerOpen}
             onOpenChange={setVariablePickerOpen}
-            currentValue={hasVariable ? (parseVariableRef(String(value)) ?? undefined) : undefined}
+            currentValue={currentVariable ?? undefined}
           />
         )}
       </div>
 
-      {canUseVariable && hasVariable && (
+      {canUseVariable && currentVariable && (
         <div className="flex items-center gap-1.5">
-          <Badge variant="secondary" className="text-[10px]">
-            {displayVariableRef(String(value))}
-          </Badge>
+          <VariableTag refValue={currentVariable} />
           <button
             type="button"
             onClick={() => onChange('')}

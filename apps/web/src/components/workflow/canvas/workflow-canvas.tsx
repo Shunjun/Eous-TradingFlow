@@ -17,6 +17,7 @@ import { WorkflowContextMenu } from './context-menu'
 import { useWorkflowChangeHandlers, useWorkflowContextMenu, useWorkflowNodeActions } from '../hooks'
 import { WORKFLOW_FIT_VIEW_OPTIONS, WORKFLOW_MAX_ZOOM } from './viewport'
 import { createNodeComponent, createWorkflowNode } from '../nodes/node-types'
+import { validateCanAddNodeType } from '../utils'
 
 const defaultEdgeOptions = {
   animated: true,
@@ -108,6 +109,7 @@ function WorkflowCanvas({ onBeforeRun }: WorkflowCanvasProps) {
       event.preventDefault()
       const nodeType = event.dataTransfer.getData('application/eous-node-type')
       if (!nodeType) return
+      if (!validateCanAddNodeType(nodeType, workflowStore.getState().nodes)) return
 
       const position = screenToFlowPosition({
         x: event.clientX,
@@ -119,7 +121,7 @@ function WorkflowCanvas({ onBeforeRun }: WorkflowCanvasProps) {
         '添加节点',
       )
     },
-    [commitOps, screenToFlowPosition],
+    [commitOps, screenToFlowPosition, workflowStore],
   )
 
   const handleNodeClick = useCallback(
@@ -136,6 +138,7 @@ function WorkflowCanvas({ onBeforeRun }: WorkflowCanvasProps) {
   const handleSelectNodeFromMenu = useCallback(
     (nodeType: string) => {
       if (!nodeSelectorPosition) return
+      if (!validateCanAddNodeType(nodeType, workflowStore.getState().nodes)) return
       commitOps(
         [
           {
@@ -146,7 +149,7 @@ function WorkflowCanvas({ onBeforeRun }: WorkflowCanvasProps) {
         '添加节点',
       )
     },
-    [commitOps, nodeSelectorPosition],
+    [commitOps, nodeSelectorPosition, workflowStore],
   )
 
   return (

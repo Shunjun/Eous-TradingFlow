@@ -46,6 +46,13 @@ function VariableSelector({
 }: VariableSelectorProps) {
   const edges = useWorkflowStore((s) => s.edges)
   const storeNodes = useWorkflowStore((s) => s.nodes)
+  const currentNode = currentValue?.nodeId
+    ? storeNodes.find((node) => node.id === currentValue.nodeId)
+    : null
+  const currentNodeLabel =
+    currentNode && typeof currentNode.data.label === 'string'
+      ? currentNode.data.label
+      : currentValue?.nodeLabel
 
   const variables = useMemo(() => {
     const upstreamNodes = getUpstreamNodes(nodeId, edges, storeNodes)
@@ -98,7 +105,7 @@ function VariableSelector({
           )}
         >
           <Link className="h-3 w-3" />
-          {currentValue ? `${currentValue.nodeLabel} > ${currentValue.fieldName}` : '选上游变量'}
+          {currentValue ? `${currentNodeLabel} > ${currentValue.fieldName}` : '选上游变量'}
         </button>
       </PopoverTrigger>
       <PopoverContent

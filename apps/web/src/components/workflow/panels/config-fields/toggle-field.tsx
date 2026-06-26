@@ -1,5 +1,5 @@
 import { Checkbox, Label } from '@eous/ui'
-import { isVariableRef } from './variable-utils'
+import { isVariableRef } from '../../variables/variable-ref'
 import type { ParamDef } from '@eous/nodes'
 
 interface ToggleFieldProps {

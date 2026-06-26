@@ -1,16 +1,15 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, type ReactNode } from 'react'
 import {
   Check,
-  Ellipsis,
   Eye,
   GitBranch,
+  History,
   ListTree,
   Rocket,
-  Camera,
   ScrollText,
   Trash2,
+  Variable,
 } from 'lucide-react'
-import type { WorkflowEditEvent } from '@eous/api-client'
 import {
   Button,
   Dialog,
@@ -27,33 +26,28 @@ import {
   DropdownMenuTrigger,
   Input,
   ScrollArea,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
   cn,
 } from '@eous/ui'
 import { useWorkflowList } from '../../../hooks/use-workflows'
 import { useWorkflowListStore } from '../../../stores/workflows'
 import { useWorkflowStore } from '../store/workflow-store'
 
-const COMPACT_ACTIONS_WIDTH = 640
-
 interface FloatToolbarProps {
   saving: boolean
   publishing: boolean
-  snapshots: WorkflowEditEvent[]
   showWorkflowList?: boolean
   onPublish: () => void
-  onCreateSnapshot: () => void
-  onRestoreSnapshot: (eventId: string) => void
   onWorkflowSelect?: (workflowId: string | null) => void
 }
 
 function FloatToolbar({
   saving,
   publishing,
-  snapshots,
   showWorkflowList = false,
   onPublish,
-  onCreateSnapshot,
-  onRestoreSnapshot,
   onWorkflowSelect,
 }: FloatToolbarProps) {
   const workflowName = useWorkflowStore((s) => s.workflowName)
@@ -61,12 +55,13 @@ function FloatToolbar({
   const setWorkflowName = useWorkflowStore((s) => s.setWorkflowName)
   const activeWorkflowId = useWorkflowStore((s) => s.activeWorkflowId)
   const logOpen = useWorkflowStore((s) => s.logOpen)
+  const utilityPanel = useWorkflowStore((s) => s.utilityPanel)
   const toggleLogOpen = useWorkflowStore((s) => s.toggleLogOpen)
+  const toggleUtilityPanel = useWorkflowStore((s) => s.toggleUtilityPanel)
   const { workflows, loading: workflowsLoading } = useWorkflowList()
   const deleteWorkflow = useWorkflowListStore((s) => s.deleteWorkflow)
 
   const [editing, setEditing] = useState(false)
-  const [compactActions, setCompactActions] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
   const [deleting, setDeleting] = useState(false)
   const toolbarRef = useRef<HTMLDivElement>(null)
@@ -101,56 +96,6 @@ function FloatToolbar({
     .filter(Boolean)
     .join(' · ')
 
-  useEffect(() => {
-    const toolbar = toolbarRef.current
-    if (!toolbar) return
-
-    const resizeObserver = new ResizeObserver(([entry]) => {
-      setCompactActions(entry.contentRect.width < COMPACT_ACTIONS_WIDTH)
-    })
-
-    resizeObserver.observe(toolbar)
-    return () => resizeObserver.disconnect()
-  }, [])
-
-  const snapshotButton = (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="xs" className="shrink-0" disabled={!activeWorkflowId}>
-          <Camera className="mr-1" />
-          快照
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem className="cursor-pointer gap-2" onClick={onCreateSnapshot}>
-          <Camera className="h-4 w-4" />
-          保存当前快照
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        {snapshots.length === 0 ? (
-          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-            暂无快照
-          </DropdownMenuLabel>
-        ) : (
-          snapshots.map((snapshot) => (
-            <DropdownMenuItem
-              key={snapshot.id}
-              className="cursor-pointer"
-              onClick={() => onRestoreSnapshot(snapshot.id)}
-            >
-              <div className="min-w-0">
-                <div className="truncate text-xs">{snapshot.snapshotName ?? snapshot.label}</div>
-                <div className="text-[10px] text-muted-foreground">
-                  {new Date(snapshot.createdAt).toLocaleString()}
-                </div>
-              </div>
-            </DropdownMenuItem>
-          ))
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
-
   const handleDeleteWorkflow = useCallback(async () => {
     if (!deleteTarget) return
     setDeleting(true)
@@ -165,6 +110,39 @@ function FloatToolbar({
       setDeleting(false)
     }
   }, [activeWorkflowId, deleteTarget, deleteWorkflow, onWorkflowSelect, workflows])
+
+  const iconButton = useCallback(
+    ({
+      label,
+      active,
+      disabled,
+      onClick,
+      children,
+    }: {
+      label: string
+      active?: boolean
+      disabled?: boolean
+      onClick?: () => void
+      children: ReactNode
+    }) => (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="outline"
+            size="xs"
+            className={cn('w-7 px-0', active && 'bg-accent text-accent-foreground')}
+            disabled={disabled}
+            onClick={onClick}
+            aria-label={label}
+          >
+            {children}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{label}</TooltipContent>
+      </Tooltip>
+    ),
+    [],
+  )
 
   return (
     <>
@@ -274,63 +252,34 @@ function FloatToolbar({
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          {compactActions ? (
-            <>
-              {snapshotButton}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="xs" className="w-7 px-0" aria-label="更多操作">
-                    <Ellipsis className="h-3.5 w-3.5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-36">
-                  <DropdownMenuItem className="cursor-pointer gap-2" onClick={toggleLogOpen}>
-                    <ScrollText className="h-4 w-4" />
-                    <span className="flex-1">日志</span>
-                    {logOpen && <Check className="h-3.5 w-3.5 text-primary" />}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer gap-2" disabled={!isPublished}>
-                    <Eye className="h-4 w-4" />
-                    预览
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    className="cursor-pointer gap-2"
-                    disabled={publishing || !activeWorkflowId}
-                    onClick={onPublish}
-                  >
-                    <Rocket className="h-4 w-4" />
-                    {publishing ? '发布中…' : '发布'}
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem className="cursor-pointer gap-2" onClick={onCreateSnapshot}>
-                    <Camera className="h-4 w-4" />
-                    保存快照
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="outline"
-                size="xs"
-                onClick={toggleLogOpen}
-                className={cn(logOpen && 'bg-accent text-accent-foreground')}
-              >
-                <ScrollText className="mr-1" />
-                日志
-              </Button>
-              <Button variant="outline" size="xs" disabled={!isPublished}>
-                <Eye className="mr-1" />
-                <span>预览</span>
-              </Button>
-              {snapshotButton}
-              <Button size="xs" onClick={onPublish} disabled={publishing || !activeWorkflowId}>
-                <Rocket className="mr-1" />
-                <span>{publishing ? '发布中…' : '发布'}</span>
-              </Button>
-            </>
-          )}
+          {iconButton({
+            label: '日志',
+            active: logOpen,
+            onClick: toggleLogOpen,
+            children: <ScrollText className="h-3.5 w-3.5" />,
+          })}
+          {iconButton({
+            label: '变量',
+            active: utilityPanel === 'variables',
+            onClick: () => toggleUtilityPanel('variables'),
+            children: <Variable className="h-3.5 w-3.5" />,
+          })}
+          {iconButton({
+            label: '预览',
+            disabled: !isPublished,
+            children: <Eye className="h-3.5 w-3.5" />,
+          })}
+          {iconButton({
+            label: '快照',
+            active: utilityPanel === 'snapshots',
+            disabled: !activeWorkflowId,
+            onClick: () => toggleUtilityPanel('snapshots'),
+            children: <History className="h-3.5 w-3.5" />,
+          })}
+          <Button size="xs" onClick={onPublish} disabled={publishing || !activeWorkflowId}>
+            <Rocket className="mr-1" />
+            <span>{publishing ? '发布中…' : '发布'}</span>
+          </Button>
         </div>
       </div>
       <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
