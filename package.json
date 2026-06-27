@@ -23,7 +23,6 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "better-sqlite3",
       "lightweight-charts-line-tools-core",
       "lightweight-charts-line-tools-lines",
       "lightweight-charts-line-tools-rectangle"

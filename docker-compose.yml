@@ -35,7 +35,6 @@ services:
       DATABASE_URL: ${APP_DATABASE_URL:-postgresql://${POSTGRES_USER:-eous}:${POSTGRES_PASSWORD:-eous_password}@postgres:5432/${POSTGRES_DB:-eous_tradingflow}?schema=public}
       REDIS_URL: ${APP_REDIS_URL:-redis://redis:6379}
       PORT: 3020
-      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:5173}
       INITIAL_USER_EMAIL: ${INITIAL_USER_EMAIL:-admin@eous.dev}
       INITIAL_USER_PASSWORD: ${INITIAL_USER_PASSWORD:-changeme}
       ALLOW_SELF_REGISTRATION: ${ALLOW_SELF_REGISTRATION:-true}
@@ -50,7 +49,7 @@ services:
       [
         'sh',
         '-c',
-        'pnpm --filter @eous/db db:push && pnpm exec node --import tsx/esm apps/server/src/index.ts',
+        'pnpm --filter @eous/db db:deploy && pnpm exec node --import tsx/esm apps/server/src/index.ts',
       ]
     expose:
       - '3020'

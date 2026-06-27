@@ -5,7 +5,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model User {
@@ -489,7 +489,7 @@ model KnowledgeChunk {
   document   KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
   chunkIndex Int               @map("chunk_index")
   content    String
-  embedding  String?
+  embedding  Unsupported("vector")?
   metadata   String            @default("{}")
   createdAt  DateTime          @default(now()) @map("created_at")
 

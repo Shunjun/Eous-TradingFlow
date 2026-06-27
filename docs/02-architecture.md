@@ -88,17 +88,18 @@ app.route('/api/agents', agentRouter)
 
 ## 数据和配置
 
-数据库在 `packages/db`，Prisma schema 使用 SQLite。`.env.example` 是根目录唯一环境变量清单。
+数据库在 `packages/db`，Prisma schema 使用 PostgreSQL，并启用 pgvector。`.env.example` 是根目录唯一环境变量清单。
 
 常用变量：
 
-| 变量                      | 用途              | 默认                 |
-| ------------------------- | ----------------- | -------------------- |
-| `DATABASE_URL`            | SQLite 数据库路径 | `file:./data/dev.db` |
-| `PORT`                    | server 端口       | `3001`               |
-| `INITIAL_USER_EMAIL`      | seed 初始用户邮箱 | `admin@eous.dev`     |
-| `INITIAL_USER_PASSWORD`   | seed 初始用户密码 | `changeme`           |
-| `ALLOW_SELF_REGISTRATION` | 是否允许注册      | `true`               |
+| 变量                      | 用途              | 默认                                                                            |
+| ------------------------- | ----------------- | ------------------------------------------------------------------------------- |
+| `DATABASE_URL`            | PostgreSQL 连接串 | `postgresql://eous:eous_password@localhost:5432/eous_tradingflow?schema=public` |
+| `REDIS_URL`               | Redis 连接串      | `redis://localhost:6379`                                                        |
+| `PORT`                    | server 端口       | `3001`                                                                          |
+| `INITIAL_USER_EMAIL`      | seed 初始用户邮箱 | `admin@eous.dev`                                                                |
+| `INITIAL_USER_PASSWORD`   | seed 初始用户密码 | `changeme`                                                                      |
+| `ALLOW_SELF_REGISTRATION` | 是否允许注册      | `true`                                                                          |
 
 `apps/server` dev script 使用 Node 22 的 `--env-file ../../.env` 在模块初始化前加载环境变量。
 
