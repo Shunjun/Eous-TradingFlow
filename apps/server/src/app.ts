@@ -11,7 +11,7 @@ import { AppError } from './lib/app-error.js'
 
 export const app = new Hono()
 
-app.use('*', cors({ origin: 'http://localhost:5173', credentials: true }))
+app.use('*', cors({ origin: process.env.WEB_ORIGIN || 'http://localhost:5173', credentials: true }))
 
 app.route('/api', healthRouter)
 app.route('/api/auth', authRouter)

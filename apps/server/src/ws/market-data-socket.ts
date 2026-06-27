@@ -38,7 +38,7 @@ export function installMarketDataSocket(server: HttpServer): SocketIOServer {
   const io = new SocketIOServer(server, {
     path: '/ws',
     cors: {
-      origin: 'http://localhost:5173',
+      origin: process.env.WEB_ORIGIN || 'http://localhost:5173',
       credentials: true,
     },
   })

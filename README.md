@@ -53,6 +53,18 @@ pnpm --filter @eous/db db:push
 pnpm dev
 ```
 
+只启动开发依赖的 Postgres + Redis：
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+
+全量 Docker Compose 部署：
+
+```bash
+docker compose up -d --build
+```
+
 常用检查：
 
 ```bash
