@@ -134,8 +134,11 @@ export function MessageList({
   const messages = useChatStore((state) => state.messages)
 
   useLayoutEffect(() => {
-    const scrollContainer = scrollContainerRef?.current
-    if (!scrollContainer) return
+    const scrollRoot = scrollContainerRef?.current
+    if (!scrollRoot) return
+
+    const scrollContainer =
+      scrollRoot.querySelector<HTMLDivElement>('[data-slot="scroll-area-viewport"]') ?? scrollRoot
 
     scrollContainer.scrollTop = scrollContainer.scrollHeight
   }, [messages, scrollContainerRef])

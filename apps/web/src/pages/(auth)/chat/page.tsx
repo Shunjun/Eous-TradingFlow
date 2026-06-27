@@ -1,5 +1,12 @@
 import { useRef } from 'react'
-import { Button, ResizableHandle, ResizablePanel, ResizablePanelGroup, cn } from '@eous/ui'
+import {
+  Button,
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+  ScrollArea,
+  cn,
+} from '@eous/ui'
 import { Eye, PanelLeftOpen } from 'lucide-react'
 import { AgentViewPanel } from '../../../components/chat/agent-view-panel'
 import { ChatComposer } from '../../../components/chat/chat-composer'
@@ -90,9 +97,11 @@ function ChatPageLayout() {
                 ) : null}
                 {hasMessages ? (
                   <div className="relative min-h-0 flex-1 overflow-hidden">
-                    <div ref={messageScrollRef} className="h-full overflow-y-auto px-5 pb-40 pt-5">
-                      <MessageList scrollContainerRef={messageScrollRef} />
-                    </div>
+                    <ScrollArea ref={messageScrollRef} className="h-full">
+                      <div className="px-5 pb-40 pt-5">
+                        <MessageList scrollContainerRef={messageScrollRef} />
+                      </div>
+                    </ScrollArea>
                     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-background via-background/95 to-transparent pb-5 pt-8">
                       <div className="pointer-events-auto">
                         <ChatComposer />

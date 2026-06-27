@@ -7,6 +7,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  ScrollArea,
   cn,
 } from '@eous/ui'
 import { MessageSquare, MessageSquarePlus, PanelLeftClose, Trash2 } from 'lucide-react'
@@ -81,77 +82,80 @@ export function SessionList() {
             New conversation
           </Button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto p-2">
-          {loading ? (
-            <div className="p-3 text-xs text-muted-foreground">Loading sessions...</div>
-          ) : sessions.length === 0 ? (
-            <button
-              className="w-full rounded-md border border-dashed border-border p-4 text-left text-sm text-muted-foreground hover:bg-muted/40"
-              onClick={startNewConversation}
-            >
-              Start a new conversation
-            </button>
-          ) : (
-            <div className="space-y-1">
-              {sessions.map((session) => {
-                const isActive = activeSessionId === session.id
-                const isStreamingSession = isStreaming && streamingSessionId === session.id
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="p-2">
+            {loading ? (
+              <div className="p-3 text-xs text-muted-foreground">Loading sessions...</div>
+            ) : sessions.length === 0 ? (
+              <button
+                className="w-full rounded-md border border-dashed border-border p-4 text-left text-sm text-muted-foreground hover:bg-muted/40"
+                onClick={startNewConversation}
+              >
+                Start a new conversation
+              </button>
+            ) : (
+              <div className="space-y-1">
+                {sessions.map((session) => {
+                  const isActive = activeSessionId === session.id
+                  const isStreamingSession = isStreaming && streamingSessionId === session.id
 
-                return (
-                  <div
-                    key={session.id}
-                    className={cn(
-                      'group/session-item relative rounded-md transition-colors',
-                      isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted',
-                    )}
-                  >
-                    <button
+                  return (
+                    <div
+                      key={session.id}
                       className={cn(
-                        'w-full rounded-md px-3 py-2 pr-9 text-left',
-                        isActive ? 'text-primary-foreground' : 'text-foreground',
+                        'group/session-item relative rounded-md transition-colors',
+                        isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted',
                       )}
-                      onClick={() => setActiveSessionId(session.id)}
                     >
-                      <div className="truncate text-sm font-medium">{session.title}</div>
-                      <div
+                      <button
                         className={cn(
-                          'mt-1 flex min-w-0 items-center gap-1.5 text-xs',
-                          isActive ? 'text-primary-foreground/75' : 'text-muted-foreground',
+                          'w-full rounded-md px-3 py-2 pr-9 text-left',
+                          isActive ? 'text-primary-foreground' : 'text-foreground',
                         )}
+                        onClick={() => setActiveSessionId(session.id)}
                       >
-                        <span className="min-w-0 truncate">
-                          {agentNameById.get(session.agentId) ?? 'Agent'}
-                        </span>
-                        <span className="shrink-0">·</span>
-                        <span className="shrink-0">{formatChatTime(session.updatedAt)}</span>
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`Delete ${session.title}`}
-                      title={isStreamingSession ? 'Cannot delete while streaming' : 'Delete'}
-                      disabled={isStreamingSession}
-                      className={cn(
-                        'absolute bottom-1.5 right-2 hidden size-5 items-center justify-center rounded-md opacity-0 transition focus:flex focus:opacity-100 group-hover/session-item:flex group-hover/session-item:opacity-100',
-                        isActive
-                          ? 'text-primary-foreground/70 hover:bg-primary-foreground/15 hover:text-primary-foreground'
-                          : 'text-muted-foreground hover:bg-destructive/10 hover:text-destructive',
-                        isStreamingSession && 'cursor-not-allowed opacity-40 hover:bg-transparent',
-                      )}
-                      onClick={(event) => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                        setDeleteTarget({ id: session.id, title: session.title })
-                      }}
-                    >
-                      <Trash2 className="size-3" />
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
+                        <div className="truncate text-sm font-medium">{session.title}</div>
+                        <div
+                          className={cn(
+                            'mt-1 flex min-w-0 items-center gap-1.5 text-xs',
+                            isActive ? 'text-primary-foreground/75' : 'text-muted-foreground',
+                          )}
+                        >
+                          <span className="min-w-0 truncate">
+                            {agentNameById.get(session.agentId) ?? 'Agent'}
+                          </span>
+                          <span className="shrink-0">·</span>
+                          <span className="shrink-0">{formatChatTime(session.updatedAt)}</span>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`Delete ${session.title}`}
+                        title={isStreamingSession ? 'Cannot delete while streaming' : 'Delete'}
+                        disabled={isStreamingSession}
+                        className={cn(
+                          'absolute bottom-1.5 right-2 hidden size-5 items-center justify-center rounded-md opacity-0 transition focus:flex focus:opacity-100 group-hover/session-item:flex group-hover/session-item:opacity-100',
+                          isActive
+                            ? 'text-primary-foreground/70 hover:bg-primary-foreground/15 hover:text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-destructive/10 hover:text-destructive',
+                          isStreamingSession &&
+                            'cursor-not-allowed opacity-40 hover:bg-transparent',
+                        )}
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          setDeleteTarget({ id: session.id, title: session.title })
+                        }}
+                      >
+                        <Trash2 className="size-3" />
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </ScrollArea>
       </aside>
 
       <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
