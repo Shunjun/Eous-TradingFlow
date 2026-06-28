@@ -171,10 +171,16 @@ export class FileSystemRouter {
     // Regular directory without layout
     const route: RouteObject = {}
     if (path) route.path = path
-    if (node.page) {
+    if (node.page && childRoutes.length === 0) {
       route.element = createElement(this.createLazyComponent(node.page.globKey))
     }
     if (childRoutes.length > 0) {
+      if (node.page) {
+        childRoutes.unshift({
+          index: true,
+          element: createElement(this.createLazyComponent(node.page.globKey)),
+        })
+      }
       route.children = childRoutes
     }
 
