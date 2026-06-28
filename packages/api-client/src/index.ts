@@ -737,12 +737,14 @@ export type RequestInterceptor = (ctx: RequestContext) => RequestContext | Promi
 export type ResponseInterceptor = (
   ctx: ResponseContext,
 ) => ResponseContext | Promise<ResponseContext>
+export type ResponseErrorHandler = (error: ApiError, ctx: ResponseContext) => void | Promise<void>
 
 export interface HttpClientOptions {
   baseURL?: string
   getToken?: () => string | null
   credentials?: RequestCredentials
   onUnauthorized?: () => void
+  onError?: ResponseErrorHandler
   requestInterceptors?: RequestInterceptor[]
   responseInterceptors?: ResponseInterceptor[]
 }
@@ -796,6 +798,7 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
     getToken = () => null,
     credentials = 'include',
     onUnauthorized,
+    onError,
     requestInterceptors = [],
     responseInterceptors = [],
   } = options
@@ -849,7 +852,9 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       const errorBody = await resCtx
         .json<{ error?: string }>()
         .catch((): { error?: string } => ({}))
-      throw new ApiError(resCtx.status, errorBody.error ?? `HTTP ${resCtx.status}`)
+      const error = new ApiError(resCtx.status, errorBody.error ?? `HTTP ${resCtx.status}`)
+      await onError?.(error, resCtx)
+      throw error
     }
 
     if (reqOptions?.skipJSON) return undefined as T
