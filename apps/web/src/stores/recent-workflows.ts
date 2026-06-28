@@ -42,10 +42,15 @@ export const useRecentWorkflowsStore = create<RecentWorkflowState>((set) => ({
 
   markRecent: (workflow) =>
     set((state) => {
-      const next = [
-        { ...workflow, updatedAt: workflow.updatedAt || new Date().toISOString() },
-        ...state.recent.filter((item) => item.id !== workflow.id),
-      ].slice(0, MAX_RECENT_WORKFLOWS)
+      const nextWorkflow = {
+        ...workflow,
+        updatedAt: workflow.updatedAt || new Date().toISOString(),
+      }
+      const existingIndex = state.recent.findIndex((item) => item.id === workflow.id)
+      const next =
+        existingIndex >= 0
+          ? state.recent.map((item, index) => (index === existingIndex ? nextWorkflow : item))
+          : [nextWorkflow, ...state.recent].slice(0, MAX_RECENT_WORKFLOWS)
       writeRecent(next)
       return { recent: next }
     }),

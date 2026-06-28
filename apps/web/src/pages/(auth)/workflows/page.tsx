@@ -16,6 +16,9 @@ import {
   Input,
   ToggleGroup,
   ToggleGroupItem,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from '@eous/ui'
 import {
   Activity,
@@ -24,11 +27,14 @@ import {
   Grid2X2,
   List,
   PauseCircle,
+  Pencil,
   Play,
   Plus,
   Search,
   Trash2,
   XCircle,
+  Power,
+  PowerOff,
 } from 'lucide-react'
 import { api } from '../../../lib/api'
 import { useWorkflowList } from '../../../hooks/use-workflows'
@@ -95,7 +101,7 @@ export default function WorkflowsPage() {
 
   return (
     <div className="min-h-full bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.10),transparent_34rem)] px-6 py-6">
-      <div className="mx-auto flex max-w-7xl flex-col gap-5">
+      <div className="flex flex-col gap-5">
         <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="font-mono text-xs uppercase text-muted-foreground">Automation desk</p>
@@ -170,24 +176,90 @@ export default function WorkflowsPage() {
             Loading workflows...
           </div>
         ) : view === 'cards' ? (
-          <section className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+          <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {filtered.map((workflow) => (
-              <Card key={workflow.id} className="gap-4 rounded-lg py-0">
-                <CardHeader className="gap-3 p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <CardTitle className="truncate text-lg">{workflow.name}</CardTitle>
-                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                        {workflow.description || 'No description'}
-                      </p>
-                    </div>
+              <Card
+                key={workflow.id}
+                role="link"
+                tabIndex={0}
+                onClick={() => navigate(`/workflows/${workflow.id}`)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    navigate(`/workflows/${workflow.id}`)
+                  }
+                }}
+                className="group relative gap-3 rounded-lg py-0 transition-colors hover:bg-card/90"
+              >
+                <div className="absolute right-3 top-3 z-10 flex opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="ghost-icon"
+                        aria-label="Run workflow"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          void runWorkflow(workflow.id)
+                        }}
+                      >
+                        <Play size={14} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Run</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="ghost-icon"
+                        aria-label="Edit workflow"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          navigate(`/workflows/${workflow.id}/edit`)
+                        }}
+                      >
+                        <Pencil size={14} />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Edit</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="ghost-icon"
+                        aria-label={workflow.enabled ? 'Disable workflow' : 'Enable workflow'}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          void toggleEnabled(workflow.id, !workflow.enabled)
+                        }}
+                      >
+                        {workflow.enabled ? <PowerOff size={14} /> : <Power size={14} />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{workflow.enabled ? 'Disable' : 'Enable'}</TooltipContent>
+                  </Tooltip>
+                </div>
+
+                <CardHeader className="gap-2 p-4 pr-28">
+                  <div className="min-w-0">
+                    <CardTitle className="truncate text-base">{workflow.name}</CardTitle>
+                    <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                      {workflow.description || 'No description'}
+                    </p>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-3 p-4 pt-0">
+                  <div className="flex items-center gap-2">
                     <Badge variant={workflow.enabled ? 'default' : 'outline'}>
                       {workflow.enabled ? 'Enabled' : 'Disabled'}
                     </Badge>
+                    <Badge variant="secondary">
+                      {workflow.activeVersionId ? 'Active' : 'Draft only'}
+                    </Badge>
                   </div>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4 p-5 pt-0">
-                  <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
                       <div className="text-muted-foreground">Published</div>
                       <div className="mt-1 font-mono">
@@ -198,25 +270,6 @@ export default function WorkflowsPage() {
                       <div className="text-muted-foreground">Updated</div>
                       <div className="mt-1 font-mono">{formatDate(workflow.updatedAt)}</div>
                     </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" className="gap-2" onClick={() => runWorkflow(workflow.id)}>
-                      <Play size={14} />
-                      Run
-                    </Button>
-                    <Button size="sm" variant="outline" asChild>
-                      <Link to={`/workflows/${workflow.id}`}>Detail</Link>
-                    </Button>
-                    <Button size="sm" variant="outline" asChild>
-                      <Link to={`/workflows/${workflow.id}/edit`}>Edit</Link>
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => toggleEnabled(workflow.id, !workflow.enabled)}
-                    >
-                      {workflow.enabled ? 'Disable' : 'Enable'}
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -253,22 +306,31 @@ export default function WorkflowsPage() {
                   {workflow.activeVersionId ? 'Active' : 'Draft only'}
                 </span>
                 <div className="flex items-center gap-1">
-                  <Button size="sm" variant="ghost" onClick={() => runWorkflow(workflow.id)}>
+                  <Button
+                    size="sm"
+                    variant="ghost-icon"
+                    aria-label="Run workflow"
+                    onClick={() => runWorkflow(workflow.id)}
+                  >
                     <Play size={14} />
                   </Button>
-                  <Button size="sm" variant="ghost" asChild>
-                    <Link to={`/workflows/${workflow.id}/edit`}>Edit</Link>
+                  <Button size="sm" variant="ghost-icon" aria-label="Edit workflow" asChild>
+                    <Link to={`/workflows/${workflow.id}/edit`}>
+                      <Pencil size={14} />
+                    </Link>
                   </Button>
                   <Button
                     size="sm"
-                    variant="ghost"
+                    variant="ghost-icon"
+                    aria-label={workflow.enabled ? 'Disable workflow' : 'Enable workflow'}
                     onClick={() => toggleEnabled(workflow.id, !workflow.enabled)}
                   >
-                    {workflow.enabled ? 'Disable' : 'Enable'}
+                    {workflow.enabled ? <PowerOff size={14} /> : <Power size={14} />}
                   </Button>
                   <Button
                     size="sm"
-                    variant="ghost"
+                    variant="ghost-icon"
+                    aria-label="Delete workflow"
                     onClick={() => setDeleteTarget({ id: workflow.id, name: workflow.name })}
                   >
                     <Trash2 size={14} />

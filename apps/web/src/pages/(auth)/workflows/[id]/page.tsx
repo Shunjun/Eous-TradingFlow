@@ -18,7 +18,7 @@ import {
   TabsTrigger,
 } from '@eous/ui'
 import type { WorkflowDefinition, WorkflowRunDetail, WorkflowVersion } from '@eous/api-client'
-import { ArrowLeft, CheckCircle2, Clock3, GitCommitHorizontal, Play, RotateCcw } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Clock3, GitCommitHorizontal, Play } from 'lucide-react'
 import { api } from '../../../../lib/api'
 import { useWorkflowListStore } from '../../../../stores/workflows'
 
@@ -109,7 +109,7 @@ export default function WorkflowDetailPage() {
 
   return (
     <div className="min-h-full bg-[radial-gradient(circle_at_top_right,hsl(var(--primary)/0.12),transparent_30rem)] px-6 py-6">
-      <div className="mx-auto flex max-w-7xl flex-col gap-5">
+      <div className="flex flex-col gap-5">
         <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <Button variant="ghost" size="sm" asChild className="mb-3 gap-2 px-0">
@@ -123,13 +123,30 @@ export default function WorkflowDetailPage() {
               <Badge variant={workflow.enabled ? 'default' : 'outline'}>
                 {workflow.enabled ? 'Enabled' : 'Disabled'}
               </Badge>
-              <Badge variant="secondary">
-                {activeVersion ? `v${activeVersion.version}` : 'Draft only'}
-              </Badge>
+              {versions.length === 0 ? (
+                <Badge variant="secondary">Draft only</Badge>
+              ) : (
+                <Select value={workflow.activeVersionId ?? ''} onValueChange={activateVersion}>
+                  <SelectTrigger className="h-8 w-[180px]">
+                    <SelectValue placeholder="Select version" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {versions.map((version) => (
+                      <SelectItem key={version.id} value={version.id}>
+                        v{version.version} · {formatDate(version.createdAt)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               {workflow.description || 'No description'}
             </p>
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+              <span>Last run: {formatDate(runs[0]?.startedAt)}</span>
+              {activeVersion && <span>Active v{activeVersion.version}</span>}
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button className="gap-2" onClick={runActive}>
@@ -150,72 +167,42 @@ export default function WorkflowDetailPage() {
             { label: 'Runs', value: runs.length, icon: Clock3 },
             { label: 'Success rate', value: `${successRate}%`, icon: CheckCircle2 },
             { label: 'Versions', value: versions.length, icon: GitCommitHorizontal },
-            { label: 'Last run', value: formatDate(runs[0]?.startedAt), icon: RotateCcw },
           ].map((item) => (
             <div
               key={item.label}
-              className="rounded-lg border bg-card/85 p-4 shadow-sm backdrop-blur"
+              className="rounded-lg border bg-card/85 p-3 shadow-sm backdrop-blur"
             >
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>{item.label}</span>
                 <item.icon size={15} className="text-primary" />
               </div>
-              <div className="mt-3 truncate font-mono text-2xl font-semibold">{item.value}</div>
+              <div className="mt-2 truncate font-mono text-xl font-semibold">{item.value}</div>
             </div>
           ))}
         </section>
 
-        <section className="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
-          <Card className="gap-4 rounded-lg py-0">
-            <CardHeader className="p-5">
-              <CardTitle>Versions</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3 p-5 pt-0">
-              {versions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No published versions yet.</p>
-              ) : (
-                <>
-                  <Select value={workflow.activeVersionId ?? ''} onValueChange={activateVersion}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select active version" />
+        <section>
+          <Card className="gap-0 rounded-lg py-0">
+            <CardHeader className="flex flex-row items-center justify-between border-b p-4">
+              <CardTitle className="text-base">Run history</CardTitle>
+              {versions.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Use version as draft</span>
+                  <Select onValueChange={restoreDraft}>
+                    <SelectTrigger className="h-8 w-[150px]">
+                      <SelectValue placeholder="Version" />
                     </SelectTrigger>
                     <SelectContent>
                       {versions.map((version) => (
                         <SelectItem key={version.id} value={version.id}>
-                          v{version.version} · {formatDate(version.createdAt)}
+                          v{version.version}
+                          {version.id === workflow.activeVersionId ? ' · Active' : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  <div className="flex flex-col gap-2">
-                    {versions.map((version) => (
-                      <div key={version.id} className="rounded-md border p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="font-mono text-sm">v{version.version}</span>
-                          {version.id === workflow.activeVersionId && <Badge>Active</Badge>}
-                        </div>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {version.note || formatDate(version.createdAt)}
-                        </p>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mt-3 w-full"
-                          onClick={() => restoreDraft(version.id)}
-                        >
-                          Use as draft
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </>
+                </div>
               )}
-            </CardContent>
-          </Card>
-
-          <Card className="gap-0 rounded-lg py-0">
-            <CardHeader className="border-b p-5">
-              <CardTitle>Run history</CardTitle>
             </CardHeader>
             <CardContent className="grid min-h-[520px] gap-0 p-0 lg:grid-cols-[280px_minmax(0,1fr)]">
               <div className="border-r">
