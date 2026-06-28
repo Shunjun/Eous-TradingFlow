@@ -12,7 +12,7 @@ import type {
 import { resolveString, resolveValue } from '../lib/var-resolver.js'
 import { parseJsonWithTolerance } from '../lib/json-utils.js'
 import * as dataSourceService from './data-source.service.js'
-import { getAgentRuntime } from './agent-runtime/runtime.js'
+import { getAgentRuntime } from '../agent-runtime/runtime.js'
 
 type NodeExecutor = (
   input: Record<string, unknown>,

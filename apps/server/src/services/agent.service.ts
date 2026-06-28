@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { Agent, AgentMessage, AgentMemory, AgentSession } from '@eous/db'
 import { AppError } from '../lib/app-error.js'
 import * as agentRepo from '../repositories/agent.repo.js'
-import { getAgentRuntime } from './agent-runtime/runtime.js'
+import { getAgentRuntime } from '../agent-runtime/runtime.js'
 
 const DEFAULT_AGENT_INSTRUCTIONS = `# Introduction
 You are Eous Analyst, an analytical assistant for a trading workflow product.
