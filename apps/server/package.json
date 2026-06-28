@@ -10,14 +10,15 @@
     "lint": "eslint src/"
   },
   "dependencies": {
-    "@eous/api-client": "workspace:*",
     "@eous/agent-skills": "workspace:*",
+    "@eous/api-client": "workspace:*",
     "@eous/data-sources": "workspace:*",
     "@eous/db": "workspace:*",
     "@eous/nodes": "workspace:*",
     "@hono/node-server": "^1.13.0",
     "@mastra/core": "^1.46.0",
     "hono": "^4.6.0",
+    "redis": "^6.0.1",
     "socket.io": "^4.8.3"
   },
   "devDependencies": {

@@ -3,6 +3,7 @@ import {
   listPublishedWorkflowTriggerTargets,
   triggerPublishedWorkflow,
 } from './workflow-trigger.service.js'
+import { setRedisOnce } from '../lib/redis.js'
 
 interface ZonedDateParts {
   year: number
@@ -166,6 +167,21 @@ function slotKey(now: Date): string {
   return now.toISOString().slice(0, 16)
 }
 
+async function claimScheduleSlot(
+  workflowId: string,
+  nodeId: string,
+  slot: string,
+): Promise<boolean> {
+  const redisKey = `workflow:schedule:${workflowId}:${nodeId}:${slot}`
+  const claimed = await setRedisOnce(redisKey, 120)
+  if (claimed !== null) return claimed
+
+  const localKey = `${workflowId}:${nodeId}`
+  if (firedSlots.get(localKey) === slot) return false
+  firedSlots.set(localKey, slot)
+  return true
+}
+
 async function schedulerTick(now = new Date()) {
   const targets = await listPublishedWorkflowTriggerTargets('trigger.schedule')
   const slot = slotKey(now)
@@ -174,9 +190,8 @@ async function schedulerTick(now = new Date()) {
     const schedule = normalizeSchedule(target.triggerNode.data.schedule)
     if (!schedule || !isScheduleDue(schedule, now)) continue
 
-    const fireKey = `${target.workflow.id}:${target.triggerNode.id}`
-    if (firedSlots.get(fireKey) === slot) continue
-    firedSlots.set(fireKey, slot)
+    const claimed = await claimScheduleSlot(target.workflow.id, target.triggerNode.id, slot)
+    if (!claimed) continue
 
     void triggerPublishedWorkflow({
       workflow: target.workflow,
