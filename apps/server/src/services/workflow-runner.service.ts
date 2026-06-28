@@ -520,7 +520,7 @@ export async function runWorkflow(
   options: {
     workflowInput?: Record<string, unknown>
     triggerNodeId?: string
-    triggeredBy?: 'manual' | 'cron' | 'event'
+    triggeredBy?: string
     workflowVersionId?: string | null
     definitionSnapshot?: string
     source?: 'draft' | 'published'

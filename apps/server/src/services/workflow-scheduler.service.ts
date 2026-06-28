@@ -1,25 +1,8 @@
-import { prisma } from '@eous/db'
 import type { ScheduleConfig } from '@eous/nodes/types'
-import * as workflowRunner from './workflow-runner.service.js'
-
-interface WorkflowNode {
-  id: string
-  type: string
-  data: Record<string, unknown>
-}
-
-interface WorkflowEdge {
-  id: string
-  source: string
-  sourceHandle?: string
-  target: string
-  targetHandle?: string
-}
-
-interface WorkflowDefinition {
-  nodes: WorkflowNode[]
-  edges: WorkflowEdge[]
-}
+import {
+  listPublishedWorkflowTriggerTargets,
+  triggerPublishedWorkflow,
+} from './workflow-trigger.service.js'
 
 interface ZonedDateParts {
   year: number
@@ -33,18 +16,6 @@ interface ZonedDateParts {
 const DEFAULT_TIMEZONE = 'Asia/Shanghai'
 const firedSlots = new Map<string, string>()
 let schedulerTimer: NodeJS.Timeout | null = null
-
-function parseDefinition(definition: string): WorkflowDefinition | null {
-  try {
-    const parsed = JSON.parse(definition) as Partial<WorkflowDefinition>
-    return {
-      nodes: Array.isArray(parsed.nodes) ? parsed.nodes : [],
-      edges: Array.isArray(parsed.edges) ? parsed.edges : [],
-    }
-  } catch {
-    return null
-  }
-}
 
 function normalizeSchedule(value: unknown): ScheduleConfig | null {
   if (!value || typeof value !== 'object') return null
@@ -196,42 +167,29 @@ function slotKey(now: Date): string {
 }
 
 async function schedulerTick(now = new Date()) {
-  const workflows = await prisma.workflow.findMany({
-    where: { enabled: true, activeVersionId: { not: null } },
-    include: { activeVersion: true },
-  })
+  const targets = await listPublishedWorkflowTriggerTargets('trigger.schedule')
   const slot = slotKey(now)
 
-  for (const workflow of workflows) {
-    if (!workflow.activeVersion) continue
-    const definition = parseDefinition(workflow.activeVersion.definition)
-    if (!definition) continue
+  for (const target of targets) {
+    const schedule = normalizeSchedule(target.triggerNode.data.schedule)
+    if (!schedule || !isScheduleDue(schedule, now)) continue
 
-    for (const node of definition.nodes) {
-      if (node.type !== 'trigger.schedule') continue
-      const schedule = normalizeSchedule(node.data.schedule)
-      if (!schedule || !isScheduleDue(schedule, now)) continue
+    const fireKey = `${target.workflow.id}:${target.triggerNode.id}`
+    if (firedSlots.get(fireKey) === slot) continue
+    firedSlots.set(fireKey, slot)
 
-      const fireKey = `${workflow.id}:${node.id}`
-      if (firedSlots.get(fireKey) === slot) continue
-      firedSlots.set(fireKey, slot)
-
-      void workflowRunner
-        .runWorkflow(workflow.id, workflow.userId, definition.nodes, definition.edges, {
-          triggerNodeId: node.id,
-          triggeredBy: 'cron',
-          workflowVersionId: workflow.activeVersion.id,
-          definitionSnapshot: workflow.activeVersion.definition,
-          source: 'published',
-          workflowInput: { scheduledAt: now.toISOString() },
-        })
-        .catch((error) => {
-          console.error(
-            `[workflow-scheduler] failed workflow=${workflow.id} node=${node.id}`,
-            error,
-          )
-        })
-    }
+    void triggerPublishedWorkflow({
+      workflow: target.workflow,
+      definition: target.definition,
+      triggerNodeId: target.triggerNode.id,
+      triggerKind: 'cron',
+      input: { scheduledAt: now.toISOString() },
+    }).catch((error) => {
+      console.error(
+        `[workflow-scheduler] failed workflow=${target.workflow.id} node=${target.triggerNode.id}`,
+        error,
+      )
+    })
   }
 }
 
