@@ -1,15 +1,6 @@
-import { useParams } from 'react-router-dom'
-import { ReactFlowProvider } from '@xyflow/react'
-import { WorkflowEditor } from '../../../../components/workflow/workflow-editor'
+import { Navigate, useParams } from 'react-router-dom'
 
-export default function WorkflowEditorPage() {
+export default function LegacyWorkflowEditorPage() {
   const { id } = useParams()
-
-  if (!id) return null
-
-  return (
-    <ReactFlowProvider>
-      <WorkflowEditor workflowId={id} />
-    </ReactFlowProvider>
-  )
+  return <Navigate to={id ? `/workflows/${id}/edit` : '/workflows'} replace />
 }

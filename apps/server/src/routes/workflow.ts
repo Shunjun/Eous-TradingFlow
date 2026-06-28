@@ -203,10 +203,21 @@ workflowRouter.get('/:id/variables', async (c) => {
 workflowRouter.post('/:id/execute', async (c) => {
   const userId = c.get('userId')
   const workflow = await workflowService.getWorkflow(userId, c.req.param('id'))
-  const body: { input?: Record<string, unknown> } = await c.req
-    .json<{ input?: Record<string, unknown> }>()
+  const body: { input?: Record<string, unknown>; source?: 'draft' | 'published' } = await c.req
+    .json<{ input?: Record<string, unknown>; source?: 'draft' | 'published' }>()
     .catch(() => ({}))
-  const def = JSON.parse(workflow.definition) as {
+  const source = body.source ?? 'published'
+  const activeVersion =
+    source === 'published' && workflow.activeVersionId
+      ? await workflowService
+          .listVersions(userId, workflow.id)
+          .then((versions) => versions.find((version) => version.id === workflow.activeVersionId))
+      : null
+  if (source === 'published' && !activeVersion) {
+    return c.json({ error: 'Publish and activate a version before running this workflow' }, 400)
+  }
+  const definitionSnapshot = activeVersion?.definition ?? workflow.definition
+  const def = JSON.parse(definitionSnapshot) as {
     nodes: Array<{ id: string; type: string; data: Record<string, unknown> }>
     edges: Array<{
       id: string
@@ -218,8 +229,9 @@ workflowRouter.post('/:id/execute', async (c) => {
   }
   const execution = await workflowRunner.runWorkflow(workflow.id, userId, def.nodes, def.edges, {
     workflowInput: body.input ?? {},
-    definitionSnapshot: workflow.definition,
-    source: 'draft',
+    workflowVersionId: activeVersion?.id ?? null,
+    definitionSnapshot,
+    source,
   })
   return c.json(execution)
 })

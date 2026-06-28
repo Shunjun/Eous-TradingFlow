@@ -5,12 +5,6 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   Dot,
   DropdownMenu,
   DropdownMenuContent,
@@ -46,10 +40,9 @@ import {
   Plus,
   GitBranch,
   ChevronDown,
-  Trash2,
 } from 'lucide-react'
 import { useWorkflowList } from '../../hooks/use-workflows'
-import { useWorkflowListStore } from '../../stores/workflows'
+import { useRecentWorkflowsStore } from '../../stores/recent-workflows'
 import { CreateWorkflowDialog } from '../workflow/dialogs'
 import { api } from '../../lib/api'
 
@@ -91,7 +84,8 @@ function isItemActive(pathname: string, to: string) {
 }
 
 function extractWorkflowId(pathname: string): string | null {
-  const m = pathname.match(/^\/workflow\/([^/]+)/)
+  const m =
+    pathname.match(/^\/workflows\/([^/]+)(?:\/edit)?/) ?? pathname.match(/^\/workflow\/([^/]+)/)
   return m ? m[1] : null
 }
 
@@ -101,26 +95,27 @@ export function AppSidebar() {
   const { state } = useSidebar()
   const { theme, setTheme } = useTheme()
   const { workflows } = useWorkflowList()
-  const deleteWorkflow = useWorkflowListStore((s) => s.deleteWorkflow)
+  const recentWorkflows = useRecentWorkflowsStore((s) => s.recent)
   const [dialogOpen, setDialogOpen] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
-  const [deleting, setDeleting] = useState(false)
   const [workflowsCollapsed, setWorkflowsCollapsed] = useState(false)
 
   const isCollapsed = state === 'collapsed'
   const activeWorkflowId = extractWorkflowId(pathname)
-  const isOnWorkflowPage = activeWorkflowId !== null
+  const isOnWorkflowPage = pathname === '/workflows' || activeWorkflowId !== null
 
   const activeWorkflow = useMemo(
-    () => workflows.find((wf) => wf.id === activeWorkflowId) ?? null,
-    [workflows, activeWorkflowId],
+    () =>
+      workflows.find((wf) => wf.id === activeWorkflowId) ??
+      recentWorkflows.find((wf) => wf.id === activeWorkflowId) ??
+      null,
+    [workflows, recentWorkflows, activeWorkflowId],
   )
   const showPinnedActiveWorkflow = !isCollapsed && workflowsCollapsed && activeWorkflow
 
   const handleCreated = useCallback(
     (id: string) => {
       setDialogOpen(false)
-      navigate(`/workflow/${id}`)
+      navigate(`/workflows/${id}/edit`)
     },
     [navigate],
   )
@@ -133,21 +128,6 @@ export function AppSidebar() {
     }
     window.location.href = '/login'
   }, [])
-
-  const handleDeleteWorkflow = useCallback(async () => {
-    if (!deleteTarget) return
-    setDeleting(true)
-    try {
-      const nextWorkflow = workflows.find((workflow) => workflow.id !== deleteTarget.id) ?? null
-      await deleteWorkflow(deleteTarget.id)
-      setDeleteTarget(null)
-      if (activeWorkflowId === deleteTarget.id) {
-        navigate(nextWorkflow ? `/workflow/${nextWorkflow.id}` : '/home')
-      }
-    } finally {
-      setDeleting(false)
-    }
-  }, [activeWorkflowId, deleteTarget, deleteWorkflow, navigate, workflows])
 
   return (
     <>
@@ -202,10 +182,19 @@ export function AppSidebar() {
             >
               <SidebarGroup className="px-0">
                 <SidebarGroupLabel asChild>
-                  <CollapsibleTrigger className="w-full cursor-pointer select-none">
-                    WORKFLOWS
-                    <ChevronDown className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
-                  </CollapsibleTrigger>
+                  <div className="flex w-full items-center gap-1">
+                    <NavLink
+                      to="/workflows"
+                      className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left hover:text-sidebar-foreground"
+                    >
+                      WORKFLOWS
+                    </NavLink>
+                    {recentWorkflows.length > 0 && (
+                      <CollapsibleTrigger className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md hover:bg-sidebar-accent">
+                        <ChevronDown className="transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                      </CollapsibleTrigger>
+                    )}
+                  </div>
                 </SidebarGroupLabel>
 
                 {/* 折叠时 pin 住选中的 workflow */}
@@ -214,7 +203,10 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                       <span className="pointer-events-none absolute -left-2 top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:hidden" />
                       <SidebarMenuButton asChild isActive tooltip={activeWorkflow.name}>
-                        <NavLink to={`/workflow/${activeWorkflow.id}`} className="cursor-pointer">
+                        <NavLink
+                          to={`/workflows/${activeWorkflow.id}/edit`}
+                          className="cursor-pointer"
+                        >
                           <GitBranch size={16} />
                           <span className="flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
                             {activeWorkflow.name}
@@ -225,79 +217,66 @@ export function AppSidebar() {
                   </SidebarMenu>
                 )}
 
-                <CollapsibleContent>
-                  <SidebarGroupContent>
-                    {isCollapsed && isOnWorkflowPage ? (
-                      <SidebarMenu className="gap-0.5">
-                        {activeWorkflow && (
+                {recentWorkflows.length > 0 && (
+                  <CollapsibleContent>
+                    <SidebarGroupContent>
+                      {isCollapsed && isOnWorkflowPage ? (
+                        <SidebarMenu className="gap-0.5">
+                          {activeWorkflow && (
+                            <SidebarMenuItem>
+                              <SidebarMenuButton asChild isActive tooltip={activeWorkflow.name}>
+                                <NavLink
+                                  to={`/workflows/${activeWorkflow.id}/edit`}
+                                  className="cursor-pointer"
+                                >
+                                  <GitBranch size={16} />
+                                </NavLink>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          )}
+                        </SidebarMenu>
+                      ) : (
+                        <SidebarMenu className="gap-0.5">
                           <SidebarMenuItem>
-                            <SidebarMenuButton asChild isActive tooltip={activeWorkflow.name}>
-                              <NavLink
-                                to={`/workflow/${activeWorkflow.id}`}
-                                className="cursor-pointer"
-                              >
-                                <GitBranch size={16} />
-                              </NavLink>
+                            <SidebarMenuButton onClick={() => setDialogOpen(true)}>
+                              <Plus size={16} />
+                              <span className="flex-1 text-left group-data-[collapsible=icon]:hidden">
+                                新建工作流
+                              </span>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
-                        )}
-                      </SidebarMenu>
-                    ) : (
-                      <SidebarMenu className="gap-0.5">
-                        <SidebarMenuItem>
-                          <SidebarMenuButton onClick={() => setDialogOpen(true)}>
-                            <Plus size={16} />
-                            <span className="flex-1 text-left group-data-[collapsible=icon]:hidden">
-                              新建工作流
-                            </span>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        {workflows.length === 0 ? (
-                          <div className="flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-sidebar-foreground/40">
-                            <span>暂无工作流</span>
-                          </div>
-                        ) : (
-                          workflows.map((wf) => {
-                            const isActive = activeWorkflowId === wf.id
-                            return (
-                              <SidebarMenuItem key={wf.id} className="group/workflow-item">
-                                {isActive && (
-                                  <span className="pointer-events-none absolute -left-2 top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:hidden" />
-                                )}
-                                <SidebarMenuButton
-                                  asChild
-                                  isActive={isActive}
-                                  tooltip={wf.name}
-                                  className="pr-8"
-                                >
-                                  <NavLink to={`/workflow/${wf.id}`} className="cursor-pointer">
-                                    <GitBranch size={16} />
-                                    <span className="flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
-                                      {wf.name}
-                                    </span>
-                                  </NavLink>
-                                </SidebarMenuButton>
-                                <button
-                                  type="button"
-                                  aria-label={`删除 ${wf.name}`}
-                                  title="删除"
-                                  className="absolute right-1 top-1/2 hidden size-6 -translate-y-1/2 items-center justify-center rounded-md text-sidebar-foreground/45 opacity-0 transition hover:bg-destructive/10 hover:text-destructive group-hover/workflow-item:flex group-hover/workflow-item:opacity-100 focus:flex focus:opacity-100 group-data-[collapsible=icon]:hidden"
-                                  onClick={(event) => {
-                                    event.preventDefault()
-                                    event.stopPropagation()
-                                    setDeleteTarget({ id: wf.id, name: wf.name })
-                                  }}
-                                >
-                                  <Trash2 size={13} />
-                                </button>
-                              </SidebarMenuItem>
-                            )
-                          })
-                        )}
-                      </SidebarMenu>
-                    )}
-                  </SidebarGroupContent>
-                </CollapsibleContent>
+                          {workflows.length === 0
+                            ? null
+                            : recentWorkflows.map((wf) => {
+                                const isActive = activeWorkflowId === wf.id
+                                return (
+                                  <SidebarMenuItem key={wf.id}>
+                                    {isActive && (
+                                      <span className="pointer-events-none absolute -left-2 top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:hidden" />
+                                    )}
+                                    <SidebarMenuButton
+                                      asChild
+                                      isActive={isActive}
+                                      tooltip={wf.name}
+                                    >
+                                      <NavLink
+                                        to={`/workflows/${wf.id}/edit`}
+                                        className="cursor-pointer"
+                                      >
+                                        <GitBranch size={16} />
+                                        <span className="flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
+                                          {wf.name}
+                                        </span>
+                                      </NavLink>
+                                    </SidebarMenuButton>
+                                  </SidebarMenuItem>
+                                )
+                              })}
+                        </SidebarMenu>
+                      )}
+                    </SidebarGroupContent>
+                  </CollapsibleContent>
+                )}
               </SidebarGroup>
             </Collapsible>
           )}
@@ -369,34 +348,6 @@ export function AppSidebar() {
         onCreated={handleCreated}
         onCancel={() => setDialogOpen(false)}
       />
-      <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <DialogContent showCloseButton={!deleting}>
-          <DialogHeader>
-            <DialogTitle>删除工作流</DialogTitle>
-            <DialogDescription>
-              确认删除「{deleteTarget?.name}」？该操作会移除工作流及相关版本记录。
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={deleting}
-              onClick={() => setDeleteTarget(null)}
-            >
-              取消
-            </Button>
-            <Button
-              type="button"
-              variant="destructive"
-              disabled={deleting}
-              onClick={handleDeleteWorkflow}
-            >
-              {deleting ? '删除中…' : '删除'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   )
 }

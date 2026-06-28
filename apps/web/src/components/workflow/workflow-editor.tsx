@@ -10,6 +10,7 @@ import { tryApplyWorkflowOpsToState } from './store/workflow-ops'
 import type { WorkflowHistoryEntry } from './store/workflow-store'
 import { useWorkflow, publishWorkflow } from '../../hooks/use-workflows'
 import { useWorkflowListStore } from '../../stores/workflows'
+import { useRecentWorkflowsStore } from '../../stores/recent-workflows'
 import { WorkflowCanvas, WorkflowOverlay } from './canvas'
 import { useKeyboardShortcuts } from './hooks'
 import {
@@ -38,6 +39,7 @@ function WorkflowEditorContent({
   const loadDraftWorkflow = useWorkflowStore((s) => s.loadDraft)
   const refreshWorkflowList = useWorkflowListStore((s) => s.refreshWorkflows)
   const createWorkflowInList = useWorkflowListStore((s) => s.createWorkflow)
+  const markRecentWorkflow = useRecentWorkflowsStore((s) => s.markRecent)
   const reset = useWorkflowStore((s) => s.reset)
   const activeWorkflowId = useWorkflowStore((s) => s.activeWorkflowId)
   const workflowName = useWorkflowStore((s) => s.workflowName)
@@ -99,6 +101,7 @@ function WorkflowEditorContent({
 
     setCurrentSeq(workflow.currentSeq)
     initialWorkflowNameRef.current = workflow.name
+    markRecentWorkflow({ id: workflow.id, name: workflow.name, updatedAt: workflow.updatedAt })
 
     loadWorkflow(workflow.id, workflow.name, serverNodes, serverEdges)
     void api.getWorkflowHistory(workflow.id).then((history) => {
@@ -107,7 +110,15 @@ function WorkflowEditorContent({
     void loadSnapshots(workflow.id)
 
     return () => reset()
-  }, [buildHistoryEntries, loadSnapshots, loadWorkflow, reset, workflow, workflowStore])
+  }, [
+    buildHistoryEntries,
+    loadSnapshots,
+    loadWorkflow,
+    markRecentWorkflow,
+    reset,
+    workflow,
+    workflowStore,
+  ])
 
   useEffect(() => {
     if (!activeWorkflowId || !workflow || workflowName === initialWorkflowNameRef.current) return
