@@ -152,9 +152,6 @@ export function AppSidebar() {
                     if (item.id === 'workflows') {
                       return (
                         <SidebarMenuItem key={item.id}>
-                          {isActive && (
-                            <span className="pointer-events-none absolute -left-2 top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:hidden" />
-                          )}
                           <SidebarMenuButton
                             asChild
                             isActive={isActive}
@@ -196,9 +193,6 @@ export function AppSidebar() {
 
                                 return (
                                   <SidebarMenuSubItem key={wf.id}>
-                                    {isRecentActive && (
-                                      <span className="pointer-events-none absolute -left-2 top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:hidden" />
-                                    )}
                                     <SidebarMenuSubButton asChild isActive={isRecentActive}>
                                       <NavLink
                                         to={`/workflows/${wf.id}/edit`}
@@ -219,9 +213,6 @@ export function AppSidebar() {
 
                     return (
                       <SidebarMenuItem key={item.id}>
-                        {isActive && (
-                          <span className="pointer-events-none absolute -left-2 top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:hidden" />
-                        )}
                         <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
                           <NavLink to={navToPath[item.id]} className="cursor-pointer">
                             <Icon size={16} />
