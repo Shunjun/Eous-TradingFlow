@@ -157,7 +157,7 @@ export function AppSidebar() {
                             isActive={isActive}
                             tooltip={item.label}
                             className={cn(
-                              recentWorkflows.length > 0 && 'pr-8',
+                              'pr-14',
                               isActive &&
                                 'before:absolute before:left-0 before:top-1/2 before:h-4 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-primary',
                             )}
@@ -169,8 +169,19 @@ export function AppSidebar() {
                               </span>
                             </NavLink>
                           </SidebarMenuButton>
+                          <SidebarMenuAction
+                            className={cn(
+                              'top-2!',
+                              recentWorkflows.length > 0 ? 'right-7!' : 'right-1!',
+                            )}
+                            aria-label="新建工作流"
+                            onClick={() => setDialogOpen(true)}
+                          >
+                            <Plus />
+                          </SidebarMenuAction>
                           {recentWorkflows.length > 0 && (
                             <SidebarMenuAction
+                              className="top-2!"
                               aria-label={workflowsCollapsed ? '展开最近工作流' : '折叠最近工作流'}
                               onClick={() => setWorkflowsCollapsed((value) => !value)}
                             >
@@ -184,14 +195,6 @@ export function AppSidebar() {
                           )}
                           {!isCollapsed && recentWorkflows.length > 0 && !workflowsCollapsed && (
                             <SidebarMenuSub>
-                              <SidebarMenuSubItem>
-                                <SidebarMenuSubButton asChild>
-                                  <button type="button" onClick={() => setDialogOpen(true)}>
-                                    <Plus size={16} />
-                                    <span>新建工作流</span>
-                                  </button>
-                                </SidebarMenuSubButton>
-                              </SidebarMenuSubItem>
                               {recentWorkflows.map((wf) => {
                                 const isRecentActive = activeWorkflowId === wf.id
 
@@ -202,7 +205,6 @@ export function AppSidebar() {
                                         to={`/workflows/${wf.id}/edit`}
                                         className="cursor-pointer"
                                       >
-                                        <GitBranch size={14} />
                                         <span>{wf.name}</span>
                                       </NavLink>
                                     </SidebarMenuSubButton>
