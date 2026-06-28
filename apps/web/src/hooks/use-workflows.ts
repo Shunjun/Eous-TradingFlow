@@ -64,5 +64,5 @@ export async function createWorkflow(name: string): Promise<string> {
 }
 
 export async function publishWorkflow(id: string): Promise<void> {
-  await fetch(`/api/workflows/${id}/publish`, { method: 'POST', credentials: 'include' })
+  await api.publishWorkflow(id)
 }

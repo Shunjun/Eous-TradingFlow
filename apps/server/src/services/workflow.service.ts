@@ -1,8 +1,14 @@
 import { AppError } from '../lib/app-error.js'
 import * as workflowRepo from '../repositories/workflow.repo.js'
+import * as workflowEditService from './workflow-edit.service.js'
 
 export function listWorkflows(userId: string) {
   return workflowRepo.findByUserId(userId)
+}
+
+export async function listWorkflowSummaries(userId: string) {
+  const workflows = await workflowRepo.findByUserId(userId)
+  return workflows
 }
 
 export async function getWorkflow(userId: string, id: string) {
@@ -58,6 +64,17 @@ export async function updateWorkflowMeta(
   return workflowRepo.update(id, update)
 }
 
+export async function setWorkflowEnabled(userId: string, id: string, enabled: boolean) {
+  const workflow = await workflowRepo.findById(id)
+  if (!workflow || workflow.userId !== userId) {
+    throw new AppError('Workflow not found', 404)
+  }
+  if (enabled && !workflow.activeVersionId) {
+    throw new AppError('Publish and activate a version before enabling this workflow', 400)
+  }
+  return workflowRepo.update(id, { enabled })
+}
+
 export async function deleteWorkflow(userId: string, id: string) {
   const workflow = await workflowRepo.findById(id)
   if (!workflow || workflow.userId !== userId) {
@@ -66,20 +83,22 @@ export async function deleteWorkflow(userId: string, id: string) {
   await workflowRepo.remove(id)
 }
 
-export async function publishWorkflow(userId: string, id: string) {
+export async function publishWorkflow(userId: string, id: string, body: { note?: string } = {}) {
   const workflow = await workflowRepo.findById(id)
   if (!workflow || workflow.userId !== userId) {
     throw new AppError('Workflow not found', 404)
   }
 
   const nextVersion = await workflowRepo.getNextVersion(id)
-
-  return workflowRepo.createVersion({
+  const version = await workflowRepo.createVersion({
     workflowId: id,
     version: nextVersion,
     definition: workflow.definition,
     createdBy: userId,
+    note: body.note,
   })
+  await workflowRepo.update(id, { activeVersionId: version.id })
+  return version
 }
 
 export async function listVersions(userId: string, id: string) {
@@ -88,4 +107,20 @@ export async function listVersions(userId: string, id: string) {
     throw new AppError('Workflow not found', 404)
   }
   return workflowRepo.findVersionsByWorkflowId(id)
+}
+
+export async function setActiveVersion(userId: string, id: string, versionId: string) {
+  const workflow = await workflowRepo.findById(id)
+  if (!workflow || workflow.userId !== userId) {
+    throw new AppError('Workflow not found', 404)
+  }
+  const version = await workflowRepo.findVersionById(versionId)
+  if (!version || version.workflowId !== id) {
+    throw new AppError('Workflow version not found', 404)
+  }
+  return workflowRepo.update(id, { activeVersionId: version.id })
+}
+
+export function restoreVersionToDraft(userId: string, id: string, versionId: string) {
+  return workflowEditService.restoreWorkflowVersionToDraft(userId, id, versionId)
 }

@@ -39,6 +39,8 @@ type WorkflowEditEventRecord = {
   inverseOpsJson: string
   snapshotName: string | null
   snapshotDefinition: string | null
+  targetVersionId: string | null
+  targetDefinition: string | null
   clientBatchId: string | null
   targetSeq: number | null
   createdAt: Date
@@ -404,6 +406,7 @@ function serializeEvent(event: WorkflowEditEventRecord) {
     ops: parseOpsJson(event.opsJson),
     inverseOps: parseOpsJson(event.inverseOpsJson),
     snapshotName: event.snapshotName,
+    targetVersionId: event.targetVersionId,
     targetSeq: event.targetSeq,
     createdAt: event.createdAt.toISOString(),
   }
@@ -415,7 +418,13 @@ function computeHistoryStacks(events: WorkflowEditEventRecord[]) {
   const redoStack: WorkflowEditEventRecord[] = []
 
   for (const event of events) {
-    if (event.kind === 'op' || event.kind === 'redo' || event.kind === 'restore') {
+    if (
+      event.kind === 'op' ||
+      event.kind === 'redo' ||
+      event.kind === 'restore' ||
+      event.kind === 'restore_snapshot' ||
+      event.kind === 'restore_version'
+    ) {
       const target = event.kind === 'redo' && event.targetSeq ? bySeq.get(event.targetSeq) : event
       if (target) {
         undoStack.push(target)
@@ -445,6 +454,8 @@ async function createEditEvent(params: {
   inverseOps?: WorkflowEditOp[]
   snapshotName?: string
   snapshotDefinition?: string
+  targetVersionId?: string
+  targetDefinition?: string
   clientBatchId?: string
   targetSeq?: number
 }) {
@@ -464,6 +475,8 @@ async function createEditEvent(params: {
       inverseOpsJson: JSON.stringify(params.inverseOps ?? []),
       snapshotName: params.snapshotName,
       snapshotDefinition: params.snapshotDefinition,
+      targetVersionId: params.targetVersionId,
+      targetDefinition: params.targetDefinition,
       clientBatchId: params.clientBatchId,
       targetSeq: params.targetSeq,
     },
@@ -606,10 +619,15 @@ export async function undoWorkflowEvent(userId: string, workflowId: string) {
   const target = undoStack.at(-1)
   if (!target) throw new AppError('Nothing to undo', 400)
 
-  const ops = parseOpsJson(target.inverseOpsJson)
-  const definition = parseDefinition(workflow.definition)
+  const restoresDefinition = Boolean(target.snapshotDefinition)
+  const ops = restoresDefinition ? [] : parseOpsJson(target.inverseOpsJson)
+  const definition = restoresDefinition
+    ? parseDefinition(target.snapshotDefinition!)
+    : parseDefinition(workflow.definition)
   const warnings: string[] = []
-  for (const op of ops) applyOp(definition, op, warnings)
+  if (!restoresDefinition) {
+    for (const op of ops) applyOp(definition, op, warnings)
+  }
 
   const seq = workflow.currentSeq + 1
   const result = await prisma.$transaction(async (tx) => {
@@ -626,6 +644,8 @@ export async function undoWorkflowEvent(userId: string, workflowId: string) {
         label: `撤销 ${target.label ?? target.kind}`,
         opsJson: JSON.stringify(ops),
         inverseOpsJson: target.opsJson,
+        snapshotDefinition: workflow.definition,
+        targetDefinition: target.snapshotDefinition,
         targetSeq: target.seq,
       },
     })
@@ -645,10 +665,15 @@ export async function redoWorkflowEvent(userId: string, workflowId: string) {
   const target = redoStack.at(-1)
   if (!target) throw new AppError('Nothing to redo', 400)
 
-  const ops = parseOpsJson(target.opsJson)
-  const definition = parseDefinition(workflow.definition)
+  const restoresDefinition = Boolean(target.targetDefinition)
+  const ops = restoresDefinition ? [] : parseOpsJson(target.opsJson)
+  const definition = restoresDefinition
+    ? parseDefinition(target.targetDefinition!)
+    : parseDefinition(workflow.definition)
   const warnings: string[] = []
-  for (const op of ops) applyOp(definition, op, warnings)
+  if (!restoresDefinition) {
+    for (const op of ops) applyOp(definition, op, warnings)
+  }
 
   const seq = workflow.currentSeq + 1
   const result = await prisma.$transaction(async (tx) => {
@@ -665,6 +690,8 @@ export async function redoWorkflowEvent(userId: string, workflowId: string) {
         label: `重做 ${target.label ?? target.kind}`,
         opsJson: JSON.stringify(ops),
         inverseOpsJson: target.inverseOpsJson,
+        snapshotDefinition: workflow.definition,
+        targetDefinition: target.targetDefinition,
         targetSeq: target.seq,
       },
     })
@@ -719,15 +746,52 @@ export async function restoreWorkflowSnapshot(userId: string, workflowId: string
         workflowId,
         userId,
         seq,
-        kind: 'restore',
+        kind: 'restore_snapshot',
         label: `恢复 ${snapshot.snapshotName ?? '快照'}`,
         snapshotName: snapshot.snapshotName,
         snapshotDefinition: previousDefinition,
+        targetDefinition: snapshot.snapshotDefinition!,
         targetSeq: snapshot.seq,
       },
     })
     return { workflow: nextWorkflow, event }
   })
+  return { workflow: result.workflow, event: serializeEvent(result.event) }
+}
+
+export async function restoreWorkflowVersionToDraft(
+  userId: string,
+  workflowId: string,
+  versionId: string,
+) {
+  const workflow = ensureWorkflowOwner(await workflowRepo.findById(workflowId), userId)
+  const version = await workflowRepo.findVersionById(versionId)
+  if (!version || version.workflowId !== workflowId) {
+    throw new AppError('Workflow version not found', 404)
+  }
+
+  const previousDefinition = workflow.definition
+  const seq = workflow.currentSeq + 1
+  const result = await prisma.$transaction(async (tx) => {
+    const nextWorkflow = await tx.workflow.update({
+      where: { id: workflowId },
+      data: { definition: version.definition, currentSeq: seq },
+    })
+    const event = await tx.workflowEditEvent.create({
+      data: {
+        workflowId,
+        userId,
+        seq,
+        kind: 'restore_version',
+        label: `从 v${version.version} 加载到草稿`,
+        snapshotDefinition: previousDefinition,
+        targetVersionId: version.id,
+        targetDefinition: version.definition,
+      },
+    })
+    return { workflow: nextWorkflow, event }
+  })
+
   return { workflow: result.workflow, event: serializeEvent(result.event) }
 }
 

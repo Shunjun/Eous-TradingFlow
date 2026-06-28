@@ -67,6 +67,8 @@ function toWorkflowDefinition(workflow: WorkflowRecord): WorkflowDefinition {
     edges: definition.edges,
     viewport: definition.viewport,
     currentSeq: workflow.currentSeq ?? 0,
+    enabled: false,
+    activeVersionId: null,
     createdAt: workflow.createdAt.toISOString(),
     updatedAt: workflow.updatedAt.toISOString(),
   }

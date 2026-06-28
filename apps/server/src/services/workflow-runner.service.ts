@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { prisma, type WorkflowNodeExecution } from '@eous/db'
+import { prisma, type WorkflowNodeExecution, type WorkflowRunNodeExecution } from '@eous/db'
 import { executors } from '@eous/nodes/server'
 import type {
   CustomOutputDef,
@@ -45,6 +45,7 @@ interface ExecuteNodeSequenceOptions {
   allEdges: WorkflowEdge[]
   workflowInput?: Record<string, unknown>
   useCache: boolean
+  runId?: string
 }
 
 // Node schema version — bump when node data structure changes so old cached
@@ -230,6 +231,8 @@ function createLlmService(userId: string): LlmService {
   }
 }
 
+type NodeExecutionResult = WorkflowNodeExecution | WorkflowRunNodeExecution
+
 async function executeNodeSequence({
   workflowId,
   userId,
@@ -357,6 +360,118 @@ async function executeNodeSequence({
   return executionResults
 }
 
+async function executeProductionNodeSequence({
+  workflowId,
+  userId,
+  nodesToRun,
+  allNodes,
+  allEdges,
+  workflowInput = {},
+  runId,
+}: Omit<ExecuteNodeSequenceOptions, 'useCache'> & { runId: string }): Promise<
+  Map<string, WorkflowRunNodeExecution>
+> {
+  const varCache: Record<string, Record<string, unknown>> = {}
+  const nodeMap = new Map(allNodes.map((node) => [node.id, node]))
+  const skippedNodes = new Set<string>()
+  const executionResults = new Map<string, WorkflowRunNodeExecution>()
+  const runnableNodeIds = new Set(nodesToRun.map((node) => node.id))
+
+  for (const node of nodesToRun) {
+    const upstreamEdges = allEdges.filter(
+      (e) => e.target === node.id && runnableNodeIds.has(e.source),
+    )
+    const activeUpstreamEdges = upstreamEdges.filter((edge) => {
+      if (skippedNodes.has(edge.source)) return false
+      if (!varCache[edge.source]) return false
+      return isBranchEdgeActive(edge, nodeMap.get(edge.source), varCache)
+    })
+
+    if (upstreamEdges.length > 0 && activeUpstreamEdges.length === 0) {
+      skippedNodes.add(node.id)
+      continue
+    }
+
+    const upstreamOutputs: Record<string, Record<string, unknown>> = {}
+    for (const uid of activeUpstreamEdges.map((e) => e.source)) {
+      upstreamOutputs[uid] = varCache[uid] ?? {}
+    }
+
+    const logs: LogEntry[] = []
+    const executionId = `run_${runId}_${node.id}`
+    const ctx: ExecuteContext = {
+      dataSourceService: dataSourceServiceImpl,
+      llmService: createLlmService(userId),
+      workflowInput,
+      userId,
+      workflowId,
+      executionId,
+      nodeId: node.id,
+      upstreamOutputs,
+      log: (level: LogLevel, message: string) => {
+        logs.push({ ts: new Date().toISOString(), level, message })
+      },
+    }
+
+    const resolvedInput: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(node.data)) {
+      if (key === 'label' || key === '__meta') continue
+      resolvedInput[key] = resolveInputValue(value, varCache, allNodes)
+    }
+
+    const startTime = Date.now()
+    const startedAt = new Date()
+    let status = 'succeeded'
+    let outputs: Record<string, unknown> | null = null
+    let error: string | null = null
+
+    const executor = EXECUTORS[node.type]
+    if (!executor) {
+      status = 'failed'
+      error = `Unknown node type: ${node.type}`
+      ctx.log('error', error)
+    } else {
+      try {
+        const rawOutputs = await executor(resolvedInput, ctx)
+        outputs = applyCustomOutputs(rawOutputs, node, ctx.log)
+      } catch (e) {
+        status = 'failed'
+        error = e instanceof Error ? e.message : String(e)
+        ctx.log('error', `执行失败: ${error}`)
+      }
+    }
+
+    const finishedAt = new Date()
+    const execution = await prisma.workflowRunNodeExecution.create({
+      data: {
+        runId,
+        workflowId,
+        userId,
+        nodeId: node.id,
+        nodeType: node.type,
+        status,
+        inputs: JSON.stringify(resolvedInput),
+        outputs: outputs ? JSON.stringify(outputs) : null,
+        error,
+        logs: JSON.stringify(logs),
+        durationMs: Date.now() - startTime,
+        startedAt,
+        finishedAt,
+      },
+    })
+
+    executionResults.set(node.id, execution)
+
+    if (outputs) {
+      varCache[node.id] = outputs
+    }
+
+    if (status !== 'succeeded') break
+  }
+
+  return executionResults
+}
+
 export async function runNode(
   workflowId: string,
   userId: string,
@@ -406,9 +521,19 @@ export async function runWorkflow(
     workflowInput?: Record<string, unknown>
     triggerNodeId?: string
     triggeredBy?: 'manual' | 'cron' | 'event'
+    workflowVersionId?: string | null
+    definitionSnapshot?: string
+    source?: 'draft' | 'published'
   } = {},
 ) {
-  const { workflowInput = {}, triggerNodeId, triggeredBy = 'manual' } = options
+  const {
+    workflowInput = {},
+    triggerNodeId,
+    triggeredBy = 'manual',
+    workflowVersionId = null,
+    definitionSnapshot = JSON.stringify({ schemaVersion: 1, nodes: allNodes, edges: allEdges }),
+    source = workflowVersionId ? 'published' : 'draft',
+  } = options
   const sorted = topoSort(allNodes, allEdges)
   const triggerNode = triggerNodeId
     ? sorted.find((node) => node.id === triggerNodeId)
@@ -417,15 +542,43 @@ export async function runWorkflow(
     ? sorted.filter((node) => getReachableNodeIds(triggerNode.id, allEdges).has(node.id))
     : sorted
 
-  const executionResults = await executeNodeSequence({
-    workflowId,
-    userId,
-    nodesToRun,
-    allNodes,
-    allEdges,
-    workflowInput,
-    useCache: false,
+  const run = await prisma.workflowRun.create({
+    data: {
+      workflowId,
+      workflowVersionId,
+      userId,
+      trigger: triggeredBy,
+      source,
+      status: 'running',
+      definition: definitionSnapshot,
+      startedAt: new Date(),
+    },
   })
+
+  let executionResults = new Map<string, WorkflowRunNodeExecution>()
+  try {
+    executionResults = await executeProductionNodeSequence({
+      workflowId,
+      userId,
+      nodesToRun,
+      allNodes,
+      allEdges,
+      workflowInput,
+      runId: run.id,
+    })
+  } catch (e) {
+    const error = e instanceof Error ? e.message : String(e)
+    await prisma.workflowRun.update({
+      where: { id: run.id },
+      data: {
+        status: 'failed',
+        error,
+        finishedAt: new Date(),
+        durationMs: Date.now() - run.startedAt.getTime(),
+      },
+    })
+    throw e
+  }
 
   const nodeResults = Object.fromEntries(
     [...executionResults.values()].map((execution) => [
@@ -444,16 +597,27 @@ export async function runWorkflow(
   const failed = [...executionResults.values()].find(
     (execution) => execution.status !== 'succeeded',
   )
-  const now = new Date().toISOString()
+  const finishedAt = new Date()
+  const updatedRun = await prisma.workflowRun.update({
+    where: { id: run.id },
+    data: {
+      status: failed ? 'failed' : 'succeeded',
+      error: failed?.error ?? null,
+      finishedAt,
+      durationMs: finishedAt.getTime() - run.startedAt.getTime(),
+    },
+  })
 
   return {
-    id: `workflow_${Date.now()}`,
+    id: updatedRun.id,
     workflowId,
-    status: failed ? 'failed' : 'completed',
+    workflowVersionId,
+    status: failed ? 'failed' : 'succeeded',
     triggeredBy,
     nodeResults,
-    startedAt: now,
-    finishedAt: now,
+    startedAt: updatedRun.startedAt.toISOString(),
+    finishedAt: updatedRun.finishedAt?.toISOString(),
+    durationMs: updatedRun.durationMs,
     error: failed?.error ?? undefined,
   }
 }
@@ -476,6 +640,25 @@ export async function getWorkflowExecutions(
     where: { workflowId },
     orderBy: { startedAt: 'desc' },
     take: limit,
+  })
+}
+
+export async function getWorkflowRuns(workflowId: string, limit = 50) {
+  return prisma.workflowRun.findMany({
+    where: { workflowId },
+    include: { workflowVersion: true },
+    orderBy: { startedAt: 'desc' },
+    take: limit,
+  })
+}
+
+export async function getWorkflowRun(workflowId: string, runId: string) {
+  return prisma.workflowRun.findFirst({
+    where: { id: runId, workflowId },
+    include: {
+      workflowVersion: true,
+      nodeExecutions: { orderBy: { startedAt: 'asc' } },
+    },
   })
 }
 

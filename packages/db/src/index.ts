@@ -11,6 +11,8 @@ export type {
   Workflow,
   WorkflowEditEvent,
   WorkflowVersion,
+  WorkflowRun,
+  WorkflowRunNodeExecution,
   WorkflowNodeExecution,
   Agent,
   AgentSession,

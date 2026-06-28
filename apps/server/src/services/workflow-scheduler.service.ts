@@ -196,11 +196,15 @@ function slotKey(now: Date): string {
 }
 
 async function schedulerTick(now = new Date()) {
-  const workflows = await prisma.workflow.findMany()
+  const workflows = await prisma.workflow.findMany({
+    where: { enabled: true, activeVersionId: { not: null } },
+    include: { activeVersion: true },
+  })
   const slot = slotKey(now)
 
   for (const workflow of workflows) {
-    const definition = parseDefinition(workflow.definition)
+    if (!workflow.activeVersion) continue
+    const definition = parseDefinition(workflow.activeVersion.definition)
     if (!definition) continue
 
     for (const node of definition.nodes) {
@@ -216,6 +220,9 @@ async function schedulerTick(now = new Date()) {
         .runWorkflow(workflow.id, workflow.userId, definition.nodes, definition.edges, {
           triggerNodeId: node.id,
           triggeredBy: 'cron',
+          workflowVersionId: workflow.activeVersion.id,
+          definitionSnapshot: workflow.activeVersion.definition,
+          source: 'published',
           workflowInput: { scheduledAt: now.toISOString() },
         })
         .catch((error) => {

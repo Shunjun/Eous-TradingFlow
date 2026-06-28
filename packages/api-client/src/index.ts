@@ -155,6 +155,7 @@ export interface WorkflowEditEvent {
   ops: WorkflowEditOp[]
   inverseOps: WorkflowEditOp[]
   snapshotName: string | null
+  targetVersionId: string | null
   targetSeq: number | null
   createdAt: string
 }
@@ -180,8 +181,57 @@ export interface WorkflowDefinition {
   edges: WorkflowEdge[]
   viewport?: { x: number; y: number; zoom: number }
   currentSeq: number
+  enabled: boolean
+  activeVersionId: string | null
   createdAt: string
   updatedAt: string
+}
+
+export interface WorkflowVersion {
+  id: string
+  workflowId: string
+  version: number
+  definition: string
+  note: string | null
+  createdAt: string
+  createdBy: string
+}
+
+export interface WorkflowRunNodeExecution {
+  id: string
+  runId?: string
+  nodeId: string
+  nodeType: string
+  status: string
+  inputs: Record<string, unknown> | null
+  outputs: Record<string, unknown> | null
+  logs: Array<{ ts: string; level: string; message: string }>
+  durationMs: number | null
+  error: string | null
+  startedAt: string
+  finishedAt: string | null
+}
+
+export interface WorkflowRun {
+  id: string
+  workflowId: string
+  workflowVersionId: string | null
+  workflowVersion?: WorkflowVersion | null
+  userId: string
+  trigger: string
+  source: string
+  status: string
+  definition: string
+  report: string | null
+  error: string | null
+  startedAt: string
+  finishedAt: string | null
+  durationMs: number | null
+  createdAt: string
+}
+
+export interface WorkflowRunDetail extends WorkflowRun {
+  nodeExecutions: WorkflowRunNodeExecution[]
 }
 
 export interface UserProfile {
@@ -404,6 +454,17 @@ export interface ApiClient {
     eventId: string,
   ): Promise<{ workflow: WorkflowDefinition; event: WorkflowEditEvent }>
   deleteWorkflow(id: string): Promise<void>
+  setWorkflowEnabled(id: string, enabled: boolean): Promise<{ workflow: WorkflowDefinition }>
+  publishWorkflow(id: string, params?: { note?: string }): Promise<{ version: WorkflowVersion }>
+  listWorkflowVersions(workflowId: string): Promise<{ versions: WorkflowVersion[] }>
+  setActiveWorkflowVersion(
+    workflowId: string,
+    versionId: string,
+  ): Promise<{ workflow: WorkflowDefinition }>
+  restoreWorkflowVersionToDraft(
+    workflowId: string,
+    versionId: string,
+  ): Promise<{ workflow: WorkflowDefinition; event: WorkflowEditEvent }>
 
   executeWorkflow(id: string, request?: ExecuteWorkflowRequest): Promise<ExecutionRecord>
   cancelExecution(id: string): Promise<void>
@@ -470,6 +531,8 @@ export interface ApiClient {
       finishedAt: string | null
     }>
   }>
+  getWorkflowRuns(workflowId: string, limit?: number): Promise<{ runs: WorkflowRun[] }>
+  getWorkflowRun(workflowId: string, runId: string): Promise<{ run: WorkflowRunDetail }>
 
   getWatchedAssets(): Promise<AssetRef[]>
   addAsset(asset: AssetRef): Promise<void>
@@ -690,6 +753,8 @@ interface RawWorkflow {
   description?: string
   definition: string
   currentSeq?: number
+  enabled?: boolean
+  activeVersionId?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -718,6 +783,8 @@ function toWorkflowDefinition(raw: RawWorkflow): WorkflowDefinition {
     nodes,
     edges,
     currentSeq: raw.currentSeq ?? 0,
+    enabled: raw.enabled ?? false,
+    activeVersionId: raw.activeVersionId ?? null,
     createdAt: raw.createdAt,
     updatedAt: raw.updatedAt,
   }
@@ -903,6 +970,29 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       return { workflow: toWorkflowDefinition(res.workflow), event: res.event }
     },
     deleteWorkflow: (id: string) => del(`/workflows/${encodeURIComponent(id)}`, true),
+    setWorkflowEnabled: async (id, enabled) => {
+      const res = await patch<{ workflow: RawWorkflow }>(
+        `/workflows/${encodeURIComponent(id)}/status`,
+        { enabled },
+      )
+      return { workflow: toWorkflowDefinition(res.workflow) }
+    },
+    publishWorkflow: (id, params) =>
+      post(`/workflows/${encodeURIComponent(id)}/publish`, params ?? {}),
+    listWorkflowVersions: (workflowId) =>
+      get(`/workflows/${encodeURIComponent(workflowId)}/versions`),
+    setActiveWorkflowVersion: async (workflowId, versionId) => {
+      const res = await post<{ workflow: RawWorkflow }>(
+        `/workflows/${encodeURIComponent(workflowId)}/versions/${encodeURIComponent(versionId)}/activate`,
+      )
+      return { workflow: toWorkflowDefinition(res.workflow) }
+    },
+    restoreWorkflowVersionToDraft: async (workflowId, versionId) => {
+      const res = await post<{ workflow: RawWorkflow; event: WorkflowEditEvent }>(
+        `/workflows/${encodeURIComponent(workflowId)}/versions/${encodeURIComponent(versionId)}/restore-draft`,
+      )
+      return { workflow: toWorkflowDefinition(res.workflow), event: res.event }
+    },
     executeWorkflow: (id: string, request?: ExecuteWorkflowRequest) =>
       post(`/workflows/${encodeURIComponent(id)}/execute`, request),
 
@@ -922,6 +1012,12 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       const params = limit !== undefined ? `?limit=${limit}` : ''
       return get(`/workflows/${encodeURIComponent(workflowId)}/executions${params}`)
     },
+    getWorkflowRuns: (workflowId: string, limit?: number) => {
+      const params = limit !== undefined ? `?limit=${limit}` : ''
+      return get(`/workflows/${encodeURIComponent(workflowId)}/runs${params}`)
+    },
+    getWorkflowRun: (workflowId: string, runId: string) =>
+      get(`/workflows/${encodeURIComponent(workflowId)}/runs/${encodeURIComponent(runId)}`),
 
     getWatchedAssets: () => get('/assets'),
     addAsset: (asset) => post('/assets', asset, true),

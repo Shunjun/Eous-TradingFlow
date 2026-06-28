@@ -52,6 +52,16 @@ workflowRouter.patch('/:id/meta', async (c) => {
   return c.json({ workflow })
 })
 
+workflowRouter.patch('/:id/status', async (c) => {
+  const body = await c.req.json<{ enabled?: boolean }>()
+  const workflow = await workflowService.setWorkflowEnabled(
+    c.get('userId'),
+    c.req.param('id'),
+    Boolean(body.enabled),
+  )
+  return c.json({ workflow })
+})
+
 workflowRouter.patch('/:id', async (c) => {
   const body = await c.req.json<ApplyWorkflowOpsRequest>()
   const result = await workflowEditService.applyWorkflowOps(
@@ -122,13 +132,32 @@ workflowRouter.delete('/:id', async (c) => {
 })
 
 workflowRouter.post('/:id/publish', async (c) => {
-  const version = await workflowService.publishWorkflow(c.get('userId'), c.req.param('id'))
+  const body = await c.req.json<{ note?: string }>().catch(() => ({}))
+  const version = await workflowService.publishWorkflow(c.get('userId'), c.req.param('id'), body)
   return c.json({ version })
 })
 
 workflowRouter.get('/:id/versions', async (c) => {
   const versions = await workflowService.listVersions(c.get('userId'), c.req.param('id'))
   return c.json({ versions })
+})
+
+workflowRouter.post('/:id/versions/:versionId/activate', async (c) => {
+  const workflow = await workflowService.setActiveVersion(
+    c.get('userId'),
+    c.req.param('id'),
+    c.req.param('versionId'),
+  )
+  return c.json({ workflow })
+})
+
+workflowRouter.post('/:id/versions/:versionId/restore-draft', async (c) => {
+  const result = await workflowService.restoreVersionToDraft(
+    c.get('userId'),
+    c.req.param('id'),
+    c.req.param('versionId'),
+  )
+  return c.json(result)
 })
 
 // --- Node execution endpoints ---
@@ -189,6 +218,8 @@ workflowRouter.post('/:id/execute', async (c) => {
   }
   const execution = await workflowRunner.runWorkflow(workflow.id, userId, def.nodes, def.edges, {
     workflowInput: body.input ?? {},
+    definitionSnapshot: workflow.definition,
+    source: 'draft',
   })
   return c.json(execution)
 })
@@ -197,4 +228,23 @@ workflowRouter.get('/:id/executions', async (c) => {
   const limit = Number(c.req.query('limit')) || 50
   const executions = await workflowRunner.getWorkflowExecutions(c.req.param('id'), limit)
   return c.json({ executions: executions.map(parseExecutionJson) })
+})
+
+workflowRouter.get('/:id/runs', async (c) => {
+  const workflow = await workflowService.getWorkflow(c.get('userId'), c.req.param('id'))
+  const limit = Number(c.req.query('limit')) || 50
+  const runs = await workflowRunner.getWorkflowRuns(workflow.id, limit)
+  return c.json({ runs })
+})
+
+workflowRouter.get('/:id/runs/:runId', async (c) => {
+  const workflow = await workflowService.getWorkflow(c.get('userId'), c.req.param('id'))
+  const run = await workflowRunner.getWorkflowRun(workflow.id, c.req.param('runId'))
+  if (!run) return c.json({ error: 'Workflow run not found' }, 404)
+  return c.json({
+    run: {
+      ...run,
+      nodeExecutions: run.nodeExecutions.map(parseExecutionJson),
+    },
+  })
 })
