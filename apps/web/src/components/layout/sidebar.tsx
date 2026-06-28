@@ -156,7 +156,11 @@ export function AppSidebar() {
                             asChild
                             isActive={isActive}
                             tooltip={item.label}
-                            className={recentWorkflows.length > 0 ? 'pr-8' : undefined}
+                            className={cn(
+                              recentWorkflows.length > 0 && 'pr-8',
+                              isActive &&
+                                'before:absolute before:left-0 before:top-1/2 before:h-4 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-primary',
+                            )}
                           >
                             <NavLink to={navToPath[item.id]} className="cursor-pointer">
                               <Icon size={16} />
@@ -213,7 +217,15 @@ export function AppSidebar() {
 
                     return (
                       <SidebarMenuItem key={item.id}>
-                        <SidebarMenuButton asChild isActive={isActive} tooltip={item.label}>
+                        <SidebarMenuButton
+                          asChild
+                          isActive={isActive}
+                          tooltip={item.label}
+                          className={cn(
+                            isActive &&
+                              'before:absolute before:left-0 before:top-1/2 before:h-4 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-primary',
+                          )}
+                        >
                           <NavLink to={navToPath[item.id]} className="cursor-pointer">
                             <Icon size={16} />
                             <span className="flex-1 text-left group-data-[collapsible=icon]:hidden">
