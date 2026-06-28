@@ -142,6 +142,7 @@ export default function WorkflowsPage() {
           <ToggleGroup
             type="single"
             value={status}
+            spacing={1}
             onValueChange={(value) => value && setStatus(value as StatusFilter)}
             className="justify-start"
           >
@@ -152,6 +153,7 @@ export default function WorkflowsPage() {
           <ToggleGroup
             type="single"
             value={view}
+            spacing={1}
             onValueChange={(value) => value && setView(value as ViewMode)}
           >
             <ToggleGroupItem value="cards" aria-label="Card view">
