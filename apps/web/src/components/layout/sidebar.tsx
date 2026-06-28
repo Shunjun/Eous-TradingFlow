@@ -1,10 +1,7 @@
-import { useState, useCallback, type ElementType, useMemo } from 'react'
+import { useState, useCallback, type ElementType } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   Button,
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
   Dot,
   DropdownMenu,
   DropdownMenuContent,
@@ -19,8 +16,12 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarSeparator,
   useTheme,
   useSidebar,
@@ -41,7 +42,6 @@ import {
   GitBranch,
   ChevronDown,
 } from 'lucide-react'
-import { useWorkflowList } from '../../hooks/use-workflows'
 import { useRecentWorkflowsStore } from '../../stores/recent-workflows'
 import { CreateWorkflowDialog } from '../workflow/dialogs'
 import { api } from '../../lib/api'
@@ -65,7 +65,10 @@ const navSections: { title: string; items: NavItem[] }[] = [
   },
   {
     title: 'BUILD',
-    items: [{ id: 'datasets', label: 'Datasets', icon: Wallet }],
+    items: [
+      { id: 'workflows', label: 'Workflows', icon: GitBranch },
+      { id: 'datasets', label: 'Datasets', icon: Wallet },
+    ],
   },
 ]
 
@@ -76,6 +79,7 @@ const navToPath: Record<string, string> = {
   news: '/news',
   agents: '/chat',
   datasets: '/datasets',
+  workflows: '/workflows',
   settings: '/settings',
 }
 
@@ -94,23 +98,12 @@ export function AppSidebar() {
   const navigate = useNavigate()
   const { state } = useSidebar()
   const { theme, setTheme } = useTheme()
-  const { workflows } = useWorkflowList()
   const recentWorkflows = useRecentWorkflowsStore((s) => s.recent)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [workflowsCollapsed, setWorkflowsCollapsed] = useState(false)
 
   const isCollapsed = state === 'collapsed'
   const activeWorkflowId = extractWorkflowId(pathname)
-  const isOnWorkflowPage = pathname === '/workflows' || activeWorkflowId !== null
-
-  const activeWorkflow = useMemo(
-    () =>
-      workflows.find((wf) => wf.id === activeWorkflowId) ??
-      recentWorkflows.find((wf) => wf.id === activeWorkflowId) ??
-      null,
-    [workflows, recentWorkflows, activeWorkflowId],
-  )
-  const showPinnedActiveWorkflow = !isCollapsed && workflowsCollapsed && activeWorkflow
 
   const handleCreated = useCallback(
     (id: string) => {
@@ -150,8 +143,79 @@ export function AppSidebar() {
               <SidebarGroupContent>
                 <SidebarMenu className="gap-0.5">
                   {section.items.map((item) => {
-                    const isActive = isItemActive(pathname, navToPath[item.id])
+                    const isActive =
+                      item.id === 'workflows'
+                        ? pathname === '/workflows'
+                        : isItemActive(pathname, navToPath[item.id])
                     const Icon = item.icon
+
+                    if (item.id === 'workflows') {
+                      return (
+                        <SidebarMenuItem key={item.id}>
+                          {isActive && (
+                            <span className="pointer-events-none absolute -left-2 top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:hidden" />
+                          )}
+                          <SidebarMenuButton
+                            asChild
+                            isActive={isActive}
+                            tooltip={item.label}
+                            className={recentWorkflows.length > 0 ? 'pr-8' : undefined}
+                          >
+                            <NavLink to={navToPath[item.id]} className="cursor-pointer">
+                              <Icon size={16} />
+                              <span className="flex-1 text-left group-data-[collapsible=icon]:hidden">
+                                {item.label}
+                              </span>
+                            </NavLink>
+                          </SidebarMenuButton>
+                          {recentWorkflows.length > 0 && (
+                            <SidebarMenuAction
+                              aria-label={workflowsCollapsed ? '展开最近工作流' : '折叠最近工作流'}
+                              onClick={() => setWorkflowsCollapsed((value) => !value)}
+                            >
+                              <ChevronDown
+                                className={cn(
+                                  'transition-transform duration-200',
+                                  !workflowsCollapsed && 'rotate-180',
+                                )}
+                              />
+                            </SidebarMenuAction>
+                          )}
+                          {!isCollapsed && recentWorkflows.length > 0 && !workflowsCollapsed && (
+                            <SidebarMenuSub>
+                              <SidebarMenuSubItem>
+                                <SidebarMenuSubButton asChild>
+                                  <button type="button" onClick={() => setDialogOpen(true)}>
+                                    <Plus size={16} />
+                                    <span>新建工作流</span>
+                                  </button>
+                                </SidebarMenuSubButton>
+                              </SidebarMenuSubItem>
+                              {recentWorkflows.map((wf) => {
+                                const isRecentActive = activeWorkflowId === wf.id
+
+                                return (
+                                  <SidebarMenuSubItem key={wf.id}>
+                                    {isRecentActive && (
+                                      <span className="pointer-events-none absolute -left-2 top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:hidden" />
+                                    )}
+                                    <SidebarMenuSubButton asChild isActive={isRecentActive}>
+                                      <NavLink
+                                        to={`/workflows/${wf.id}/edit`}
+                                        className="cursor-pointer"
+                                      >
+                                        <GitBranch size={14} />
+                                        <span>{wf.name}</span>
+                                      </NavLink>
+                                    </SidebarMenuSubButton>
+                                  </SidebarMenuSubItem>
+                                )
+                              })}
+                            </SidebarMenuSub>
+                          )}
+                        </SidebarMenuItem>
+                      )
+                    }
 
                     return (
                       <SidebarMenuItem key={item.id}>
@@ -173,113 +237,6 @@ export function AppSidebar() {
               </SidebarGroupContent>
             </SidebarGroup>
           ))}
-
-          {(!isCollapsed || isOnWorkflowPage) && (
-            <Collapsible
-              open={!workflowsCollapsed}
-              onOpenChange={(open) => setWorkflowsCollapsed(!open)}
-              className="group/collapsible"
-            >
-              <SidebarGroup className="px-0">
-                <SidebarGroupLabel asChild>
-                  <div className="flex w-full items-center gap-1">
-                    <NavLink
-                      to="/workflows"
-                      className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1 text-left hover:text-sidebar-foreground"
-                    >
-                      WORKFLOWS
-                    </NavLink>
-                    {recentWorkflows.length > 0 && (
-                      <CollapsibleTrigger className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md hover:bg-sidebar-accent">
-                        <ChevronDown className="transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
-                      </CollapsibleTrigger>
-                    )}
-                  </div>
-                </SidebarGroupLabel>
-
-                {/* 折叠时 pin 住选中的 workflow */}
-                {showPinnedActiveWorkflow && (
-                  <SidebarMenu className="gap-0.5">
-                    <SidebarMenuItem>
-                      <span className="pointer-events-none absolute -left-2 top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:hidden" />
-                      <SidebarMenuButton asChild isActive tooltip={activeWorkflow.name}>
-                        <NavLink
-                          to={`/workflows/${activeWorkflow.id}/edit`}
-                          className="cursor-pointer"
-                        >
-                          <GitBranch size={16} />
-                          <span className="flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
-                            {activeWorkflow.name}
-                          </span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  </SidebarMenu>
-                )}
-
-                {recentWorkflows.length > 0 && (
-                  <CollapsibleContent>
-                    <SidebarGroupContent>
-                      {isCollapsed && isOnWorkflowPage ? (
-                        <SidebarMenu className="gap-0.5">
-                          {activeWorkflow && (
-                            <SidebarMenuItem>
-                              <SidebarMenuButton asChild isActive tooltip={activeWorkflow.name}>
-                                <NavLink
-                                  to={`/workflows/${activeWorkflow.id}/edit`}
-                                  className="cursor-pointer"
-                                >
-                                  <GitBranch size={16} />
-                                </NavLink>
-                              </SidebarMenuButton>
-                            </SidebarMenuItem>
-                          )}
-                        </SidebarMenu>
-                      ) : (
-                        <SidebarMenu className="gap-0.5">
-                          <SidebarMenuItem>
-                            <SidebarMenuButton onClick={() => setDialogOpen(true)}>
-                              <Plus size={16} />
-                              <span className="flex-1 text-left group-data-[collapsible=icon]:hidden">
-                                新建工作流
-                              </span>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                          {workflows.length === 0
-                            ? null
-                            : recentWorkflows.map((wf) => {
-                                const isActive = activeWorkflowId === wf.id
-                                return (
-                                  <SidebarMenuItem key={wf.id}>
-                                    {isActive && (
-                                      <span className="pointer-events-none absolute -left-2 top-1/2 h-3 w-1.5 -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:hidden" />
-                                    )}
-                                    <SidebarMenuButton
-                                      asChild
-                                      isActive={isActive}
-                                      tooltip={wf.name}
-                                    >
-                                      <NavLink
-                                        to={`/workflows/${wf.id}/edit`}
-                                        className="cursor-pointer"
-                                      >
-                                        <GitBranch size={16} />
-                                        <span className="flex-1 truncate text-left group-data-[collapsible=icon]:hidden">
-                                          {wf.name}
-                                        </span>
-                                      </NavLink>
-                                    </SidebarMenuButton>
-                                  </SidebarMenuItem>
-                                )
-                              })}
-                        </SidebarMenu>
-                      )}
-                    </SidebarGroupContent>
-                  </CollapsibleContent>
-                )}
-              </SidebarGroup>
-            </Collapsible>
-          )}
         </SidebarContent>
 
         <SidebarSeparator />
