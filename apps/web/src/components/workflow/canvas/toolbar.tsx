@@ -51,7 +51,7 @@ function ToolbarTooltip({
   )
 }
 
-function CanvasToolbar() {
+function Toolbar() {
   const { fitView, screenToFlowPosition } = useReactFlow()
   const workflowStore = useWorkflowStoreApi()
   const mode = useWorkflowStore((state) => state.canvasMode)
@@ -134,6 +134,6 @@ function CanvasToolbar() {
   )
 }
 
-CanvasToolbar.displayName = 'CanvasToolbar'
+Toolbar.displayName = 'Toolbar'
 
-export { CanvasToolbar }
+export { Toolbar }

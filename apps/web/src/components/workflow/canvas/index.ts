@@ -1,5 +1,5 @@
 export { WorkflowCanvas } from './workflow-canvas'
 export { WorkflowOverlay } from './workflow-overlay'
 export type { WorkflowOverlayProps } from './workflow-overlay'
-export { CanvasToolbar } from './canvas-toolbar'
-export type { CanvasInteractionMode } from './canvas-toolbar'
+export { Toolbar } from './toolbar'
+export type { CanvasInteractionMode } from './toolbar'

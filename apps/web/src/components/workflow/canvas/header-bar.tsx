@@ -35,7 +35,7 @@ import { useWorkflowList } from '../../../hooks/use-workflows'
 import { useWorkflowListStore } from '../../../stores/workflows'
 import { useWorkflowStore } from '../store/workflow-store'
 
-interface FloatToolbarProps {
+interface HeaderBarProps {
   saving: boolean
   publishing: boolean
   isPublished: boolean
@@ -44,14 +44,14 @@ interface FloatToolbarProps {
   onWorkflowSelect?: (workflowId: string | null) => void
 }
 
-function FloatToolbar({
+function HeaderBar({
   saving,
   publishing,
   isPublished,
   showWorkflowList = false,
   onPublish,
   onWorkflowSelect,
-}: FloatToolbarProps) {
+}: HeaderBarProps) {
   const workflowName = useWorkflowStore((s) => s.workflowName)
   const isDirty = useWorkflowStore((s) => s.isDirty)
   const setWorkflowName = useWorkflowStore((s) => s.setWorkflowName)
@@ -81,6 +81,10 @@ function FloatToolbar({
     if (e.key === 'Enter') {
       setEditing(false)
     }
+  }, [])
+
+  const stopNameInputEvent = useCallback((event: React.SyntheticEvent) => {
+    event.stopPropagation()
   }, [])
 
   useEffect(() => {
@@ -232,13 +236,15 @@ function FloatToolbar({
               onChange={(e) => setWorkflowName(e.target.value)}
               onBlur={handleNameBlur}
               onKeyDown={handleKeyDown}
+              onPointerDown={stopNameInputEvent}
+              onClick={stopNameInputEvent}
               className="h-7 min-w-24 max-w-48 flex-1 text-sm font-medium"
             />
           ) : (
             <button
               type="button"
               onClick={handleNameClick}
-              className="min-w-16 max-w-[200px] shrink truncate text-left text-sm font-medium text-foreground hover:text-muted-foreground"
+              className="min-w-4 max-w-[200px] shrink truncate text-left text-sm font-medium text-foreground hover:text-muted-foreground"
             >
               {workflowName || '未命名工作流'}
             </button>
@@ -315,7 +321,7 @@ function FloatToolbar({
   )
 }
 
-FloatToolbar.displayName = 'FloatToolbar'
+HeaderBar.displayName = 'HeaderBar'
 
-export { FloatToolbar }
-export type { FloatToolbarProps }
+export { HeaderBar }
+export type { HeaderBarProps }

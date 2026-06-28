@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup, cn } from '@eous/ui'
-import { CanvasToolbar } from './canvas-toolbar'
-import { FloatToolbar } from './float-toolbar'
+import { HeaderBar } from './header-bar'
+import { Toolbar } from './toolbar'
 import { GlobalLogPanel, SettingsPanel, StackedSidePanels, WorkflowUtilityPanel } from '../panels'
 import { useWorkflowStore } from '../store/workflow-store'
 import type { WorkflowEditEvent } from '@eous/api-client'
@@ -150,7 +150,7 @@ function WorkflowOverlay({
 
   const workspaceLayer = (
     <div className={cn('grid h-full w-full grid-rows-[auto_1fr] gap-3 p-3', logOpen && 'pb-2')}>
-      <FloatToolbar
+      <HeaderBar
         saving={saving}
         publishing={publishing}
         isPublished={isPublished}
@@ -162,7 +162,7 @@ function WorkflowOverlay({
       <div className="grid min-h-0 grid-cols-[1fr_auto] gap-3 overflow-x-hidden">
         <div className="relative min-h-0">
           <div className="absolute top-1/2 -translate-y-1/2 left-0">
-            <CanvasToolbar />
+            <Toolbar />
           </div>
         </div>
         <StackedSidePanels open={panelOrder.length > 0}>{sidePanels}</StackedSidePanels>
