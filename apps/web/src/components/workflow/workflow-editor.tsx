@@ -39,6 +39,7 @@ function WorkflowEditorContent({
   const loadDraftWorkflow = useWorkflowStore((s) => s.loadDraft)
   const refreshWorkflowList = useWorkflowListStore((s) => s.refreshWorkflows)
   const createWorkflowInList = useWorkflowListStore((s) => s.createWorkflow)
+  const updateWorkflowInList = useWorkflowListStore((s) => s.updateWorkflow)
   const markRecentWorkflow = useRecentWorkflowsStore((s) => s.markRecent)
   const reset = useWorkflowStore((s) => s.reset)
   const activeWorkflowId = useWorkflowStore((s) => s.activeWorkflowId)
@@ -47,6 +48,7 @@ function WorkflowEditorContent({
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [currentSeq, setCurrentSeq] = useState(0)
+  const [publishedVersionId, setPublishedVersionId] = useState<string | null>(null)
   const currentSeqRef = useRef(0)
   const [snapshots, setSnapshots] = useState<WorkflowEditEvent[]>([])
   const [conflict, setConflict] = useState<WorkflowSaveConflictState>(null)
@@ -100,6 +102,7 @@ function WorkflowEditorContent({
     const serverEdges = toLocalWorkflowEdges(workflow)
 
     setCurrentSeq(workflow.currentSeq)
+    setPublishedVersionId(workflow.activeVersionId ?? null)
     initialWorkflowNameRef.current = workflow.name
     markRecentWorkflow({ id: workflow.id, name: workflow.name, updatedAt: workflow.updatedAt })
 
@@ -330,13 +333,15 @@ function WorkflowEditorContent({
     setPublishing(true)
     try {
       await flushPendingOps('发布前同步')
-      await publishWorkflow(activeWorkflowId)
+      const version = await publishWorkflow(activeWorkflowId)
+      setPublishedVersionId(version.id)
+      updateWorkflowInList(activeWorkflowId, { activeVersionId: version.id })
     } catch {
       // error handled by global error handler
     } finally {
       setPublishing(false)
     }
-  }, [activeWorkflowId, flushPendingOps])
+  }, [activeWorkflowId, flushPendingOps, updateWorkflowInList])
 
   const handleCreateSnapshot = useCallback(async () => {
     if (!activeWorkflowId) return
@@ -387,6 +392,7 @@ function WorkflowEditorContent({
         workflowId={workflowId}
         saving={saving}
         publishing={publishing}
+        isPublished={publishedVersionId !== null}
         snapshots={snapshots}
         showWorkflowList={showWorkflowList}
         onPublish={handlePublish}

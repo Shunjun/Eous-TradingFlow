@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { WorkflowDefinition } from '@eous/api-client'
+import type { WorkflowDefinition, WorkflowVersion } from '@eous/api-client'
 import { api } from '../lib/api'
 import { useWorkflowListStore } from '../stores/workflows'
 
@@ -63,6 +63,7 @@ export async function createWorkflow(name: string): Promise<string> {
   return workflow.id
 }
 
-export async function publishWorkflow(id: string): Promise<void> {
-  await api.publishWorkflow(id)
+export async function publishWorkflow(id: string): Promise<WorkflowVersion> {
+  const result = await api.publishWorkflow(id)
+  return result.version
 }

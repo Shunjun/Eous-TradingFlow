@@ -38,6 +38,7 @@ import { useWorkflowStore } from '../store/workflow-store'
 interface FloatToolbarProps {
   saving: boolean
   publishing: boolean
+  isPublished: boolean
   showWorkflowList?: boolean
   onPublish: () => void
   onWorkflowSelect?: (workflowId: string | null) => void
@@ -46,6 +47,7 @@ interface FloatToolbarProps {
 function FloatToolbar({
   saving,
   publishing,
+  isPublished,
   showWorkflowList = false,
   onPublish,
   onWorkflowSelect,
@@ -88,7 +90,6 @@ function FloatToolbar({
     }
   }, [editing])
 
-  const isPublished = activeWorkflowId && activeWorkflowId !== 'new'
   const statusText = [
     saving ? '同步中…' : isDirty ? '待同步' : '已同步',
     isPublished ? '已发布' : '未发布',

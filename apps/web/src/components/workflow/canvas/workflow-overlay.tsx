@@ -10,6 +10,7 @@ interface WorkflowOverlayProps {
   workflowId: string
   saving: boolean
   publishing: boolean
+  isPublished: boolean
   snapshots: WorkflowEditEvent[]
   showWorkflowList?: boolean
   onPublish: () => void
@@ -40,6 +41,7 @@ function WorkflowOverlay({
   workflowId,
   saving,
   publishing,
+  isPublished,
   snapshots,
   showWorkflowList,
   onPublish,
@@ -151,6 +153,7 @@ function WorkflowOverlay({
       <FloatToolbar
         saving={saving}
         publishing={publishing}
+        isPublished={isPublished}
         showWorkflowList={showWorkflowList}
         onPublish={onPublish}
         onWorkflowSelect={onWorkflowSelect}
