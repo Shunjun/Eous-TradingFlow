@@ -96,4 +96,14 @@ describe('resolveString', () => {
     const result = resolveString('{{node:n3:signal}}', cache, nodes)
     expect(result).toBe('long')
   })
+
+  it('stringifies object arrays as JSON for whole-string variables', () => {
+    const result = resolveString('{{node:n1:bars}}', cache, nodes)
+    expect(result).toBe(JSON.stringify([{ open: 100 }], null, 2))
+  })
+
+  it('stringifies object arrays as JSON for embedded variables', () => {
+    const result = resolveString('K线数据:\n{{node:n1:bars}}', cache, nodes)
+    expect(result).toBe(`K线数据:\n${JSON.stringify([{ open: 100 }], null, 2)}`)
+  })
 })

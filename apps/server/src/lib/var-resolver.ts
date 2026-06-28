@@ -47,7 +47,7 @@ export function resolveString(
   const whole = str.match(WHOLE_VAR_RE)
   if (whole) {
     const val = resolvePath(whole[1], cache, nodes, false)
-    return String(val)
+    return stringifyResolvedValue(val, false)
   }
 
   // Embedded variables in a larger string
@@ -58,8 +58,21 @@ export function resolveString(
 
   return str.replace(EMBEDDED_VAR_RE, (_match, path: string) => {
     const val = resolvePath(path, cache, nodes, true)
-    return String(val)
+    return stringifyResolvedValue(val, true)
   })
+}
+
+function stringifyResolvedValue(value: unknown, embedded: boolean): string {
+  if (typeof value === 'string') return embedded ? `'${value}'` : value
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value, null, 2)
+    } catch {
+      return String(value)
+    }
+  }
+  return String(value)
 }
 
 function resolvePath(
@@ -113,11 +126,6 @@ function resolveNodeField(
     throw new Error(
       `变量引用解析失败: {{{originalPath}}}, 原因: 节点 "${nodeId}" 没有字段 "${fieldPath}"`,
     )
-  }
-
-  // When embedded in a string expression, auto-quote string values
-  if (embedded && typeof val === 'string') {
-    return `'${val}'`
   }
 
   return val
