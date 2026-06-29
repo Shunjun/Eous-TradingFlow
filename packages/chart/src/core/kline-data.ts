@@ -17,8 +17,10 @@ export interface KlineDataPoint {
 export type FetchKlinesFn = (params: {
   symbol: string
   interval: string
+  query?: 'latest' | 'before' | 'range'
   from?: number
   to?: number
+  before?: number
   limit?: number
   /** Active data provider ID — passed by the chart to identify which provider to query */
   providerId?: string
@@ -75,6 +77,7 @@ export class KLineData {
   upsertLatest(kline: KlineDataPoint): void {
     if (this._loading) {
       this.pendingRealtimeKlines = this.upsertInto(this.pendingRealtimeKlines, kline)
+      if (this.klines.length === 0) return
     }
 
     this.klines = this.upsertInto(this.klines, kline)
@@ -145,8 +148,9 @@ export class KLineData {
       symbol,
       interval,
       {
-        from: Math.max(0, subtractIntervals(ms, interval, barCount)),
-        to: ms - 1,
+        query: 'before',
+        before: ms,
+        limit: barCount,
       },
       false,
     )
@@ -157,7 +161,13 @@ export class KLineData {
     fetchFn: FetchKlinesFn,
     symbol: string,
     interval: string,
-    opts: { from?: number; to?: number; limit?: number },
+    opts: {
+      query?: 'latest' | 'before' | 'range'
+      from?: number
+      to?: number
+      before?: number
+      limit?: number
+    },
     fit: boolean,
   ): Promise<void> {
     const id = ++this.fetchId

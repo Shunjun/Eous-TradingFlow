@@ -6,6 +6,7 @@ import {
 } from '@eous/data-sources'
 import { normalizeProviderKlines } from './kline-normalizer.js'
 import * as klineStore from './kline-store.repo.js'
+import { getCachedLatestKlines, LATEST_WINDOW_LIMIT, setCachedLatestKlines } from './kline-cache.js'
 import type { CanonicalKline } from './market-data.types.js'
 
 interface RealtimeSeriesInput {
@@ -76,6 +77,7 @@ class RealtimeIngestService {
       intervalMs,
       kline: normalized,
     })
+    await this.updateLatestCache(series.id, input.series.interval, normalized)
 
     const signature = klineSignature(normalized)
     if (this.signatureBySeriesKey.get(seriesKey) === signature) return null
@@ -97,6 +99,27 @@ class RealtimeIngestService {
       source: input.source,
       timestamp: input.timestamp ?? Date.now(),
     }
+  }
+
+  private async updateLatestCache(
+    seriesId: string,
+    interval: string,
+    kline: CanonicalKline,
+  ): Promise<void> {
+    const cached = await getCachedLatestKlines({ seriesId, mode: 'include-live' })
+    const bars = cached?.bars ?? []
+    const byTimestamp = new Map<number, CanonicalKline>()
+    for (const item of bars) byTimestamp.set(item.timestamp, item)
+    byTimestamp.set(kline.timestamp, kline)
+
+    await setCachedLatestKlines({
+      seriesId,
+      interval,
+      mode: 'include-live',
+      bars: [...byTimestamp.values()]
+        .sort((a, b) => a.timestamp - b.timestamp)
+        .slice(-LATEST_WINDOW_LIMIT),
+    })
   }
 }
 

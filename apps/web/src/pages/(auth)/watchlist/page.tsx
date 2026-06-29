@@ -66,15 +66,29 @@ export default function WatchlistPage() {
   }, [])
 
   const fetchKlines = useMemo<FetchKlinesFn>(() => {
-    return async ({ symbol, interval, from, to, limit, providerId }) => {
+    return async ({ symbol, interval, query, from, to, before, limit, providerId }) => {
       if (!providerId) return []
       const body: Record<string, unknown> = { symbol, interval }
+      if (query !== undefined) body.query = query
       if (from !== undefined) body.from = from
       if (to !== undefined) body.to = to
+      if (before !== undefined) body.before = before
       if (limit !== undefined) body.limit = limit
+      if (!query && from === undefined && to === undefined && before === undefined) {
+        body.mode = 'closed-only'
+      }
       const data = await api.getDataSourceKlines(
         providerId,
-        body as { symbol: string; interval: string; from?: number; to?: number; limit?: number },
+        body as {
+          symbol: string
+          interval: string
+          query?: 'latest' | 'before' | 'range'
+          from?: number
+          to?: number
+          before?: number
+          limit?: number
+          mode?: 'closed-only' | 'include-live'
+        },
       )
       return data.klines as KlineDataPoint[]
     }

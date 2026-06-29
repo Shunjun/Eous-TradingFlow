@@ -140,8 +140,10 @@ dataSourceInstanceRouter.post('/data-source-instances/:id/klines', async (c) => 
   const body = await c.req.json<{
     symbol: string
     interval: string
+    query?: 'latest' | 'before' | 'range'
     from?: number
     to?: number
+    before?: number
     limit?: number
     mode?: 'closed-only' | 'include-live'
   }>()

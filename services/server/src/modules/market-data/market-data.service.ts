@@ -14,9 +14,16 @@ import {
 import { AppError } from '../../lib/app-error.js'
 import { decrypt, getEncryptionKey } from '../../lib/crypto-utils.js'
 import * as dsRepo from '../../repositories/data-source.repo.js'
-import { getCachedKlineWindow, setCachedKlineWindow } from './kline-cache.js'
+import {
+  getCachedKlineSegment,
+  getCachedLatestKlines,
+  getSegmentSpanMs,
+  getSegmentStarts,
+  LATEST_WINDOW_LIMIT,
+  setCachedKlineSegment,
+  setCachedLatestKlines,
+} from './kline-cache.js'
 import { claimProviderFetch, runSingleFlight } from './kline-fetch-coordinator.js'
-import { planKlineFetchRanges } from './kline-gap-planner.js'
 import {
   getEffectiveFinalTo,
   normalizeProviderKlines,
@@ -77,7 +84,7 @@ async function getProviderIntervalSupport(
   return resolveIntervalSupport({ requestedIntervals: intervals, nativeIntervals })
 }
 
-function normalizeWindow(params: {
+function normalizeRange(params: {
   interval: string
   mode: KlineReadMode
   from?: number
@@ -93,6 +100,90 @@ function normalizeWindow(params: {
     to: Math.max(from + 1, to),
     limit,
   }
+}
+
+function getExpectedLatestOpen(interval: string, mode: KlineReadMode, now = Date.now()): number {
+  const effectiveTo = getEffectiveFinalTo(interval, mode, now)
+  const intervalMs = intervalToMs(interval)
+  if (!intervalMs) return effectiveTo
+  if (mode === 'include-live') {
+    return Math.floor(effectiveTo / intervalMs) * intervalMs
+  }
+  return Math.max(0, effectiveTo - intervalMs)
+}
+
+function rangeForLatest(params: { interval: string; mode: KlineReadMode; limit: number }): {
+  from: number
+  to: number
+} {
+  const latestOpen = getExpectedLatestOpen(params.interval, params.mode)
+  const intervalMs = intervalToMs(params.interval)
+  const to = intervalMs ? latestOpen + intervalMs : Date.now()
+  return {
+    from: Math.max(0, subtractIntervals(to, params.interval, params.limit)),
+    to,
+  }
+}
+
+function rangeForBefore(params: { interval: string; before: number; limit: number }): {
+  from: number
+  to: number
+} {
+  const to = Math.max(1, params.before)
+  return {
+    from: Math.max(0, subtractIntervals(to, params.interval, params.limit)),
+    to,
+  }
+}
+
+function uniqSorted(klines: CanonicalKline[]): CanonicalKline[] {
+  const byTimestamp = new Map<number, CanonicalKline>()
+  for (const item of klines) byTimestamp.set(item.timestamp, item)
+  return [...byTimestamp.values()].sort((a, b) => a.timestamp - b.timestamp)
+}
+
+function filterRange(params: {
+  klines: CanonicalKline[]
+  from: number
+  to: number
+  includeLive: boolean
+}): CanonicalKline[] {
+  return params.klines.filter(
+    (item) =>
+      item.timestamp >= params.from &&
+      item.timestamp < params.to &&
+      (params.includeLive || item.isFinal),
+  )
+}
+
+function findMissingRanges(params: {
+  existing: CanonicalKline[]
+  from: number
+  to: number
+  interval: string
+}): KlineFetchRange[] {
+  const intervalMs = intervalToMs(params.interval)
+  if (!intervalMs || params.to <= params.from) return []
+
+  const present = new Set(params.existing.map((item) => item.timestamp))
+  const ranges: KlineFetchRange[] = []
+  let rangeStart: number | null = null
+
+  const start = Math.floor(params.from / intervalMs) * intervalMs
+  for (let cursor = start; cursor < params.to; cursor += intervalMs) {
+    if (cursor < params.from) continue
+    if (present.has(cursor)) {
+      if (rangeStart != null) {
+        ranges.push({ from: rangeStart, to: cursor })
+        rangeStart = null
+      }
+      continue
+    }
+    rangeStart ??= cursor
+  }
+
+  if (rangeStart != null) ranges.push({ from: rangeStart, to: params.to })
+  return ranges
 }
 
 function makeFetchKey(params: {
@@ -182,13 +273,14 @@ export class MarketDataService {
     }
 
     const mode = request.mode ?? 'include-live'
-    const window = normalizeWindow({
-      interval,
-      mode,
-      from: request.from,
-      to: request.to,
-      limit: request.limit,
-    })
+    const limit = clampLimit(request.limit, interval)
+    const query =
+      request.query ??
+      (request.before != null
+        ? 'before'
+        : request.from != null || request.to != null
+          ? 'range'
+          : 'latest')
 
     const instance = await dsRepo.findByIdAndUser(dataSourceInstanceId, userId)
     if (!instance) {
@@ -221,29 +313,88 @@ export class MarketDataService {
       interval,
     })
 
-    const cached = await getCachedKlineWindow({
+    if (query === 'latest') {
+      const expectedLatestOpen = getExpectedLatestOpen(interval, mode)
+      const cached = await getCachedLatestKlines({ seriesId: series.id, mode })
+      if (
+        cached?.interval === interval &&
+        cached.bars.length >= limit &&
+        (cached.lastTimestamp ?? -1) >= expectedLatestOpen
+      ) {
+        return stripKlineMetadata(cached.bars.slice(-limit))
+      }
+    }
+
+    const range =
+      query === 'latest'
+        ? rangeForLatest({ interval, mode, limit: Math.max(limit, LATEST_WINDOW_LIMIT) })
+        : query === 'before'
+          ? rangeForBefore({ interval, before: request.before ?? Date.now(), limit })
+          : normalizeRange({
+              interval,
+              mode,
+              from: request.from,
+              to: request.to,
+              limit,
+            })
+
+    const existing = await this.loadRange({
       seriesId: series.id,
+      symbol,
       mode,
-      from: window.from,
-      to: window.to,
-      limit: window.limit,
+      interval,
+      requestInterval,
+      support,
+      provider,
+      config,
+      intervalMs,
+      includeLive,
+      from: range.from,
+      to: range.to,
     })
-    if (cached) return stripKlineMetadata(cached)
+
+    const result = query === 'range' && request.limit == null ? existing : existing.slice(-limit)
+    if (query === 'latest') {
+      await setCachedLatestKlines({
+        seriesId: series.id,
+        interval,
+        mode,
+        bars: existing.slice(-LATEST_WINDOW_LIMIT),
+      })
+    }
+    return stripKlineMetadata(result)
+  }
+
+  private async loadRange(params: {
+    seriesId: string
+    symbol: string
+    mode: KlineReadMode
+    interval: string
+    requestInterval: string
+    support: IntervalSupport
+    provider: DataSourceProvider<DataSourceSettings>
+    config: DataSourceSettings
+    intervalMs: number | null
+    includeLive: boolean
+    from: number
+    to: number
+  }): Promise<CanonicalKline[]> {
+    const cached = await this.readSegments(params)
+    if (cached) return cached
 
     let existing = await klineStore.findKlineBars({
-      seriesId: series.id,
-      from: window.from,
-      to: window.to,
-      includeLive,
+      seriesId: params.seriesId,
+      from: params.from,
+      to: params.to,
+      includeLive: params.includeLive,
     })
 
     for (let round = 0; round < MAX_FETCH_ROUNDS; round += 1) {
-      const ranges = planKlineFetchRanges({
+      const ranges = findMissingRanges({
         existing,
-        from: window.from,
-        to: window.to,
-        interval,
-        includeLive,
+        from: params.from,
+        to: params.to,
+        interval: params.interval,
       })
       if (ranges.length === 0) break
 
@@ -251,8 +402,8 @@ export class MarketDataService {
       let waitedForPeer = false
       for (const range of ranges) {
         const lockKey = makeFetchKey({
-          seriesId: series.id,
-          requestInterval,
+          seriesId: params.seriesId,
+          requestInterval: params.requestInterval,
           from: range.from,
           to: range.to,
         })
@@ -265,46 +416,107 @@ export class MarketDataService {
           }
 
           const fetched = await fetchProviderRange({
-            provider,
-            config,
-            symbol,
-            interval,
-            requestInterval,
-            support,
+            provider: params.provider,
+            config: params.config,
+            symbol: params.symbol,
+            interval: params.interval,
+            requestInterval: params.requestInterval,
+            support: params.support,
             range,
-            mode,
+            mode: params.mode,
           })
           if (fetched.length === 0) return
           fetchedAny = true
           await klineStore.upsertKlineBars({
-            seriesId: series.id,
-            intervalMs,
+            seriesId: params.seriesId,
+            intervalMs: params.intervalMs,
             klines: fetched,
           })
         })
       }
 
       const refreshed = await klineStore.findKlineBars({
-        seriesId: series.id,
-        from: window.from,
-        to: window.to,
-        includeLive,
+        seriesId: params.seriesId,
+        from: params.from,
+        to: params.to,
+        includeLive: params.includeLive,
       })
       if (refreshed.length === existing.length && !fetchedAny && !waitedForPeer) break
       existing = refreshed
     }
 
-    const result = request.limit ? existing.slice(-window.limit) : existing
-    await setCachedKlineWindow({
-      seriesId: series.id,
-      mode,
-      from: window.from,
-      to: window.to,
-      limit: window.limit,
-      klines: result,
-    })
+    const result = uniqSorted(
+      filterRange({
+        klines: existing,
+        from: params.from,
+        to: params.to,
+        includeLive: params.includeLive,
+      }),
+    )
+    await this.writeSegments({ ...params, klines: result })
+    return result
+  }
 
-    return stripKlineMetadata(result)
+  private async readSegments(params: {
+    seriesId: string
+    mode: KlineReadMode
+    interval: string
+    includeLive: boolean
+    from: number
+    to: number
+  }): Promise<CanonicalKline[] | null> {
+    const span = getSegmentSpanMs(params.interval)
+    if (!span) return null
+    const starts = getSegmentStarts({ interval: params.interval, from: params.from, to: params.to })
+    if (starts.length === 0) return null
+
+    const segments = await Promise.all(
+      starts.map((segmentStart) =>
+        getCachedKlineSegment({ seriesId: params.seriesId, mode: params.mode, segmentStart }),
+      ),
+    )
+    if (segments.some((segment) => !segment?.complete || segment.interval !== params.interval)) {
+      return null
+    }
+
+    return uniqSorted(
+      filterRange({
+        klines: segments.flatMap((segment) => segment?.bars ?? []),
+        from: params.from,
+        to: params.to,
+        includeLive: params.includeLive,
+      }),
+    )
+  }
+
+  private async writeSegments(params: {
+    seriesId: string
+    mode: KlineReadMode
+    interval: string
+    from: number
+    to: number
+    klines: CanonicalKline[]
+  }): Promise<void> {
+    const starts = getSegmentStarts({ interval: params.interval, from: params.from, to: params.to })
+    const span = getSegmentSpanMs(params.interval)
+    if (!span) return
+
+    await Promise.all(
+      starts.map((segmentStart) => {
+        const segmentEnd = segmentStart + span
+        const bars = params.klines.filter(
+          (item) => item.timestamp >= segmentStart && item.timestamp < segmentEnd,
+        )
+        return setCachedKlineSegment({
+          seriesId: params.seriesId,
+          interval: params.interval,
+          mode: params.mode,
+          segmentStart,
+          bars,
+          complete: params.from <= segmentStart && params.to >= segmentEnd,
+        })
+      }),
+    )
   }
 }
 

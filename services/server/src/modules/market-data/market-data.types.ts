@@ -2,14 +2,17 @@ import type { Kline } from '@eous/data-sources'
 
 export type KlineReadMode = 'closed-only' | 'include-live'
 export type KlineRequestPriority = 'interactive' | 'background' | 'workflow'
+export type KlineQueryKind = 'latest' | 'before' | 'range'
 
 export interface GetKlinesRequest {
   userId: string
   dataSourceInstanceId: string
   symbol: string
   interval: string
+  query?: KlineQueryKind
   from?: number
   to?: number
+  before?: number
   limit?: number
   mode?: KlineReadMode
   priority?: KlineRequestPriority

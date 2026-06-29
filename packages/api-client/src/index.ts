@@ -626,8 +626,10 @@ export interface ApiClient {
     params: {
       symbol: string
       interval: string
+      query?: 'latest' | 'before' | 'range'
       from?: number
       to?: number
+      before?: number
       limit?: number
       mode?: 'closed-only' | 'include-live'
     },

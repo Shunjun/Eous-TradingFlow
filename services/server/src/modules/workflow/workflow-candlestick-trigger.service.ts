@@ -146,6 +146,7 @@ async function fetchTaskKlines(task: ScanTask): Promise<Kline[]> {
     dataSourceInstanceId: task.dataSourceInstanceId,
     symbol: task.symbol,
     interval: task.interval,
+    query: 'range',
     from,
     to: task.slotClose,
     limit: task.limit,

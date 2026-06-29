@@ -14,14 +14,9 @@ export function getEffectiveFinalTo(
   return Math.floor((now - DEFAULT_FINALITY_DELAY_MS) / intervalMs) * intervalMs
 }
 
-const CRYPTO_DAILY_BOUNDARY_OFFSET_MS = 8 * 60 * 60 * 1000
-
 export function canonicalizeKlineTimestamp(timestamp: number, interval: string): number {
   const intervalMs = intervalToMs(interval)
   if (!intervalMs) return timestamp
-  if (intervalMs >= 86_400_000) {
-    return Math.floor((timestamp + CRYPTO_DAILY_BOUNDARY_OFFSET_MS) / intervalMs) * intervalMs
-  }
   return Math.floor(timestamp / intervalMs) * intervalMs
 }
 

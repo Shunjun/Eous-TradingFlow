@@ -331,13 +331,15 @@ export async function getKlines(
   body: {
     symbol: string
     interval: string
+    query?: 'latest' | 'before' | 'range'
     from?: number
     to?: number
+    before?: number
     limit?: number
     mode?: KlineReadMode
   },
 ) {
-  const { symbol, interval, from, to, limit, mode } = body
+  const { symbol, interval, query, from, to, before, limit, mode } = body
 
   if (!symbol || !interval) {
     throw new AppError('Missing required fields: symbol, interval', 400)
@@ -349,8 +351,10 @@ export async function getKlines(
       dataSourceInstanceId: id,
       symbol,
       interval,
+      query,
       from,
       to,
+      before,
       limit,
       mode,
       priority: 'interactive',

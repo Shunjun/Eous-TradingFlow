@@ -13,8 +13,9 @@ async function execute(input: ExecuteInput, ctx: ExecuteContext): Promise<Execut
   const klines = await ctx.dataSourceService.getKlines(ctx.userId, dataSourceInstanceId, {
     symbol,
     interval,
+    query: 'latest',
     limit,
-    mode: 'include-live',
+    mode: 'closed-only',
   })
 
   if (klines.length === 0) {
