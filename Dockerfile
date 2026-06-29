@@ -16,7 +16,7 @@ RUN pnpm --filter @eous/web build
 FROM deps AS server-runner
 ENV NODE_ENV=production
 EXPOSE 3020
-CMD ["pnpm", "exec", "node", "--import", "tsx/esm", "apps/server/src/index.ts"]
+CMD ["pnpm", "exec", "node", "--import", "tsx", "apps/server/src/index.ts"]
 
 FROM nginx:1.27-alpine AS web-runner
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf

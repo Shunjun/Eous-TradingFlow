@@ -26,3 +26,6 @@ data/
 
 # Python service envs
 services/*/.venv/
+services/*/src/**/_generated/
+__pycache__/
+*.py[cod]

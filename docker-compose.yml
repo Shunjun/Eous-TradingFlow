@@ -52,7 +52,7 @@ services:
       [
         'sh',
         '-c',
-        'pnpm --filter @eous/db db:deploy && pnpm exec node --import tsx/esm apps/server/src/index.ts',
+        'pnpm --filter @eous/db db:deploy && pnpm exec node --import tsx apps/server/src/index.ts',
       ]
     expose:
       - '3020'
