@@ -1,6 +1,7 @@
 import type { CSSProperties, ElementType } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Settings, Bot, Sliders, Database, BrainCircuit } from 'lucide-react'
+import type { TextKey } from '@eous/i18n'
 import {
   Sidebar,
   SidebarContent,
@@ -10,12 +11,13 @@ import {
   SidebarProvider,
   cn,
 } from '@eous/ui'
+import { useI18n } from '../../../lib/i18n'
 
 const subNav = [
-  { to: '/settings/general', label: 'General', icon: Sliders },
-  { to: '/settings/providers', label: 'Providers', icon: Bot },
-  { to: '/settings/agents', label: 'Agents', icon: BrainCircuit },
-  { to: '/settings/data-sources', label: 'Data Sources', icon: Database },
+  { to: '/settings/general', labelKey: 'settings.general', icon: Sliders },
+  { to: '/settings/providers', labelKey: 'settings.providers', icon: Bot },
+  { to: '/settings/agents', labelKey: 'settings.agents', icon: BrainCircuit },
+  { to: '/settings/data-sources', labelKey: 'settings.dataSources', icon: Database },
 ]
 
 function isSubNavActive(pathname: string, to: string) {
@@ -24,6 +26,7 @@ function isSubNavActive(pathname: string, to: string) {
 
 export default function SettingsLayout() {
   const { pathname } = useLocation()
+  const { t } = useI18n()
 
   return (
     <SidebarProvider
@@ -44,7 +47,7 @@ export default function SettingsLayout() {
           <div className="mb-3 flex items-center gap-2 px-2">
             <Settings size={14} className="text-muted-foreground" />
             <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground/60">
-              Settings
+              {t('settings.title')}
             </span>
           </div>
           <SidebarMenu className="gap-1">
@@ -52,6 +55,8 @@ export default function SettingsLayout() {
               <SettingsNavItem
                 key={item.to}
                 item={item}
+                label={t(item.labelKey as TextKey)}
+                to={item.to}
                 isActive={isSubNavActive(pathname, item.to)}
               />
             ))}
@@ -68,9 +73,13 @@ export default function SettingsLayout() {
 
 function SettingsNavItem({
   item,
+  label,
+  to,
   isActive,
 }: {
-  item: { to: string; label: string; icon: ElementType }
+  item: { to: string; labelKey: string; icon: ElementType }
+  label: string
+  to: string
   isActive: boolean
 }) {
   const Icon = item.icon
@@ -82,7 +91,7 @@ function SettingsNavItem({
         isActive={isActive}
         className="h-auto gap-2.5 px-2.5 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground data-[active=true]:bg-primary/10 data-[active=true]:font-normal data-[active=true]:text-primary"
       >
-        <NavLink to={item.to}>
+        <NavLink to={to}>
           <Icon
             size={16}
             className={cn(
@@ -90,7 +99,7 @@ function SettingsNavItem({
               isActive ? 'text-primary' : 'text-muted-foreground',
             )}
           />
-          <span className="truncate">{item.label}</span>
+          <span className="truncate">{label}</span>
         </NavLink>
       </SidebarMenuButton>
     </SidebarMenuItem>

@@ -23,6 +23,7 @@ import {
 import { BrainCircuit, Check, Layers3, Loader2, Plus, Save, Trash2, Wrench } from 'lucide-react'
 import { api } from '@/lib/api'
 import { PageLoading } from '../../../../components/PageLoading'
+import { useI18n } from '../../../../lib/i18n'
 
 type AgentDraft = {
   name: string
@@ -262,6 +263,7 @@ function agentToDraft(agent: AgentSummary): AgentDraft {
 }
 
 export default function AgentSettingsPage() {
+  const { t } = useI18n()
   const [agents, setAgents] = useState<AgentSummary[]>([])
   const [providers, setProviders] = useState<Provider[]>([])
   const [models, setModels] = useState<ProviderModel[]>([])
@@ -293,7 +295,7 @@ export default function AgentSettingsPage() {
       setSelectedAgentId(first?.id ?? null)
       setDraft(first ? agentToDraft(first) : defaultDraft)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load agent settings')
+      setError(err instanceof Error ? err.message : t('settings.failedToLoadAgentSettings'))
     } finally {
       setLoading(false)
     }
@@ -377,11 +379,11 @@ export default function AgentSettingsPage() {
 
   async function saveAgent() {
     if (!draft.name.trim()) {
-      setError('Agent name is required')
+      setError(t('settings.agentNameRequired'))
       return
     }
     if (!selectedAgent) {
-      setError('Select an agent before saving')
+      setError(t('settings.selectAgentBeforeSaving'))
       return
     }
     setSaving(true)
@@ -408,7 +410,7 @@ export default function AgentSettingsPage() {
       setDraft(agentToDraft(res.agent))
       setSavedAt(new Date().toLocaleTimeString())
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save agent')
+      setError(err instanceof Error ? err.message : t('settings.failedToSaveAgent'))
     } finally {
       setSaving(false)
     }
@@ -423,7 +425,7 @@ export default function AgentSettingsPage() {
       handleAgentDeleted(selectedAgent.id)
       setDeleteDialogOpen(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete agent')
+      setError(err instanceof Error ? err.message : t('settings.failedToDeleteAgent'))
     } finally {
       setDeleting(false)
     }
@@ -433,9 +435,9 @@ export default function AgentSettingsPage() {
     <div className="mx-auto max-w-[1440px] p-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">Agents</h1>
+          <h1 className="text-xl font-semibold">{t('settings.agentsTitle')}</h1>
           <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-            Configure agent profiles, default models, and tool scope
+            {t('settings.agentsDescription')}
           </p>
         </div>
         <Button
@@ -445,7 +447,7 @@ export default function AgentSettingsPage() {
           onClick={() => setCreateDialogOpen(true)}
         >
           <Plus className="size-3.5" />
-          New Agent
+          {t('settings.newAgent')}
         </Button>
       </div>
 
@@ -461,22 +463,27 @@ export default function AgentSettingsPage() {
             <div className="flex items-center gap-2">
               <BrainCircuit className="size-4 text-primary" />
               <div>
-                <div className="text-sm font-semibold">Agent Library</div>
-                <div className="text-xs text-muted-foreground">{agents.length} configured</div>
+                <div className="text-sm font-semibold">{t('settings.agentLibrary')}</div>
+                <div className="text-xs text-muted-foreground">
+                  {t('settings.agentsConfigured').replace('{count}', String(agents.length))}
+                </div>
               </div>
             </div>
           </div>
           <CardPanelBody className="min-h-[calc(100vh-15.6rem)] max-h-[calc(100vh-105px)] overflow-y-auto p-2">
             {loading ? (
-              <PageLoading label="Loading agents..." className="min-h-48 bg-transparent" />
+              <PageLoading
+                label={t('settings.loadingAgents')}
+                className="min-h-48 bg-transparent"
+              />
             ) : agents.length === 0 ? (
               <Empty className="border-0 p-8">
                 <EmptyMedia variant="icon">
                   <BrainCircuit size={20} />
                 </EmptyMedia>
-                <EmptyTitle className="text-sm font-mono">No agents yet</EmptyTitle>
+                <EmptyTitle className="text-sm font-mono">{t('settings.noAgentsYet')}</EmptyTitle>
                 <EmptyDescription className="font-mono text-xs">
-                  Create an agent from a template to start.
+                  {t('settings.noAgentsDescription')}
                 </EmptyDescription>
               </Empty>
             ) : (
@@ -486,7 +493,7 @@ export default function AgentSettingsPage() {
                     key={agent.id}
                     active={agent.id === selectedAgentId}
                     title={agent.name}
-                    subtitle={agent.modelId ?? 'default model'}
+                    subtitle={agent.modelId ?? t('settings.defaultModelFallback')}
                     onClick={() => selectAgent(agent)}
                   />
                 ))}
@@ -500,18 +507,20 @@ export default function AgentSettingsPage() {
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h2 className="truncate text-sm font-semibold">
-                  {selectedAgent ? draft.name || 'Agent settings' : 'Agent settings'}
+                  {selectedAgent
+                    ? draft.name || t('settings.agentSettings')
+                    : t('settings.agentSettings')}
                 </h2>
               </div>
               <p className="mt-1 truncate text-xs text-muted-foreground">
-                {selectedAgent ? 'Profile stored in the database' : 'Create an agent to start'}
+                {selectedAgent ? t('settings.profileStored') : t('settings.createAgentToStart')}
               </p>
             </div>
             <div className="flex items-center gap-2">
               {savedAt ? (
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Check className="size-3 text-emerald-500" />
-                  Saved {savedAt}
+                  {t('settings.savedAt').replace('{time}', savedAt)}
                 </span>
               ) : null}
               <Button
@@ -521,7 +530,7 @@ export default function AgentSettingsPage() {
                 disabled={loading || saving || !selectedAgent}
               >
                 <Layers3 className="size-3.5" />
-                Templates
+                {t('settings.templates')}
               </Button>
               <Button
                 size="sm"
@@ -530,7 +539,7 @@ export default function AgentSettingsPage() {
                 disabled={loading || saving || deleting || !selectedAgent}
               >
                 <Trash2 className="size-3.5" />
-                Delete
+                {t('settings.delete')}
               </Button>
               <Button
                 size="sm"
@@ -542,7 +551,7 @@ export default function AgentSettingsPage() {
                 ) : (
                   <Save className="size-3.5" />
                 )}
-                Save
+                {t('settings.save')}
               </Button>
             </div>
           </div>
@@ -553,9 +562,11 @@ export default function AgentSettingsPage() {
                 <EmptyMedia variant="icon">
                   <BrainCircuit size={22} />
                 </EmptyMedia>
-                <EmptyTitle className="text-sm font-mono">No agent selected</EmptyTitle>
+                <EmptyTitle className="text-sm font-mono">
+                  {t('settings.noAgentSelected')}
+                </EmptyTitle>
                 <EmptyDescription className="font-mono text-xs">
-                  Create an agent from a template to configure its profile.
+                  {t('settings.noAgentSelectedDescription')}
                 </EmptyDescription>
               </Empty>
             ) : (
@@ -563,7 +574,7 @@ export default function AgentSettingsPage() {
                 <div className="space-y-4">
                   <div className="space-y-1.5">
                     <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-                      Name
+                      {t('settings.name')}
                     </Label>
                     <Input
                       value={draft.name}
@@ -575,7 +586,7 @@ export default function AgentSettingsPage() {
 
                   <div className="space-y-1.5">
                     <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-                      Description
+                      {t('settings.description')}
                     </Label>
                     <Input
                       value={draft.description}
@@ -587,7 +598,7 @@ export default function AgentSettingsPage() {
 
                   <div className="space-y-1.5">
                     <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-                      Instructions
+                      {t('settings.instructions')}
                     </Label>
                     <Textarea
                       className="min-h-[520px] resize-y font-mono text-xs leading-5"
@@ -601,10 +612,10 @@ export default function AgentSettingsPage() {
 
                 <div className="space-y-4">
                   <section className="rounded-md border border-border p-3">
-                    <div className="mb-3 text-xs font-semibold">Default Model</div>
+                    <div className="mb-3 text-xs font-semibold">{t('settings.defaultModel')}</div>
                     <div className="space-y-2">
                       <div className="space-y-1">
-                        <Label className="text-xs">Provider</Label>
+                        <Label className="text-xs">{t('settings.provider')}</Label>
                         <select
                           className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                           value={draft.providerId}
@@ -616,7 +627,7 @@ export default function AgentSettingsPage() {
                             }))
                           }
                         >
-                          <option value="">Use system default</option>
+                          <option value="">{t('settings.useSystemDefault')}</option>
                           {providers.map((provider) => (
                             <option key={provider.id} value={provider.id}>
                               {provider.name}
@@ -625,7 +636,7 @@ export default function AgentSettingsPage() {
                         </select>
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Model</Label>
+                        <Label className="text-xs">{t('settings.model')}</Label>
                         <select
                           className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                           value={draft.modelId}
@@ -634,7 +645,7 @@ export default function AgentSettingsPage() {
                           }
                           disabled={!draft.providerId}
                         >
-                          <option value="">Select model</option>
+                          <option value="">{t('settings.selectModel')}</option>
                           {models.map((model) => (
                             <option key={model.id} value={model.modelId}>
                               {model.displayName ?? model.modelId}
@@ -649,9 +660,9 @@ export default function AgentSettingsPage() {
                     <div className="mb-3 flex items-center gap-2">
                       <Wrench className="size-4 text-primary" />
                       <div>
-                        <div className="text-xs font-semibold">Tool Scope</div>
+                        <div className="text-xs font-semibold">{t('settings.toolScope')}</div>
                         <div className="text-[11px] text-muted-foreground">
-                          Runtime permission hints
+                          {t('settings.runtimePermissionHints')}
                         </div>
                       </div>
                     </div>
@@ -694,15 +705,15 @@ export default function AgentSettingsPage() {
       >
         <DialogContent className="sm:max-w-md" showCloseButton={!deleting}>
           <DialogHeader>
-            <DialogTitle>Delete Agent</DialogTitle>
-            <DialogDescription>
-              This will permanently remove the selected agent and all of its settings.
-            </DialogDescription>
+            <DialogTitle>{t('settings.deleteAgent')}</DialogTitle>
+            <DialogDescription>{t('settings.deleteAgentDescription')}</DialogDescription>
           </DialogHeader>
 
           <div className="rounded-md border border-border bg-muted/30 px-3 py-2 text-sm">
-            <div className="font-medium">{selectedAgent?.name ?? 'Unknown agent'}</div>
-            <div className="mt-1 text-xs text-muted-foreground">This action cannot be undone.</div>
+            <div className="font-medium">{selectedAgent?.name ?? t('settings.unknownAgent')}</div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              {t('settings.actionCannotBeUndone')}
+            </div>
           </div>
 
           <DialogFooter>
@@ -711,7 +722,7 @@ export default function AgentSettingsPage() {
               onClick={() => setDeleteDialogOpen(false)}
               disabled={deleting}
             >
-              Cancel
+              {t('settings.cancel')}
             </Button>
             <Button variant="destructive" onClick={() => void deleteAgent()} disabled={deleting}>
               {deleting ? (
@@ -719,7 +730,7 @@ export default function AgentSettingsPage() {
               ) : (
                 <Trash2 className="size-3.5" />
               )}
-              Delete
+              {t('settings.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -737,6 +748,7 @@ function CreateAgentDialog({
   onOpenChange: (open: boolean) => void
   onCreated: (agent: AgentSummary) => void
 }) {
+  const { t } = useI18n()
   const [name, setName] = useState('')
   const [templateKey, setTemplateKey] = useState(AGENT_TEMPLATES[0].key)
   const [saving, setSaving] = useState(false)
@@ -757,7 +769,7 @@ function CreateAgentDialog({
     event.preventDefault()
     const nextName = name.trim()
     if (!nextName) {
-      setError('Agent name is required')
+      setError(t('settings.agentNameRequired'))
       return
     }
 
@@ -773,7 +785,7 @@ function CreateAgentDialog({
       onCreated(res.agent)
       onOpenChange(false)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create agent')
+      setError(err instanceof Error ? err.message : t('settings.failedToCreateAgent'))
     } finally {
       setSaving(false)
     }
@@ -784,11 +796,8 @@ function CreateAgentDialog({
       <DialogContent className="sm:max-w-2xl" showCloseButton={!saving}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <DialogHeader>
-            <DialogTitle>New Agent</DialogTitle>
-            <DialogDescription>
-              Create an agent from a starting template. The template content is saved into this
-              agent and can be edited afterwards.
-            </DialogDescription>
+            <DialogTitle>{t('settings.newAgent')}</DialogTitle>
+            <DialogDescription>{t('settings.newAgentDialogDescription')}</DialogDescription>
           </DialogHeader>
 
           {error ? (
@@ -799,20 +808,20 @@ function CreateAgentDialog({
 
           <div className="space-y-1.5">
             <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-              Name
+              {t('settings.name')}
             </Label>
             <Input
               autoFocus
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="e.g. Technical Analyst"
+              placeholder={t('settings.agentNamePlaceholder')}
               disabled={saving}
             />
           </div>
 
           <div className="space-y-1.5">
             <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-              Template
+              {t('settings.template')}
             </Label>
             <select
               className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
@@ -849,7 +858,7 @@ function CreateAgentDialog({
               onClick={() => onOpenChange(false)}
               disabled={saving}
             >
-              Cancel
+              {t('settings.cancel')}
             </Button>
             <Button type="submit" disabled={saving || !name.trim()}>
               {saving ? (
@@ -857,7 +866,7 @@ function CreateAgentDialog({
               ) : (
                 <Plus className="size-3.5" />
               )}
-              Create
+              {t('settings.create')}
             </Button>
           </DialogFooter>
         </form>
@@ -879,6 +888,7 @@ function TemplateDialog({
   onOpenChange: (open: boolean) => void
   onApply: (key: string) => void
 }) {
+  const { t } = useI18n()
   const selectedTemplate =
     AGENT_TEMPLATES.find((template) => template.key === selectedTemplateKey) ?? AGENT_TEMPLATES[0]
 
@@ -886,11 +896,8 @@ function TemplateDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Apply Agent Template</DialogTitle>
-          <DialogDescription>
-            Applying a template overwrites the current name, description, instructions, and tool
-            scope. Provider and model are kept.
-          </DialogDescription>
+          <DialogTitle>{t('settings.applyAgentTemplate')}</DialogTitle>
+          <DialogDescription>{t('settings.applyAgentTemplateDescription')}</DialogDescription>
         </DialogHeader>
 
         <div className="grid max-h-[62vh] grid-cols-[260px_minmax(0,1fr)] gap-4 overflow-hidden">
@@ -926,11 +933,11 @@ function TemplateDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t('settings.cancel')}
           </Button>
           <Button onClick={() => onApply(selectedTemplateKey)}>
             <Layers3 className="size-3.5" />
-            Apply Template
+            {t('settings.applyTemplate')}
           </Button>
         </DialogFooter>
       </DialogContent>

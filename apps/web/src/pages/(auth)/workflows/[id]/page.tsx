@@ -22,6 +22,7 @@ import { ArrowLeft, CheckCircle2, Clock3, GitCommitHorizontal, Play } from 'luci
 import { api } from '../../../../lib/api'
 import { useWorkflowListStore } from '../../../../stores/workflows'
 import { PageLoading } from '../../../../components/PageLoading'
+import { useI18n } from '../../../../lib/i18n'
 
 function JsonBlock({ value }: { value: unknown }) {
   return (
@@ -31,13 +32,14 @@ function JsonBlock({ value }: { value: unknown }) {
   )
 }
 
-function formatDate(value?: string | null) {
-  if (!value) return 'Never'
+function formatDate(value: string | null | undefined, fallback: string) {
+  if (!value) return fallback
   return new Date(value).toLocaleString()
 }
 
 export default function WorkflowDetailPage() {
   const { id } = useParams()
+  const { t } = useI18n()
   const updateWorkflow = useWorkflowListStore((s) => s.updateWorkflow)
   const [workflow, setWorkflow] = useState<WorkflowDefinition | null>(null)
   const [versions, setVersions] = useState<WorkflowVersion[]>([])
@@ -101,7 +103,7 @@ export default function WorkflowDetailPage() {
 
   if (!id) return null
   if (loading || !workflow) {
-    return <PageLoading label="Loading workflow..." />
+    return <PageLoading label={t('loading.workflow')} />
   }
 
   const activeVersion = versions.find((version) => version.id === workflow.activeVersionId)
@@ -116,25 +118,25 @@ export default function WorkflowDetailPage() {
             <Button variant="ghost" size="sm" asChild className="mb-3 gap-2 px-0">
               <Link to="/workflows">
                 <ArrowLeft size={15} />
-                Workflows
+                {t('workflow.backToWorkflows')}
               </Link>
             </Button>
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-3xl font-semibold">{workflow.name}</h1>
               <Badge variant={workflow.enabled ? 'default' : 'outline'}>
-                {workflow.enabled ? 'Enabled' : 'Disabled'}
+                {workflow.enabled ? t('workflows.enabled') : t('workflows.disabled')}
               </Badge>
               {versions.length === 0 ? (
-                <Badge variant="secondary">Draft only</Badge>
+                <Badge variant="secondary">{t('workflows.draftOnly')}</Badge>
               ) : (
                 <Select value={workflow.activeVersionId ?? ''} onValueChange={activateVersion}>
                   <SelectTrigger className="h-8 w-[180px]">
-                    <SelectValue placeholder="Select version" />
+                    <SelectValue placeholder={t('workflow.selectVersion')} />
                   </SelectTrigger>
                   <SelectContent>
                     {versions.map((version) => (
                       <SelectItem key={version.id} value={version.id}>
-                        v{version.version} · {formatDate(version.createdAt)}
+                        v{version.version} · {formatDate(version.createdAt, t('workflows.never'))}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -142,32 +144,44 @@ export default function WorkflowDetailPage() {
               )}
             </div>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              {workflow.description || 'No description'}
+              {workflow.description || t('workflows.noDescription')}
             </p>
             <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              <span>Last run: {formatDate(runs[0]?.startedAt)}</span>
-              {activeVersion && <span>Active v{activeVersion.version}</span>}
+              <span>
+                {t('workflow.lastRun').replace(
+                  '{time}',
+                  formatDate(runs[0]?.startedAt, t('workflows.never')),
+                )}
+              </span>
+              {activeVersion && (
+                <span>
+                  {t('workflow.activeVersionLabel').replace(
+                    '{version}',
+                    String(activeVersion.version),
+                  )}
+                </span>
+              )}
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button className="gap-2" onClick={runActive}>
               <Play size={15} />
-              Run
+              {t('workflows.run')}
             </Button>
             <Button variant="outline" onClick={toggleEnabled}>
-              {workflow.enabled ? 'Disable' : 'Enable'}
+              {workflow.enabled ? t('workflows.disable') : t('workflows.enable')}
             </Button>
             <Button variant="outline" asChild>
-              <Link to={`/workflows/${workflow.id}/edit`}>Edit draft</Link>
+              <Link to={`/workflows/${workflow.id}/edit`}>{t('workflow.editDraft')}</Link>
             </Button>
           </div>
         </header>
 
         <section className="grid gap-3 md:grid-cols-4">
           {[
-            { label: 'Runs', value: runs.length, icon: Clock3 },
-            { label: 'Success rate', value: `${successRate}%`, icon: CheckCircle2 },
-            { label: 'Versions', value: versions.length, icon: GitCommitHorizontal },
+            { label: t('workflow.runs'), value: runs.length, icon: Clock3 },
+            { label: t('workflow.successRate'), value: `${successRate}%`, icon: CheckCircle2 },
+            { label: t('workflow.versions'), value: versions.length, icon: GitCommitHorizontal },
           ].map((item) => (
             <div
               key={item.label}
@@ -185,19 +199,23 @@ export default function WorkflowDetailPage() {
         <section>
           <Card className="gap-0 rounded-lg py-0">
             <CardHeader className="flex flex-row items-center justify-between border-b p-4">
-              <CardTitle className="text-base">Run history</CardTitle>
+              <CardTitle className="text-base">{t('workflow.runHistory')}</CardTitle>
               {versions.length > 0 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Use version as draft</span>
+                  <span className="text-xs text-muted-foreground">
+                    {t('workflow.useVersionAsDraft')}
+                  </span>
                   <Select onValueChange={restoreDraft}>
                     <SelectTrigger className="h-8 w-[150px]">
-                      <SelectValue placeholder="Version" />
+                      <SelectValue placeholder={t('workflow.version')} />
                     </SelectTrigger>
                     <SelectContent>
                       {versions.map((version) => (
                         <SelectItem key={version.id} value={version.id}>
                           v{version.version}
-                          {version.id === workflow.activeVersionId ? ' · Active' : ''}
+                          {version.id === workflow.activeVersionId
+                            ? t('workflow.activeSuffix')
+                            : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -208,7 +226,9 @@ export default function WorkflowDetailPage() {
             <CardContent className="grid min-h-[520px] gap-0 p-0 lg:grid-cols-[280px_minmax(0,1fr)]">
               <div className="border-r">
                 {runs.length === 0 ? (
-                  <p className="p-5 text-sm text-muted-foreground">No production runs yet.</p>
+                  <p className="p-5 text-sm text-muted-foreground">
+                    {t('workflow.noProductionRuns')}
+                  </p>
                 ) : (
                   runs.map((run) => (
                     <button
@@ -229,7 +249,7 @@ export default function WorkflowDetailPage() {
                         </span>
                       </div>
                       <span className="text-xs text-muted-foreground">
-                        {formatDate(run.startedAt)}
+                        {formatDate(run.startedAt, t('workflows.never'))}
                       </span>
                     </button>
                   ))
@@ -254,7 +274,7 @@ export default function WorkflowDetailPage() {
                     )}
                     <Tabs defaultValue={selectedRun.nodeExecutions[0]?.id ?? 'summary'}>
                       <TabsList className="max-w-full justify-start overflow-x-auto">
-                        <TabsTrigger value="summary">Summary</TabsTrigger>
+                        <TabsTrigger value="summary">{t('workflow.summary')}</TabsTrigger>
                         {selectedRun.nodeExecutions.map((node) => (
                           <TabsTrigger key={node.id} value={node.id}>
                             {node.nodeId}
@@ -277,16 +297,16 @@ export default function WorkflowDetailPage() {
                         <TabsContent key={node.id} value={node.id} className="mt-4">
                           <div className="grid gap-4 xl:grid-cols-2">
                             <div>
-                              <h3 className="mb-2 text-sm font-medium">Inputs</h3>
+                              <h3 className="mb-2 text-sm font-medium">{t('workflow.inputs')}</h3>
                               <JsonBlock value={node.inputs} />
                             </div>
                             <div>
-                              <h3 className="mb-2 text-sm font-medium">Outputs</h3>
+                              <h3 className="mb-2 text-sm font-medium">{t('workflow.outputs')}</h3>
                               <JsonBlock value={node.outputs} />
                             </div>
                           </div>
                           <div className="mt-4">
-                            <h3 className="mb-2 text-sm font-medium">Logs</h3>
+                            <h3 className="mb-2 text-sm font-medium">{t('workflow.logs')}</h3>
                             <JsonBlock value={node.logs} />
                           </div>
                         </TabsContent>
@@ -294,7 +314,7 @@ export default function WorkflowDetailPage() {
                     </Tabs>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Select a run.</p>
+                  <p className="text-sm text-muted-foreground">{t('workflow.selectRun')}</p>
                 )}
               </div>
             </CardContent>

@@ -41,17 +41,19 @@ import { useWorkflowList } from '../../../hooks/use-workflows'
 import { useWorkflowListStore } from '../../../stores/workflows'
 import { CreateWorkflowDialog } from '../../../components/workflow/dialogs'
 import { PageLoading } from '../../../components/PageLoading'
+import { useI18n } from '../../../lib/i18n'
 
 type ViewMode = 'cards' | 'list'
 type StatusFilter = 'all' | 'enabled' | 'disabled'
 
-function formatDate(value?: string | null) {
-  if (!value) return 'Never'
+function formatDate(value: string | null | undefined, fallback: string) {
+  if (!value) return fallback
   return new Date(value).toLocaleString()
 }
 
 export default function WorkflowsPage() {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const { workflows, loading, refresh } = useWorkflowList()
   const deleteWorkflow = useWorkflowListStore((s) => s.deleteWorkflow)
   const updateWorkflow = useWorkflowListStore((s) => s.updateWorkflow)
@@ -105,23 +107,25 @@ export default function WorkflowsPage() {
       <div className="flex flex-col gap-5">
         <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="font-mono text-xs uppercase text-muted-foreground">Automation desk</p>
+            <p className="font-mono text-xs uppercase text-muted-foreground">
+              {t('workflows.automationDesk')}
+            </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-normal text-foreground">
-              Workflows
+              {t('workflows.title')}
             </h1>
           </div>
           <Button onClick={() => setCreateOpen(true)} className="w-fit gap-2">
             <Plus size={16} />
-            New workflow
+            {t('workflows.newWorkflow')}
           </Button>
         </header>
 
         <section className="grid gap-3 md:grid-cols-4">
           {[
-            { label: 'Total', value: stats.total, icon: Activity },
-            { label: 'Enabled', value: stats.enabled, icon: CheckCircle2 },
-            { label: 'Published', value: stats.published, icon: Clock3 },
-            { label: 'Draft only', value: stats.draftOnly, icon: PauseCircle },
+            { label: t('workflows.total'), value: stats.total, icon: Activity },
+            { label: t('workflows.enabled'), value: stats.enabled, icon: CheckCircle2 },
+            { label: t('workflows.published'), value: stats.published, icon: Clock3 },
+            { label: t('workflows.draftOnly'), value: stats.draftOnly, icon: PauseCircle },
           ].map((item) => (
             <div
               key={item.label}
@@ -142,7 +146,7 @@ export default function WorkflowsPage() {
             <Input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search workflows"
+              placeholder={t('workflows.searchPlaceholder')}
               className="pl-9"
             />
           </div>
@@ -153,9 +157,9 @@ export default function WorkflowsPage() {
             onValueChange={(value) => value && setStatus(value as StatusFilter)}
             className="justify-start"
           >
-            <ToggleGroupItem value="all">All</ToggleGroupItem>
-            <ToggleGroupItem value="enabled">Enabled</ToggleGroupItem>
-            <ToggleGroupItem value="disabled">Disabled</ToggleGroupItem>
+            <ToggleGroupItem value="all">{t('workflows.filterAll')}</ToggleGroupItem>
+            <ToggleGroupItem value="enabled">{t('workflows.enabled')}</ToggleGroupItem>
+            <ToggleGroupItem value="disabled">{t('workflows.disabled')}</ToggleGroupItem>
           </ToggleGroup>
           <ToggleGroup
             type="single"
@@ -163,17 +167,17 @@ export default function WorkflowsPage() {
             spacing={1}
             onValueChange={(value) => value && setView(value as ViewMode)}
           >
-            <ToggleGroupItem value="cards" aria-label="Card view">
+            <ToggleGroupItem value="cards" aria-label={t('workflows.cardView')}>
               <Grid2X2 size={15} />
             </ToggleGroupItem>
-            <ToggleGroupItem value="list" aria-label="List view">
+            <ToggleGroupItem value="list" aria-label={t('workflows.listView')}>
               <List size={15} />
             </ToggleGroupItem>
           </ToggleGroup>
         </section>
 
         {loading ? (
-          <PageLoading label="Loading workflows..." className="rounded-lg border bg-card" />
+          <PageLoading label={t('workflows.loading')} className="rounded-lg border bg-card" />
         ) : view === 'cards' ? (
           <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {filtered.map((workflow) => (
@@ -196,7 +200,7 @@ export default function WorkflowsPage() {
                       <Button
                         size="sm"
                         variant="ghost-icon"
-                        aria-label="Run workflow"
+                        aria-label={t('workflows.runWorkflow')}
                         onClick={(event) => {
                           event.stopPropagation()
                           void runWorkflow(workflow.id)
@@ -205,14 +209,14 @@ export default function WorkflowsPage() {
                         <Play size={14} />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Run</TooltipContent>
+                    <TooltipContent>{t('workflows.run')}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         size="sm"
                         variant="ghost-icon"
-                        aria-label="Edit workflow"
+                        aria-label={t('workflows.editWorkflow')}
                         onClick={(event) => {
                           event.stopPropagation()
                           navigate(`/workflows/${workflow.id}/edit`)
@@ -221,14 +225,18 @@ export default function WorkflowsPage() {
                         <Pencil size={14} />
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Edit</TooltipContent>
+                    <TooltipContent>{t('workflows.edit')}</TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
                         size="sm"
                         variant="ghost-icon"
-                        aria-label={workflow.enabled ? 'Disable workflow' : 'Enable workflow'}
+                        aria-label={
+                          workflow.enabled
+                            ? t('workflows.disableWorkflow')
+                            : t('workflows.enableWorkflow')
+                        }
                         onClick={(event) => {
                           event.stopPropagation()
                           void toggleEnabled(workflow.id, !workflow.enabled)
@@ -237,7 +245,9 @@ export default function WorkflowsPage() {
                         {workflow.enabled ? <PowerOff size={14} /> : <Power size={14} />}
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>{workflow.enabled ? 'Disable' : 'Enable'}</TooltipContent>
+                    <TooltipContent>
+                      {workflow.enabled ? t('workflows.disable') : t('workflows.enable')}
+                    </TooltipContent>
                   </Tooltip>
                 </div>
 
@@ -245,29 +255,33 @@ export default function WorkflowsPage() {
                   <div className="min-w-0">
                     <CardTitle className="truncate text-base">{workflow.name}</CardTitle>
                     <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                      {workflow.description || 'No description'}
+                      {workflow.description || t('workflows.noDescription')}
                     </p>
                   </div>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-3 p-4 pt-0">
                   <div className="flex items-center gap-2">
                     <Badge variant={workflow.enabled ? 'default' : 'outline'}>
-                      {workflow.enabled ? 'Enabled' : 'Disabled'}
+                      {workflow.enabled ? t('workflows.enabled') : t('workflows.disabled')}
                     </Badge>
                     <Badge variant="secondary">
-                      {workflow.activeVersionId ? 'Active' : 'Draft only'}
+                      {workflow.activeVersionId ? t('workflows.active') : t('workflows.draftOnly')}
                     </Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <div className="text-muted-foreground">Published</div>
+                      <div className="text-muted-foreground">{t('workflows.published')}</div>
                       <div className="mt-1 font-mono">
-                        {workflow.activeVersionId ? 'Active version' : 'Draft only'}
+                        {workflow.activeVersionId
+                          ? t('workflows.activeVersion')
+                          : t('workflows.draftOnly')}
                       </div>
                     </div>
                     <div>
-                      <div className="text-muted-foreground">Updated</div>
-                      <div className="mt-1 font-mono">{formatDate(workflow.updatedAt)}</div>
+                      <div className="text-muted-foreground">{t('workflows.updated')}</div>
+                      <div className="mt-1 font-mono">
+                        {formatDate(workflow.updatedAt, t('workflows.never'))}
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -277,10 +291,10 @@ export default function WorkflowsPage() {
         ) : (
           <section className="overflow-hidden rounded-lg border bg-card shadow-sm">
             <div className="grid grid-cols-[minmax(240px,1fr)_120px_160px_260px] border-b px-4 py-2 text-xs font-medium text-muted-foreground">
-              <span>Name</span>
-              <span>Status</span>
-              <span>Published</span>
-              <span>Actions</span>
+              <span>{t('workflows.name')}</span>
+              <span>{t('workflows.status')}</span>
+              <span>{t('workflows.published')}</span>
+              <span>{t('workflows.actions')}</span>
             </div>
             {filtered.map((workflow) => (
               <div
@@ -295,25 +309,30 @@ export default function WorkflowsPage() {
                     {workflow.name}
                   </Link>
                   <div className="truncate text-xs text-muted-foreground">
-                    {workflow.description || 'No description'}
+                    {workflow.description || t('workflows.noDescription')}
                   </div>
                 </div>
                 <Badge variant={workflow.enabled ? 'default' : 'outline'}>
-                  {workflow.enabled ? 'Enabled' : 'Disabled'}
+                  {workflow.enabled ? t('workflows.enabled') : t('workflows.disabled')}
                 </Badge>
                 <span className="text-xs text-muted-foreground">
-                  {workflow.activeVersionId ? 'Active' : 'Draft only'}
+                  {workflow.activeVersionId ? t('workflows.active') : t('workflows.draftOnly')}
                 </span>
                 <div className="flex items-center gap-1">
                   <Button
                     size="sm"
                     variant="ghost-icon"
-                    aria-label="Run workflow"
+                    aria-label={t('workflows.runWorkflow')}
                     onClick={() => runWorkflow(workflow.id)}
                   >
                     <Play size={14} />
                   </Button>
-                  <Button size="sm" variant="ghost-icon" aria-label="Edit workflow" asChild>
+                  <Button
+                    size="sm"
+                    variant="ghost-icon"
+                    aria-label={t('workflows.editWorkflow')}
+                    asChild
+                  >
                     <Link to={`/workflows/${workflow.id}/edit`}>
                       <Pencil size={14} />
                     </Link>
@@ -321,7 +340,11 @@ export default function WorkflowsPage() {
                   <Button
                     size="sm"
                     variant="ghost-icon"
-                    aria-label={workflow.enabled ? 'Disable workflow' : 'Enable workflow'}
+                    aria-label={
+                      workflow.enabled
+                        ? t('workflows.disableWorkflow')
+                        : t('workflows.enableWorkflow')
+                    }
                     onClick={() => toggleEnabled(workflow.id, !workflow.enabled)}
                   >
                     {workflow.enabled ? <PowerOff size={14} /> : <Power size={14} />}
@@ -329,7 +352,7 @@ export default function WorkflowsPage() {
                   <Button
                     size="sm"
                     variant="ghost-icon"
-                    aria-label="Delete workflow"
+                    aria-label={t('workflows.deleteWorkflow')}
                     onClick={() => setDeleteTarget({ id: workflow.id, name: workflow.name })}
                   >
                     <Trash2 size={14} />
@@ -343,9 +366,9 @@ export default function WorkflowsPage() {
         {filtered.length === 0 && !loading && (
           <div className="rounded-lg border bg-card p-10 text-center">
             <XCircle className="mx-auto size-8 text-muted-foreground" />
-            <p className="mt-3 text-sm font-medium">No workflows found</p>
+            <p className="mt-3 text-sm font-medium">{t('workflows.noWorkflowsFound')}</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Adjust filters or create a new one.
+              {t('workflows.noWorkflowsDescription')}
             </p>
           </div>
         )}
@@ -362,17 +385,17 @@ export default function WorkflowsPage() {
       <Dialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete workflow</DialogTitle>
+            <DialogTitle>{t('workflows.deleteTitle')}</DialogTitle>
             <DialogDescription>
-              Delete {deleteTarget?.name}? Versions and run history will be removed.
+              {t('workflows.deleteDescription').replace('{name}', deleteTarget?.name ?? '')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>
-              Cancel
+              {t('workflows.cancel')}
             </Button>
             <Button variant="destructive" onClick={confirmDelete}>
-              Delete
+              {t('workflows.delete')}
             </Button>
           </DialogFooter>
         </DialogContent>

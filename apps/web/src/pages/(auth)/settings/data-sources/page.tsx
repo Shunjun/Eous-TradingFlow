@@ -34,6 +34,7 @@ import type {
   DataSourceProvider,
 } from '@eous/api-client'
 import { api } from '@/lib/api'
+import { useI18n } from '../../../../lib/i18n'
 
 /* ── Dynamic Config Field ──────────────────────────────── */
 
@@ -601,6 +602,7 @@ function DataSourceCard({
 /* ── Main Page ─────────────────────────────────────────── */
 
 export default function DataSourcesPage() {
+  const { t } = useI18n()
   const [instances, setInstances] = useState<DataSourceInstance[]>([])
   const [providers, setProviders] = useState<DataSourceProvider[]>([])
   const [loading, setLoading] = useState(true)
@@ -627,9 +629,9 @@ export default function DataSourcesPage() {
       {/* Page header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-semibold">Data Sources</h1>
+          <h1 className="text-xl font-semibold">{t('settings.dataSourcesTitle')}</h1>
           <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-            Manage market data providers and tracked symbols
+            {t('settings.dataSourcesDescription')}
           </p>
         </div>
         <Button
@@ -639,7 +641,7 @@ export default function DataSourcesPage() {
           onClick={() => setShowAdd((v) => !v)}
         >
           <Plus size={14} />
-          Add Data Source
+          {t('settings.addDataSource')}
         </Button>
       </div>
 
@@ -659,7 +661,10 @@ export default function DataSourcesPage() {
       {loading ? (
         <CardPanel>
           <CardPanelBody className="p-12">
-            <PageLoading label="Loading data sources..." className="min-h-32 bg-transparent" />
+            <PageLoading
+              label={t('settings.loadingDataSources')}
+              className="min-h-32 bg-transparent"
+            />
           </CardPanelBody>
         </CardPanel>
       ) : instances.length === 0 ? (
@@ -668,7 +673,9 @@ export default function DataSourcesPage() {
             <EmptyMedia variant="icon">
               <Database size={20} />
             </EmptyMedia>
-            <EmptyTitle className="text-sm font-mono">No data sources configured</EmptyTitle>
+            <EmptyTitle className="text-sm font-mono">
+              {t('settings.noDataSourcesConfigured')}
+            </EmptyTitle>
           </Empty>
         </CardPanel>
       ) : (

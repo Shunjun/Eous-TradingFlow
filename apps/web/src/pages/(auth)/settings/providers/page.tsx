@@ -42,6 +42,7 @@ import {
 import type { Provider, ProviderModel, ProviderTemplate, TestResult } from '@eous/api-client'
 import { api } from '@/lib/api'
 import { PageLoading } from '../../../../components/PageLoading'
+import { useI18n } from '../../../../lib/i18n'
 
 /* ── Capability color map ──────────────────────────────── */
 
@@ -879,6 +880,7 @@ function ProviderCard({
 /* ── Main Page ─────────────────────────────────────────── */
 
 export default function ProvidersPage() {
+  const { t } = useI18n()
   const [providers, setProviders] = useState<Provider[]>([])
   const [templates, setTemplates] = useState<ProviderTemplate[]>([])
   const [loading, setLoading] = useState(true)
@@ -912,9 +914,9 @@ export default function ProvidersPage() {
             <Route size={14} className="text-primary" />
           </IconBox>
           <div>
-            <h1 className="text-xl font-semibold">Providers</h1>
+            <h1 className="text-xl font-semibold">{t('settings.providersTitle')}</h1>
             <p className="mt-0.5 font-mono text-xs text-muted-foreground">
-              Configure vendors, API formats, and custom endpoints
+              {t('settings.providersDescription')}
             </p>
           </div>
         </div>
@@ -925,7 +927,7 @@ export default function ProvidersPage() {
           onClick={() => setShowAdd((v) => !v)}
         >
           <Plus size={14} />
-          Add Provider
+          {t('settings.addProvider')}
         </Button>
       </div>
 
@@ -936,9 +938,11 @@ export default function ProvidersPage() {
               <ServerCog size={14} className="text-muted-foreground" />
             </IconBox>
             <div>
-              <div className="text-sm font-medium">{providers.length} providers</div>
+              <div className="text-sm font-medium">
+                {t('settings.providersCount').replace('{count}', String(providers.length))}
+              </div>
               <div className="font-mono text-[11px] text-muted-foreground">
-                Custom endpoints supported
+                {t('settings.customEndpointsSupported')}
               </div>
             </div>
           </CardPanelBody>
@@ -949,9 +953,9 @@ export default function ProvidersPage() {
               <Route size={14} className="text-muted-foreground" />
             </IconBox>
             <div>
-              <div className="text-sm font-medium">4 API formats</div>
+              <div className="text-sm font-medium">{t('settings.apiFormatsCount')}</div>
               <div className="font-mono text-[11px] text-muted-foreground">
-                OpenAI, Anthropic, Google
+                {t('settings.apiFormatsDescription')}
               </div>
             </div>
           </CardPanelBody>
@@ -962,9 +966,9 @@ export default function ProvidersPage() {
               <KeyRound size={14} className="text-muted-foreground" />
             </IconBox>
             <div>
-              <div className="text-sm font-medium">Encrypted keys</div>
+              <div className="text-sm font-medium">{t('settings.encryptedKeys')}</div>
               <div className="font-mono text-[11px] text-muted-foreground">
-                Stored server-side only
+                {t('settings.encryptedKeysDescription')}
               </div>
             </div>
           </CardPanelBody>
@@ -987,7 +991,10 @@ export default function ProvidersPage() {
       {loading ? (
         <CardPanel>
           <CardPanelBody className="p-12">
-            <PageLoading label="Loading providers..." className="min-h-32 bg-transparent" />
+            <PageLoading
+              label={t('settings.loadingProviders')}
+              className="min-h-32 bg-transparent"
+            />
           </CardPanelBody>
         </CardPanel>
       ) : providers.length === 0 ? (
@@ -996,9 +1003,11 @@ export default function ProvidersPage() {
             <EmptyMedia variant="icon">
               <Bot size={20} />
             </EmptyMedia>
-            <EmptyTitle className="text-sm font-mono">No providers configured</EmptyTitle>
+            <EmptyTitle className="text-sm font-mono">
+              {t('settings.noProvidersConfigured')}
+            </EmptyTitle>
             <EmptyDescription className="font-mono text-xs">
-              Add your first provider to enable AI features.
+              {t('settings.noProvidersDescription')}
             </EmptyDescription>
           </Empty>
         </CardPanel>

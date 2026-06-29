@@ -68,6 +68,9 @@ importers:
       '@eous/chart':
         specifier: workspace:*
         version: link:../../packages/chart
+      '@eous/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@eous/nodes':
         specifier: workspace:*
         version: link:../../packages/nodes
@@ -284,6 +287,12 @@ importers:
       prisma:
         specifier: ^7.8.0
         version: 7.8.0(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(better-sqlite3@12.10.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  packages/i18n:
+    devDependencies:
       typescript:
         specifier: ^5.7.0
         version: 5.9.3

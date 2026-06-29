@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { useNavigate, redirect } from 'react-router-dom'
+import { redirect, useNavigate } from 'react-router-dom'
 import { GitBranch } from 'lucide-react'
 import { IconBox, Input, Button, Label } from '@eous/ui'
 import { api, ApiError } from '../../lib/api.js'
+import { useI18n } from '../../lib/i18n.js'
 
 /* ── Loader: redirect to / if already authenticated ─── */
 export async function loader() {
@@ -18,6 +19,7 @@ export async function loader() {
 /* ── Page ────────────────────────────────────────────── */
 export default function LoginPage() {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -32,7 +34,7 @@ export default function LoginPage() {
       await api.login({ email, password })
       navigate('/', { replace: true })
     } catch {
-      setError('Invalid email or password')
+      setError(t('login.invalidCredentials'))
     } finally {
       setLoading(false)
     }
@@ -51,7 +53,7 @@ export default function LoginPage() {
       {/* Center */}
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="w-full max-w-sm border border-border rounded-sm p-6 space-y-6">
-          <h1 className="text-lg font-semibold text-foreground">Sign in</h1>
+          <h1 className="text-lg font-semibold text-foreground">{t('login.title')}</h1>
 
           {/* Error line */}
           {error && (
@@ -66,7 +68,7 @@ export default function LoginPage() {
                 htmlFor="email"
                 className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground/60"
               >
-                Email
+                {t('login.email')}
               </Label>
               <Input
                 id="email"
@@ -85,7 +87,7 @@ export default function LoginPage() {
                 htmlFor="password"
                 className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground/60"
               >
-                Password
+                {t('login.password')}
               </Label>
               <Input
                 id="password"
@@ -107,7 +109,7 @@ export default function LoginPage() {
               className="w-full font-mono gap-2"
               disabled={loading}
             >
-              {loading ? 'Signing in…' : '→ Sign in'}
+              {loading ? t('login.submitting') : `-> ${t('login.submit')}`}
             </Button>
           </form>
         </div>

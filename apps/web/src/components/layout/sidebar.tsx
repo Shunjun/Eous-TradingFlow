@@ -42,33 +42,35 @@ import {
   GitBranch,
   ChevronDown,
 } from 'lucide-react'
+import type { TextKey } from '@eous/i18n'
 import { useRecentWorkflowsStore } from '../../stores/recent-workflows'
 import { useWorkflowListStore } from '../../stores/workflows'
 import { CreateWorkflowDialog } from '../workflow/dialogs'
 import { api } from '../../lib/api'
+import { useI18n } from '../../lib/i18n'
 
 interface NavItem {
   id: string
-  label: string
+  labelKey: TextKey
   icon: ElementType
 }
 
-const navSections: { title: string; items: NavItem[] }[] = [
+const navSections: { titleKey: TextKey; items: NavItem[] }[] = [
   {
-    title: 'OVERVIEW',
+    titleKey: 'nav.overview',
     items: [
-      { id: 'agents', label: 'Chat', icon: MessageCircle },
-      { id: 'home', label: 'Home', icon: LayoutDashboard },
-      { id: 'dashboard', label: 'Dashboard', icon: Grid3x3 },
-      { id: 'watchlist', label: 'Watchlist', icon: BarChart3 },
-      { id: 'news', label: 'News Feed', icon: Newspaper },
+      { id: 'agents', labelKey: 'nav.chat', icon: MessageCircle },
+      { id: 'home', labelKey: 'nav.home', icon: LayoutDashboard },
+      { id: 'dashboard', labelKey: 'nav.dashboard', icon: Grid3x3 },
+      { id: 'watchlist', labelKey: 'nav.watchlist', icon: BarChart3 },
+      { id: 'news', labelKey: 'nav.news', icon: Newspaper },
     ],
   },
   {
-    title: 'BUILD',
+    titleKey: 'nav.build',
     items: [
-      { id: 'workflows', label: 'Workflows', icon: GitBranch },
-      { id: 'datasets', label: 'Datasets', icon: Wallet },
+      { id: 'workflows', labelKey: 'nav.workflows', icon: GitBranch },
+      { id: 'datasets', labelKey: 'nav.datasets', icon: Wallet },
     ],
   },
 ]
@@ -97,6 +99,7 @@ function extractWorkflowId(pathname: string): string | null {
 export function AppSidebar() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
+  const { t } = useI18n()
   const { state } = useSidebar()
   const { theme, setTheme } = useTheme()
   const recentWorkflows = useRecentWorkflowsStore((s) => s.recent)
@@ -152,11 +155,12 @@ export function AppSidebar() {
 
         <SidebarContent className="px-3 py-3">
           {navSections.map((section) => (
-            <SidebarGroup key={section.title} className="p-0">
-              <SidebarGroupLabel>{section.title}</SidebarGroupLabel>
+            <SidebarGroup key={section.titleKey} className="p-0">
+              <SidebarGroupLabel>{t(section.titleKey)}</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu className="gap-0.5">
                   {section.items.map((item) => {
+                    const label = t(item.labelKey)
                     const isActive =
                       item.id === 'workflows'
                         ? pathname === '/workflows'
@@ -169,7 +173,7 @@ export function AppSidebar() {
                           <SidebarMenuButton
                             asChild
                             isActive={isActive}
-                            tooltip={item.label}
+                            tooltip={label}
                             className={cn(
                               'pr-14',
                               isActive &&
@@ -179,7 +183,7 @@ export function AppSidebar() {
                             <NavLink to={navToPath[item.id]} className="cursor-pointer">
                               <Icon size={16} />
                               <span className="flex-1 text-left group-data-[collapsible=icon]:hidden">
-                                {item.label}
+                                {label}
                               </span>
                             </NavLink>
                           </SidebarMenuButton>
@@ -188,7 +192,7 @@ export function AppSidebar() {
                               'top-2!',
                               recentWorkflows.length > 0 ? 'right-7!' : 'right-1!',
                             )}
-                            aria-label="新建工作流"
+                            aria-label={t('nav.newWorkflow')}
                             onClick={() => setDialogOpen(true)}
                           >
                             <Plus />
@@ -196,7 +200,11 @@ export function AppSidebar() {
                           {recentWorkflows.length > 0 && (
                             <SidebarMenuAction
                               className="top-2!"
-                              aria-label={workflowsCollapsed ? '展开最近工作流' : '折叠最近工作流'}
+                              aria-label={
+                                workflowsCollapsed
+                                  ? t('nav.expandRecentWorkflows')
+                                  : t('nav.collapseRecentWorkflows')
+                              }
                               onClick={() => setWorkflowsCollapsed((value) => !value)}
                             >
                               <ChevronDown
@@ -236,7 +244,7 @@ export function AppSidebar() {
                         <SidebarMenuButton
                           asChild
                           isActive={isActive}
-                          tooltip={item.label}
+                          tooltip={label}
                           className={cn(
                             isActive &&
                               'before:absolute before:left-0 before:top-1/2 before:h-4 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-primary',
@@ -245,7 +253,7 @@ export function AppSidebar() {
                           <NavLink to={navToPath[item.id]} className="cursor-pointer">
                             <Icon size={16} />
                             <span className="flex-1 text-left group-data-[collapsible=icon]:hidden">
-                              {item.label}
+                              {label}
                             </span>
                           </NavLink>
                         </SidebarMenuButton>
@@ -280,7 +288,7 @@ export function AppSidebar() {
             <Button
               variant="ghost-icon"
               size="sm"
-              aria-label="Alerts"
+              aria-label={t('nav.alerts')}
               className="relative size-8 p-0"
             >
               <Bell size={16} />
@@ -290,7 +298,7 @@ export function AppSidebar() {
             <Button
               variant="ghost-icon"
               size="sm"
-              aria-label="Toggle theme"
+              aria-label={t('nav.toggleTheme')}
               className="size-8 p-0"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             >
@@ -299,7 +307,12 @@ export function AppSidebar() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost-icon" size="sm" aria-label="Account" className="size-8 p-0">
+                <Button
+                  variant="ghost-icon"
+                  size="sm"
+                  aria-label={t('nav.account')}
+                  className="size-8 p-0"
+                >
                   <span className="flex size-5 items-center justify-center rounded-sm border border-border font-mono text-[10px] text-muted-foreground">
                     S
                   </span>
@@ -311,7 +324,7 @@ export function AppSidebar() {
                   className="cursor-pointer gap-2 text-xs font-mono text-muted-foreground hover:text-red-400"
                 >
                   <LogOut size={13} />
-                  Logout
+                  {t('nav.logout')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

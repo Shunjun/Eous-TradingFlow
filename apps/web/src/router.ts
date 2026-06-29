@@ -34,7 +34,6 @@ function wrapSuspense(routes: RouteObject[]): RouteObject[] {
   })
 }
 
-// ── Inject loaders ─────────────────────────────────────
 function injectLoaders(routes: RouteObject[]): void {
   for (const route of routes) {
     // Auth layout: pathless route with children → enforce login

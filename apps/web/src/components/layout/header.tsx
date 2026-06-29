@@ -1,9 +1,11 @@
 import { Search } from 'lucide-react'
 import { InputGroup, InputGroupAddon, InputGroupInput, SidebarTrigger } from '@eous/ui'
 import { useState } from 'react'
+import { useI18n } from '../../lib/i18n'
 
 export function Header() {
   const [searchFocused, setSearchFocused] = useState(false)
+  const { t } = useI18n()
 
   return (
     <header className="h-14 shrink-0 border-b border-border bg-card px-4">
@@ -18,7 +20,7 @@ export function Header() {
           >
             <InputGroupInput
               type="text"
-              placeholder="Search workflows, assets..."
+              placeholder={t('header.searchPlaceholder')}
               className="font-mono text-xs text-foreground placeholder:text-muted-foreground/50"
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
