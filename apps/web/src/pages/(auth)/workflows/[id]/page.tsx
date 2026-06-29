@@ -21,6 +21,7 @@ import type { WorkflowDefinition, WorkflowRunDetail, WorkflowVersion } from '@eo
 import { ArrowLeft, CheckCircle2, Clock3, GitCommitHorizontal, Play } from 'lucide-react'
 import { api } from '../../../../lib/api'
 import { useWorkflowListStore } from '../../../../stores/workflows'
+import { PageLoading } from '../../../../components/PageLoading'
 
 function JsonBlock({ value }: { value: unknown }) {
   return (
@@ -100,7 +101,7 @@ export default function WorkflowDetailPage() {
 
   if (!id) return null
   if (loading || !workflow) {
-    return <div className="p-6 text-sm text-muted-foreground">Loading workflow...</div>
+    return <PageLoading label="Loading workflow..." />
   }
 
   const activeVersion = versions.find((version) => version.id === workflow.activeVersionId)

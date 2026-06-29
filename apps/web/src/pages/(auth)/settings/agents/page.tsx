@@ -17,12 +17,12 @@ import {
   EmptyTitle,
   Input,
   Label,
-  Skeleton,
   Textarea,
   cn,
 } from '@eous/ui'
 import { BrainCircuit, Check, Layers3, Loader2, Plus, Save, Trash2, Wrench } from 'lucide-react'
 import { api } from '@/lib/api'
+import { PageLoading } from '../../../../components/PageLoading'
 
 type AgentDraft = {
   name: string
@@ -468,11 +468,7 @@ export default function AgentSettingsPage() {
           </div>
           <CardPanelBody className="min-h-[calc(100vh-15.6rem)] max-h-[calc(100vh-105px)] overflow-y-auto p-2">
             {loading ? (
-              <div className="space-y-2 p-2">
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
-                <Skeleton className="h-14 w-full" />
-              </div>
+              <PageLoading label="Loading agents..." className="min-h-48 bg-transparent" />
             ) : agents.length === 0 ? (
               <Empty className="border-0 p-8">
                 <EmptyMedia variant="icon">

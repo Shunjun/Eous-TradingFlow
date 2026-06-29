@@ -41,6 +41,7 @@ import {
 } from 'lucide-react'
 import type { Provider, ProviderModel, ProviderTemplate, TestResult } from '@eous/api-client'
 import { api } from '@/lib/api'
+import { PageLoading } from '../../../../components/PageLoading'
 
 /* ── Capability color map ──────────────────────────────── */
 
@@ -985,9 +986,8 @@ export default function ProvidersPage() {
       {/* Content */}
       {loading ? (
         <CardPanel>
-          <CardPanelBody className="flex flex-col gap-3 p-12">
-            <Skeleton className="h-5 w-1/3 mx-auto" />
-            <Skeleton className="h-4 w-1/2 mx-auto" />
+          <CardPanelBody className="p-12">
+            <PageLoading label="Loading providers..." className="min-h-32 bg-transparent" />
           </CardPanelBody>
         </CardPanel>
       ) : providers.length === 0 ? (

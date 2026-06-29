@@ -11,7 +11,6 @@ import {
   StatusBadge,
   Badge,
   Checkbox,
-  Skeleton,
   Empty,
   EmptyMedia,
   EmptyTitle,
@@ -27,6 +26,7 @@ import {
   ScrollArea,
 } from '@eous/ui'
 import { Database, Plus, X, Trash2, Zap, Check, Loader2, Search, ChevronDown } from 'lucide-react'
+import { PageLoading } from '../../../../components/PageLoading'
 import type {
   DataSourceInstance,
   SymbolSearchResult,
@@ -658,9 +658,8 @@ export default function DataSourcesPage() {
       {/* Content */}
       {loading ? (
         <CardPanel>
-          <CardPanelBody className="p-12 space-y-3">
-            <Skeleton className="h-5 w-1/3 mx-auto" />
-            <Skeleton className="h-4 w-1/2 mx-auto" />
+          <CardPanelBody className="p-12">
+            <PageLoading label="Loading data sources..." className="min-h-32 bg-transparent" />
           </CardPanelBody>
         </CardPanel>
       ) : instances.length === 0 ? (

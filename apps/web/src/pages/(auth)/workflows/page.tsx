@@ -40,6 +40,7 @@ import { api } from '../../../lib/api'
 import { useWorkflowList } from '../../../hooks/use-workflows'
 import { useWorkflowListStore } from '../../../stores/workflows'
 import { CreateWorkflowDialog } from '../../../components/workflow/dialogs'
+import { PageLoading } from '../../../components/PageLoading'
 
 type ViewMode = 'cards' | 'list'
 type StatusFilter = 'all' | 'enabled' | 'disabled'
@@ -172,9 +173,7 @@ export default function WorkflowsPage() {
         </section>
 
         {loading ? (
-          <div className="rounded-lg border bg-card p-8 text-sm text-muted-foreground">
-            Loading workflows...
-          </div>
+          <PageLoading label="Loading workflows..." className="rounded-lg border bg-card" />
         ) : view === 'cards' ? (
           <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {filtered.map((workflow) => (

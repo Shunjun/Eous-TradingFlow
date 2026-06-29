@@ -3,6 +3,7 @@ import { ReactFlowProvider } from '@xyflow/react'
 import { Button } from '@eous/ui'
 import { useWorkflowList } from '../../../hooks/use-workflows.js'
 import { WorkflowEditor } from '../../workflow/workflow-editor.js'
+import { PageLoading } from '../../PageLoading.js'
 import type { WorkflowViewProps } from './use-workflow-view-state.js'
 
 export function WorkflowView({ workflowId, onWorkflowSelect }: WorkflowViewProps) {
@@ -19,11 +20,7 @@ export function WorkflowView({ workflowId, onWorkflowSelect }: WorkflowViewProps
   }, [workflowId, workflows, onWorkflowSelect])
 
   if (loading && !workflowId) {
-    return (
-      <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-        加载中…
-      </div>
-    )
+    return <PageLoading label="Loading workflows..." />
   }
 
   if (!workflowId) {

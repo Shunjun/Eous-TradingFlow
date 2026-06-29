@@ -11,6 +11,7 @@ import type { WorkflowHistoryEntry } from './store/workflow-store'
 import { useWorkflow, publishWorkflow } from '../../hooks/use-workflows'
 import { useWorkflowListStore } from '../../stores/workflows'
 import { useRecentWorkflowsStore } from '../../stores/recent-workflows'
+import { PageLoading } from '../PageLoading'
 import { WorkflowCanvas, WorkflowOverlay } from './canvas'
 import { useKeyboardShortcuts } from './hooks'
 import {
@@ -373,11 +374,7 @@ function WorkflowEditorContent({
   useKeyboardShortcuts({ targetRef: editorRef })
 
   if (loading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <span className="text-sm text-muted-foreground">加载中…</span>
-      </div>
-    )
+    return <PageLoading label="Loading workflow..." />
   }
 
   return (

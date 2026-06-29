@@ -15,7 +15,11 @@ const rawRoutes = fsRouter.buildRoutes()
 function wrapSuspense(routes: RouteObject[]): RouteObject[] {
   return routes.map((route) => {
     const element = route.element
-      ? createElement(Suspense, { fallback: createElement(PageLoading) }, route.element)
+      ? createElement(
+          Suspense,
+          { fallback: createElement(PageLoading, { fullScreen: true }) },
+          route.element,
+        )
       : undefined
 
     if (route.index) {
