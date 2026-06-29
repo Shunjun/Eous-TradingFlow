@@ -576,46 +576,72 @@ export class RealtimeDataService {
     const streamMapper =
       message.channel === 'kline' ? createKlineStreamMapper(intervalSupport) : null
     let lastStreamEventAt = Date.now()
+    let startPollFallback: ((reason: string, details?: Record<string, unknown>) => void) | null =
+      null
     const stop =
       source === 'stream'
-        ? await this.startStream(message, resolved, streamMapper?.upstreamInterval, (event) => {
-            lastStreamEventAt = Date.now()
-            const mapped = event.type === 'kline' && streamMapper ? streamMapper.map(event) : event
-            if (!mapped) return
-            void ingestAndEmit(mapped).catch((error) => {
-              console.error('[realtime ingest] stream event failed', {
+        ? await this.startStream(
+            message,
+            resolved,
+            streamMapper?.upstreamInterval,
+            (event) => {
+              lastStreamEventAt = Date.now()
+              const mapped =
+                event.type === 'kline' && streamMapper ? streamMapper.map(event) : event
+              if (!mapped) return
+              void ingestAndEmit(mapped).catch((error) => {
+                console.error('[realtime ingest] stream event failed', {
+                  providerId: message.providerId,
+                  channel: message.channel,
+                  symbol: message.symbol,
+                  interval: message.interval,
+                  error: error instanceof Error ? error.message : String(error),
+                })
+              })
+            },
+            (error) => {
+              console.error('[market-data realtime] provider stream error', {
                 providerId: message.providerId,
                 channel: message.channel,
                 symbol: message.symbol,
                 interval: message.interval,
-                error: error instanceof Error ? error.message : String(error),
+                error: error.message,
               })
-            })
-          })
+              startPollFallback?.('provider-error', { error: error.message })
+            },
+          )
         : this.startPoll(userId, message, intervalSupport, pollIntervalMs!, resolved, ingestAndEmit)
 
     let fallbackStop: RealtimeUnsubscribe | null = null
     let watchdog: ReturnType<typeof setInterval> | null = null
+    startPollFallback = (reason: string, details: Record<string, unknown> = {}) => {
+      if (fallbackStop || !streamFallbackPollIntervalMs) return
+      console.warn('[market-data realtime] stream fallback to poll', {
+        providerId: message.providerId,
+        channel: message.channel,
+        symbol: message.symbol,
+        interval: message.interval,
+        reason,
+        ...details,
+      })
+      fallbackStop = this.startPoll(
+        userId,
+        message,
+        intervalSupport,
+        streamFallbackPollIntervalMs,
+        resolved,
+        ingestAndEmit,
+      )
+    }
+
     if (source === 'stream' && streamFallbackPollIntervalMs && message.channel === 'kline') {
       const staleAfterMs = Math.max(streamFallbackPollIntervalMs * 3, 30_000)
       watchdog = setInterval(
         () => {
           if (fallbackStop || Date.now() - lastStreamEventAt < staleAfterMs) return
-          console.warn('[market-data realtime] stream stale, starting poll fallback', {
-            providerId: message.providerId,
-            channel: message.channel,
-            symbol: message.symbol,
-            interval: message.interval,
+          startPollFallback('stream-stale', {
             staleAfterMs,
           })
-          fallbackStop = this.startPoll(
-            userId,
-            message,
-            intervalSupport,
-            streamFallbackPollIntervalMs,
-            resolved,
-            ingestAndEmit,
-          )
         },
         Math.max(streamFallbackPollIntervalMs, 10_000),
       )
@@ -643,6 +669,7 @@ export class RealtimeDataService {
     resolved: ResolvedProvider,
     upstreamInterval: string | undefined,
     emit: (event: RealtimeQuoteEvent | RealtimeKlineEvent) => void,
+    onError: (error: Error) => void,
   ): Promise<RealtimeUnsubscribe> {
     console.info('[market-data realtime] provider socket connect', {
       providerId: message.providerId,
@@ -660,6 +687,7 @@ export class RealtimeDataService {
         { symbol: message.symbol, mode: 'stream', pollIntervalMs: message.pollIntervalMs },
         resolved.settings,
         emit,
+        onError,
       )
     }
 
@@ -675,6 +703,7 @@ export class RealtimeDataService {
       },
       resolved.settings,
       emit,
+      onError,
     )
   }
 

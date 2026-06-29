@@ -37,6 +37,7 @@ type CCXTNamespace = typeof ccxt & {
 }
 
 type StreamingExchange = Exchange & {
+  close?(): Promise<unknown>
   loadProxyModules?(): Promise<unknown>
   watchOHLCV(
     symbol: string,
@@ -53,6 +54,16 @@ type StreamingExchange = Exchange & {
 }
 
 const TIMEOUT_MS = 15_000
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | null = null
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), timeoutMs)
+  })
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer)
+  })
+}
 
 function isSupportedMarket(market: Market | undefined): market is Market {
   if (!market?.symbol) return false
@@ -105,7 +116,6 @@ export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
   readonly id = 'ccxt'
   readonly name = 'CCXT'
   private readonly exchangeCache = new Map<string, Exchange>()
-  private readonly streamingExchangeCache = new Map<string, StreamingExchange>()
   private readonly intervalPlanCache = new Map<string, IntervalPlan[]>()
 
   constructor(private readonly options: DataSourceProviderOptions = {}) {}
@@ -263,6 +273,7 @@ export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
     request: KlineSubscribeRequest,
     settings: CCXTSettings,
     emit: (event: RealtimeKlineEvent) => void,
+    onError?: (error: Error) => void,
   ): Promise<RealtimeUnsubscribe> {
     const ex = this.getStreamingExchange(settings.exchange)
     const plan = await this.getIntervalPlan(settings.exchange, request.interval)
@@ -272,6 +283,7 @@ export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
 
     const timeframe = plan.timeframe
     const intervalMs = intervalToMs(request.interval) ?? parseIntervalMs(request.interval)
+    const watchTimeoutMs = Math.max(request.pollIntervalMs ?? 0, TIMEOUT_MS) * 3
     let stopped = false
     let lastSignature: string | null = null
 
@@ -298,7 +310,13 @@ export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
 
     try {
       await ex.loadProxyModules?.()
-      publish(await ex.watchOHLCV(request.symbol, timeframe))
+      publish(
+        await withTimeout(
+          ex.watchOHLCV(request.symbol, timeframe),
+          watchTimeoutMs,
+          `CCXT watchOHLCV timed out after ${watchTimeoutMs}ms`,
+        ),
+      )
     } catch (e) {
       throw toProviderError('watchOHLCV', e)
     }
@@ -306,15 +324,24 @@ export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
     void (async () => {
       while (!stopped) {
         try {
-          publish(await ex.watchOHLCV(request.symbol, timeframe))
+          publish(
+            await withTimeout(
+              ex.watchOHLCV(request.symbol, timeframe),
+              watchTimeoutMs,
+              `CCXT watchOHLCV timed out after ${watchTimeoutMs}ms`,
+            ),
+          )
         } catch (e) {
           if (stopped) return
+          const error = toProviderError('watchOHLCV', e)
           console.error('[ccxt subscribeKlines] stream failed', {
             exchange: settings.exchange,
             symbol: request.symbol,
             interval: request.interval,
-            error: e instanceof Error ? e.message : String(e),
+            error: error.message,
           })
+          onError?.(error)
+          await ex.close?.().catch(() => undefined)
           return
         }
       }
@@ -325,6 +352,7 @@ export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
       if (ex.unWatchOHLCV) {
         await ex.unWatchOHLCV(request.symbol, timeframe).catch(() => undefined)
       }
+      await ex.close?.().catch(() => undefined)
     }
   }
 
@@ -349,10 +377,6 @@ export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
 
   private getStreamingExchange(exchangeId: string): StreamingExchange {
     const proxy = this.resolveProxy()
-    const cacheKey = `${exchangeId}:${proxy.cacheKey}`
-    const cached = this.streamingExchangeCache.get(cacheKey)
-    if (cached) return cached
-
     const ExClass = (ccxt as CCXTNamespace).pro?.[exchangeId]
     if (!ExClass) {
       throw new Error(`Exchange does not expose CCXT websocket support: ${exchangeId}`)
@@ -365,7 +389,6 @@ export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
       throw new Error(`Exchange does not support realtime OHLCV stream: ${exchangeId}`)
     }
 
-    this.streamingExchangeCache.set(cacheKey, exchange)
     return exchange
   }
 

@@ -177,10 +177,12 @@ export interface DataSourceProvider<TSettings extends DataSourceSettings = DataS
     request: QuoteSubscribeRequest,
     settings: TSettings,
     emit: (event: RealtimeQuoteEvent) => void,
+    onError?: (error: Error) => void,
   ): Promise<RealtimeUnsubscribe> | RealtimeUnsubscribe
   subscribeKlines?(
     request: KlineSubscribeRequest,
     settings: TSettings,
     emit: (event: RealtimeKlineEvent) => void,
+    onError?: (error: Error) => void,
   ): Promise<RealtimeUnsubscribe> | RealtimeUnsubscribe
 }
