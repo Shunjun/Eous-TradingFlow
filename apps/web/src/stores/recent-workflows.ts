@@ -13,6 +13,7 @@ interface RecentWorkflowState {
   recent: RecentWorkflowRef[]
   markRecent: (workflow: RecentWorkflowRef) => void
   removeRecent: (id: string) => void
+  retainExisting: (ids: string[]) => void
 }
 
 function readRecent(): RecentWorkflowRef[] {
@@ -58,6 +59,15 @@ export const useRecentWorkflowsStore = create<RecentWorkflowState>((set) => ({
   removeRecent: (id) =>
     set((state) => {
       const next = state.recent.filter((item) => item.id !== id)
+      writeRecent(next)
+      return { recent: next }
+    }),
+
+  retainExisting: (ids) =>
+    set((state) => {
+      const allowedIds = new Set(ids)
+      const next = state.recent.filter((item) => allowedIds.has(item.id))
+      if (next.length === state.recent.length) return state
       writeRecent(next)
       return { recent: next }
     }),

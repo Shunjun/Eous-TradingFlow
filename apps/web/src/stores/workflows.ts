@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { WorkflowDefinition } from '@eous/api-client'
 import { api } from '../lib/api'
 import { buildWorkflowDocument, createDefaultWorkflowNodes } from '../components/workflow/utils'
+import { useRecentWorkflowsStore } from './recent-workflows'
 
 interface WorkflowListState {
   workflows: WorkflowDefinition[]
@@ -80,6 +81,7 @@ export const useWorkflowListStore = create<WorkflowListState>((set, get) => ({
   deleteWorkflow: async (id) => {
     await api.deleteWorkflow(id)
     get().removeWorkflow(id)
+    useRecentWorkflowsStore.getState().removeRecent(id)
   },
 
   upsertWorkflow: (workflow) =>

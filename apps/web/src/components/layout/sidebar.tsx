@@ -1,4 +1,4 @@
-import { useState, useCallback, type ElementType } from 'react'
+import { useState, useCallback, useEffect, type ElementType } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   Button,
@@ -43,6 +43,7 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import { useRecentWorkflowsStore } from '../../stores/recent-workflows'
+import { useWorkflowListStore } from '../../stores/workflows'
 import { CreateWorkflowDialog } from '../workflow/dialogs'
 import { api } from '../../lib/api'
 
@@ -99,11 +100,24 @@ export function AppSidebar() {
   const { state } = useSidebar()
   const { theme, setTheme } = useTheme()
   const recentWorkflows = useRecentWorkflowsStore((s) => s.recent)
+  const retainExistingRecentWorkflows = useRecentWorkflowsStore((s) => s.retainExisting)
+  const workflows = useWorkflowListStore((s) => s.workflows)
+  const workflowsLoaded = useWorkflowListStore((s) => s.loaded)
+  const loadWorkflows = useWorkflowListStore((s) => s.loadWorkflows)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [workflowsCollapsed, setWorkflowsCollapsed] = useState(false)
 
   const isCollapsed = state === 'collapsed'
   const activeWorkflowId = extractWorkflowId(pathname)
+
+  useEffect(() => {
+    void loadWorkflows()
+  }, [loadWorkflows])
+
+  useEffect(() => {
+    if (!workflowsLoaded) return
+    retainExistingRecentWorkflows(workflows.map((workflow) => workflow.id))
+  }, [retainExistingRecentWorkflows, workflows, workflowsLoaded])
 
   const handleCreated = useCallback(
     (id: string) => {
