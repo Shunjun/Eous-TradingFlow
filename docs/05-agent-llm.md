@@ -2,7 +2,7 @@
 
 ## LLM 服务
 
-LLM service 位于 `services/server/src/services/llm/llm.service.ts`，基于 `@earendil-works/pi-ai`。
+LLM 相关实现位于 `services/server/src/llm/`。
 
 当前支持：
 
@@ -131,7 +131,7 @@ Agent 相关表：
 核心文件：
 
 - `services/server/src/routes/agent.ts`
-- `services/server/src/services/agent.service.ts`
+- `services/server/src/modules/agent/agent.service.ts`
 - `services/server/src/repositories/agent.repo.ts`
 - `apps/web/src/hooks/use-agent-stream.ts`
 - `apps/web/src/pages/(auth)/agents/page.tsx`

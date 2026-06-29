@@ -7,11 +7,11 @@ import {
   type SymbolInfo,
 } from '@eous/data-sources'
 import type { ConfigFieldOption, ConfigFieldSchema } from '@eous/api-client'
-import { AppError } from '../lib/app-error.js'
-import { encrypt, decrypt, getEncryptionKey } from '../lib/crypto-utils.js'
-import { marketDataService, type KlineReadMode } from '../modules/market-data/index.js'
-import * as chartRepo from '../repositories/chart.repo.js'
-import * as dsRepo from '../repositories/data-source.repo.js'
+import { AppError } from '../../lib/app-error.js'
+import { encrypt, decrypt, getEncryptionKey } from '../../lib/crypto-utils.js'
+import { marketDataService, type KlineReadMode } from '../market-data/index.js'
+import * as chartRepo from '../../repositories/chart.repo.js'
+import * as dsRepo from '../../repositories/data-source.repo.js'
 
 // ── Provider metadata (no ccxt import) ─────────────────────────────────────
 

@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { authMiddleware } from '../lib/auth-middleware.js'
-import * as agentService from '../services/agent.service.js'
+import * as agentService from '../modules/agent/index.js'
 
 export const agentRouter = new Hono()
 

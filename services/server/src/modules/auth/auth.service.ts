@@ -1,7 +1,12 @@
-import { AppError } from '../lib/app-error.js'
-import { hashPassword, verifyPassword, createSession, destroySession } from '../lib/auth-utils.js'
-import * as userRepo from '../repositories/user.repo.js'
-import * as sessionRepo from '../repositories/session.repo.js'
+import { AppError } from '../../lib/app-error.js'
+import {
+  hashPassword,
+  verifyPassword,
+  createSession,
+  destroySession,
+} from '../../lib/auth-utils.js'
+import * as userRepo from '../../repositories/user.repo.js'
+import * as sessionRepo from '../../repositories/session.repo.js'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 

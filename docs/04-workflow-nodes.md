@@ -136,7 +136,7 @@ import { allNodeMetas, getNodeDef, getNodeOutputs } from '@eous/nodes'
 
 ## Runner
 
-服务端 Runner 位于 `services/server/src/services/workflow-runner.service.ts`。
+服务端 Runner 位于 `services/server/src/modules/workflow/workflow-runner.service.ts`。
 
 当前能力：
 

@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
 import { SESSION_COOKIE } from '../lib/auth-utils.js'
 import { AppError } from '../lib/app-error.js'
-import * as authService from '../services/auth.service.js'
+import * as authService from '../modules/auth/index.js'
 
 export const authRouter = new Hono()
 

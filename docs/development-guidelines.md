@@ -138,13 +138,13 @@ Route → Service → Repository → Prisma
 - **不允许**：业务逻辑、数据库操作、try/catch（全局 `app.onError` 统一处理）
 - 文件命名：`{资源名}.ts`（如 `auth.ts`、`data-source.ts`）
 
-**Service 层（`services/server/src/services/`）**：
+**Service 层（`services/server/src/modules/<module>/`）**：
 
 - 业务逻辑编排：校验、权限、冲突检测
 - 调用 Repository、外部 API、加解密
 - 通过 `throw new AppError(message, statusCode)` 抛出业务异常
 - 不直接访问 `ctx` 或 Request/Response 对象
-- 文件命名：`{资源名}.service.ts`
+- 文件命名：`{资源名}.service.ts`，并通过模块内 `index.ts` 导出
 
 **Repository 层（`services/server/src/repositories/`）**：
 

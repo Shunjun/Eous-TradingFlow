@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { authMiddleware } from '../lib/auth-middleware.js'
-import * as workspaceService from '../services/workspace.service.js'
+import * as workspaceService from '../modules/workspace/index.js'
 
 export const workspaceRouter = new Hono()
 

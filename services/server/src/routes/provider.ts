@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { authMiddleware } from '../lib/auth-middleware.js'
 import { PROVIDER_TEMPLATES } from '../lib/provider-templates.js'
-import * as providerService from '../services/provider.service.js'
+import * as providerService from '../modules/provider/index.js'
 
 export const providerRouter = new Hono()
 

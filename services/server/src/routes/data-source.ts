@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { authMiddleware } from '../lib/auth-middleware.js'
 import { getDataSourceProvider } from '@eous/data-sources'
-import * as dataSourceService from '../services/data-source.service.js'
+import * as dataSourceService from '../modules/data-source/index.js'
 
 export const dataSourceRouter = new Hono()
 export const dataSourceInstanceRouter = new Hono()

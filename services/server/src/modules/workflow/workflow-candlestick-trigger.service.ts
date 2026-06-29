@@ -7,10 +7,7 @@ import {
   type WorkflowNode,
 } from './workflow-trigger.service.js'
 import { setRedisOnce } from '../../lib/redis.js'
-import {
-  scanCandlestickPatterns,
-  type SymbolPatternResult,
-} from '../../services/pattern/candlestick-pattern-client.js'
+import { scanCandlestickPatterns, type SymbolPatternResult } from '../pattern/index.js'
 import { marketDataService } from '../market-data/index.js'
 
 type Direction = 'ANY' | 'BULLISH' | 'BEARISH'

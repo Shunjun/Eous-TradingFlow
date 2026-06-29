@@ -1,4 +1,4 @@
-import * as workspaceRepo from '../repositories/workspace.repo.js'
+import * as workspaceRepo from '../../repositories/workspace.repo.js'
 
 export function listLayouts(userId: string) {
   return workspaceRepo.listLayouts(userId)

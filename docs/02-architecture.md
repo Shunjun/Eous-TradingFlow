@@ -55,11 +55,11 @@ packages/
 
 ## 后端结构
 
-`services/server/src` 采用 Route -> Service -> Repository 分层。
+`services/server/src` 采用 Route -> Module Service -> Repository 分层。
 
 ```text
 routes/        HTTP 参数解析、返回 JSON/SSE
-services/      业务逻辑、外部调用、加解密、Runner
+modules/       按业务模块组织 service、repo、能力实现和模块入口
 repositories/  Prisma 数据访问封装
 lib/           auth、crypto、seed、var resolver 等通用工具
 ws/            market data socket

@@ -1,7 +1,7 @@
-import { AppError } from '../lib/app-error.js'
-import { encrypt, decrypt, getEncryptionKey } from '../lib/crypto-utils.js'
-import { fetchModelsFromProvider } from '../lib/model-sync.js'
-import * as providerRepo from '../repositories/provider.repo.js'
+import { AppError } from '../../lib/app-error.js'
+import { encrypt, decrypt, getEncryptionKey } from '../../lib/crypto-utils.js'
+import { fetchModelsFromProvider } from '../../lib/model-sync.js'
+import * as providerRepo from '../../repositories/provider.repo.js'
 
 const VALID_KINDS = [
   'openai',
