@@ -6,7 +6,7 @@ import {
   realtimeDataService,
   type RealtimeSubscribeMessage,
   type RealtimeUnsubscribeMessage,
-} from '../services/realtime-data.service.js'
+} from '../modules/market-data/realtime-subscription.service.js'
 
 interface AuthenticatedSocket extends Socket {
   data: Socket['data'] & {

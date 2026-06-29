@@ -628,6 +628,8 @@ export interface ApiClient {
       interval: string
       from?: number
       to?: number
+      limit?: number
+      mode?: 'closed-only' | 'include-live'
     },
   ): Promise<{ klines: unknown[] }>
   getDataSourceDrawings(

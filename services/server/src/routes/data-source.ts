@@ -142,6 +142,8 @@ dataSourceInstanceRouter.post('/data-source-instances/:id/klines', async (c) => 
     interval: string
     from?: number
     to?: number
+    limit?: number
+    mode?: 'closed-only' | 'include-live'
   }>()
   const klines = await dataSourceService.getKlines(c.get('userId'), c.req.param('id'), body)
   return c.json({ klines })

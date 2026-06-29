@@ -1,4 +1,3 @@
-import { getDataSourceProvider } from '@eous/data-sources'
 import type { ExecuteContext } from '../../types'
 import type { ExecuteInput, ExecuteOutput } from './types'
 
@@ -9,22 +8,14 @@ async function execute(input: ExecuteInput, ctx: ExecuteContext): Promise<Execut
     throw new Error('dataSourceInstanceId is required')
   }
 
-  const instanceConfig = await ctx.dataSourceService.getInstanceConfig(
-    ctx.userId,
-    dataSourceInstanceId,
-  )
-  const provider = getDataSourceProvider(instanceConfig.providerKind)
-  if (!provider) throw new Error(`Unknown provider: ${instanceConfig.providerKind}`)
-
   ctx.log('info', `开始拉取 K 线: ${symbol} ${interval} limit=${limit}`)
 
-  const now = Date.now()
-  const from = now - limit * 86_400_000
-
-  const klines = await provider.getKlines(
-    { symbol, interval, from, to: now },
-    instanceConfig.config,
-  )
+  const klines = await ctx.dataSourceService.getKlines(ctx.userId, dataSourceInstanceId, {
+    symbol,
+    interval,
+    limit,
+    mode: 'include-live',
+  })
 
   if (klines.length === 0) {
     ctx.log(

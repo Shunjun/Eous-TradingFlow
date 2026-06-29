@@ -13,6 +13,7 @@ import { resolveString, resolveValue } from '../../lib/var-resolver.js'
 import { parseJsonWithTolerance } from '../../lib/json-utils.js'
 import * as dataSourceService from '../../services/data-source.service.js'
 import { getAgentRuntime } from '../../agent-runtime/runtime.js'
+import { marketDataService } from '../market-data/index.js'
 
 type NodeExecutor = (
   input: Record<string, unknown>,
@@ -215,6 +216,14 @@ const dataSourceServiceImpl: DataSourceService = {
       providerKind: instance.providerKind,
       config: instance.config,
     }
+  },
+  getKlines(userId, instanceId, params) {
+    return marketDataService.getKlines({
+      userId,
+      dataSourceInstanceId: instanceId,
+      ...params,
+      priority: 'workflow',
+    })
   },
 }
 

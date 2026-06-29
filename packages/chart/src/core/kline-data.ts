@@ -19,6 +19,7 @@ export type FetchKlinesFn = (params: {
   interval: string
   from?: number
   to?: number
+  limit?: number
   /** Active data provider ID — passed by the chart to identify which provider to query */
   providerId?: string
 }) => Promise<KlineDataPoint[]>
@@ -39,6 +40,7 @@ export class KLineData {
   private fetchId = 0
   private eventBus: EventBus
   private theme: ChartTheme
+  private pendingRealtimeKlines: KlineDataPoint[] = []
 
   // Prevent infinite scroll during/after interval switch
   private suspendScroll = false
@@ -71,23 +73,31 @@ export class KLineData {
   }
 
   upsertLatest(kline: KlineDataPoint): void {
-    const last = this.klines.at(-1)
-    if (!last || kline.timestamp > last.timestamp) {
-      this.klines = [...this.klines, kline]
-    } else if (kline.timestamp === last.timestamp) {
-      this.klines = [...this.klines.slice(0, -1), kline]
-    } else {
-      const index = this.klines.findIndex((item) => item.timestamp === kline.timestamp)
-      if (index === -1) return
-      this.klines = [...this.klines.slice(0, index), kline, ...this.klines.slice(index + 1)]
+    if (this._loading) {
+      this.pendingRealtimeKlines = this.upsertInto(this.pendingRealtimeKlines, kline)
     }
 
+    this.klines = this.upsertInto(this.klines, kline)
     this.eventBus.emit('data:updated', { klines: this.klines, fit: false })
     this.eventBus.emit('data:status', { status: 'ready' })
   }
 
+  private upsertInto(data: KlineDataPoint[], kline: KlineDataPoint): KlineDataPoint[] {
+    const klines = data
+    const last = klines.at(-1)
+    if (!last || kline.timestamp > last.timestamp) {
+      return [...klines, kline]
+    } else if (kline.timestamp === last.timestamp) {
+      return [...klines.slice(0, -1), kline]
+    }
+    const index = klines.findIndex((item) => item.timestamp === kline.timestamp)
+    if (index === -1) return klines
+    return [...klines.slice(0, index), kline, ...klines.slice(index + 1)]
+  }
+
   clear(): void {
     this.klines = []
+    this.pendingRealtimeKlines = []
     this._hasMore = true
     this._loading = false
     this.eventBus.emit('data:updated', { klines: [], fit: true })
@@ -98,9 +108,10 @@ export class KLineData {
   async loadInitial(fetchFn: FetchKlinesFn, symbol: string, interval: string): Promise<void> {
     this.suspendScroll = true
     this.klines = []
+    this.pendingRealtimeKlines = []
     this._hasMore = true
     this.eventBus.emit('data:updated', { klines: [], fit: true })
-    await this.fetch(fetchFn, symbol, interval, {}, true)
+    await this.fetch(fetchFn, symbol, interval, { limit: getDefaultKlineBarCount(interval) }, true)
     this.suspendScroll = false
   }
 
@@ -108,10 +119,10 @@ export class KLineData {
   async switchInterval(fetchFn: FetchKlinesFn, symbol: string, interval: string): Promise<void> {
     this.suspendScroll = true
     this.klines = []
+    this.pendingRealtimeKlines = []
     this._hasMore = true
     this.eventBus.emit('data:updated', { klines: [], fit: true })
-    // Don't send from/to → server defaults to latest data
-    await this.fetch(fetchFn, symbol, interval, {}, true)
+    await this.fetch(fetchFn, symbol, interval, { limit: getDefaultKlineBarCount(interval) }, true)
     this.suspendScroll = false
   }
 
@@ -146,7 +157,7 @@ export class KLineData {
     fetchFn: FetchKlinesFn,
     symbol: string,
     interval: string,
-    opts: { from?: number; to?: number },
+    opts: { from?: number; to?: number; limit?: number },
     fit: boolean,
   ): Promise<void> {
     const id = ++this.fetchId
@@ -163,6 +174,13 @@ export class KLineData {
       } else {
         // Prepend, dedup
         this.klines = this.merge(this.klines, data)
+      }
+
+      if (this.pendingRealtimeKlines.length > 0) {
+        for (const kline of this.pendingRealtimeKlines) {
+          this.klines = this.upsertInto(this.klines, kline)
+        }
+        this.pendingRealtimeKlines = []
       }
 
       this._hasMore = data.length >= 100

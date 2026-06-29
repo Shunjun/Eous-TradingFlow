@@ -27,6 +27,27 @@ export interface DataSourceInstanceConfig {
 
 export interface DataSourceService {
   getInstanceConfig(userId: string, instanceId: string): Promise<DataSourceInstanceConfig>
+  getKlines(
+    userId: string,
+    instanceId: string,
+    params: {
+      symbol: string
+      interval: string
+      from?: number
+      to?: number
+      limit?: number
+      mode?: 'closed-only' | 'include-live'
+    },
+  ): Promise<
+    {
+      timestamp: number
+      open: number
+      high: number
+      low: number
+      close: number
+      volume?: number
+    }[]
+  >
 }
 
 export interface LlmService {

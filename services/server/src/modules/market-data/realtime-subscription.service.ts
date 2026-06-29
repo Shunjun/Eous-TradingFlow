@@ -1,6 +1,7 @@
 import {
   aggregateKlines,
   canonicalizeInterval,
+  getDataSourceProvider,
   intervalToMs,
   resolveIntervalSupport,
   type DataSourceSettings,
@@ -15,14 +16,12 @@ import {
   type RealtimeSubscribeMode,
   type RealtimeUnsubscribe,
 } from '@eous/data-sources'
-import { AppError } from '../lib/app-error.js'
-import { parseIntervalMs } from '../lib/interval-utils.js'
-import * as dsRepo from '../repositories/data-source.repo.js'
-import {
-  DEFAULT_REALTIME_CAPABILITIES,
-  DEFAULT_REALTIME_POLL_INTERVAL_MS,
-  decryptInstance,
-} from './data-source.service.js'
+import { AppError } from '../../lib/app-error.js'
+import { decrypt, getEncryptionKey } from '../../lib/crypto-utils.js'
+import { parseIntervalMs } from '../../lib/interval-utils.js'
+import * as dsRepo from '../../repositories/data-source.repo.js'
+import { marketDataService } from './market-data.service.js'
+import { realtimeIngestService } from './realtime-ingest.service.js'
 
 export type RealtimeChannel = 'quote' | 'kline'
 
@@ -92,6 +91,11 @@ type Emit = (message: RealtimeServerEvent) => void
 interface ResolvedProvider {
   settings: DataSourceSettings
   provider: DataSourceProvider<DataSourceSettings>
+  instance: {
+    id: string
+    providerKind: string
+    identityKey: string | null
+  }
 }
 
 interface ResolvedIntervalSupport {
@@ -122,6 +126,11 @@ export interface RealtimeSubscription {
 }
 
 const MIN_SAFE_POLL_INTERVAL_MS = 1_000
+const DEFAULT_REALTIME_POLL_INTERVAL_MS = 10_000
+const DEFAULT_REALTIME_CAPABILITIES: RealtimeCapabilities = {
+  quote: { modes: ['poll'], minPollIntervalMs: DEFAULT_REALTIME_POLL_INTERVAL_MS },
+  kline: { modes: ['poll'], minPollIntervalMs: DEFAULT_REALTIME_POLL_INTERVAL_MS },
+}
 
 function mergeCapabilities(capabilities?: RealtimeCapabilities): RealtimeCapabilities {
   return {
@@ -185,20 +194,124 @@ function quoteSignature(quote: Quote): string {
   ])
 }
 
-function klineSignature(kline: Kline): string {
-  return JSON.stringify([
-    kline.timestamp,
-    kline.open,
-    kline.high,
-    kline.low,
-    kline.close,
-    kline.volume,
-  ])
-}
-
 function latestKline(klines: Kline[]): Kline | null {
   if (klines.length === 0) return null
   return klines.reduce((latest, item) => (item.timestamp > latest.timestamp ? item : latest))
+}
+
+function logRealtimeMode(
+  message: RealtimeSubscribeMessage,
+  source: RealtimeMode,
+  details: Record<string, unknown> = {},
+) {
+  console.info('[market-data realtime] mode', {
+    source,
+    transport: source === 'stream' ? 'provider-socket' : 'provider-poll',
+    providerId: message.providerId,
+    channel: message.channel,
+    symbol: message.symbol,
+    interval: message.interval,
+    requestedMode: message.mode ?? 'auto',
+    ...details,
+  })
+}
+
+function createKlineStreamMapper(intervalSupport: ResolvedIntervalSupport | undefined) {
+  const support = intervalSupport?.support
+  if (!support || support.mode !== 'derived') {
+    return {
+      upstreamInterval: support?.interval,
+      map: (event: RealtimeKlineEvent) => event,
+    }
+  }
+
+  const targetInterval = support.interval
+  const baseInterval = support.baseInterval!
+  const baseIntervalMs = intervalToMs(baseInterval)
+  const targetIntervalMs = intervalToMs(targetInterval)
+  const baseKlinesByTimestamp = new Map<number, Kline>()
+
+  return {
+    upstreamInterval: baseInterval,
+    map: (event: RealtimeKlineEvent): RealtimeKlineEvent | null => {
+      baseKlinesByTimestamp.set(event.data.timestamp, event.data)
+
+      if (targetIntervalMs && baseIntervalMs) {
+        const minTimestamp = event.data.timestamp - targetIntervalMs - baseIntervalMs
+        for (const timestamp of baseKlinesByTimestamp.keys()) {
+          if (timestamp < minTimestamp) baseKlinesByTimestamp.delete(timestamp)
+        }
+      }
+
+      const aggregated = aggregateKlines(
+        [...baseKlinesByTimestamp.values()],
+        targetInterval,
+        support.aggregation,
+      )
+      const latest = latestKline(aggregated)
+      if (!latest) return null
+
+      const now = event.timestamp
+      return {
+        ...event,
+        interval: targetInterval,
+        data: latest,
+        isFinal: targetIntervalMs ? latest.timestamp + targetIntervalMs <= now : event.isFinal,
+      }
+    },
+  }
+}
+
+async function fetchPollingKlines(params: {
+  userId: string
+  message: RealtimeSubscribeMessage
+  intervalSupport: ResolvedIntervalSupport | undefined
+  pollIntervalMs: number
+  resolved: ResolvedProvider
+  now: number
+}): Promise<Kline[]> {
+  const requestedInterval = params.intervalSupport?.support.interval ?? params.message.interval!
+  const intervalMs = intervalToMs(requestedInterval) ?? parseIntervalMs(requestedInterval)
+
+  try {
+    return await marketDataService.getKlines({
+      userId: params.userId,
+      dataSourceInstanceId: params.message.providerId,
+      symbol: params.message.symbol,
+      interval: requestedInterval,
+      from: params.now - Math.max(intervalMs * 6, params.pollIntervalMs),
+      to: params.now,
+      limit: 6,
+      mode: 'include-live',
+      priority: 'interactive',
+    })
+  } catch (error) {
+    console.warn('[realtime poll] market-data fetch failed, falling back to provider', {
+      providerId: params.message.providerId,
+      symbol: params.message.symbol,
+      interval: params.message.interval,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+
+  const requestInterval =
+    params.intervalSupport?.support.mode === 'derived'
+      ? params.intervalSupport.support.baseInterval!
+      : requestedInterval
+  const requestIntervalMs = intervalToMs(requestInterval) ?? parseIntervalMs(requestInterval)
+  const sourceKlines = await params.resolved.provider.getKlines(
+    {
+      symbol: params.message.symbol,
+      interval: requestInterval,
+      from: params.now - Math.max(intervalMs * 3, requestIntervalMs * 6, params.pollIntervalMs),
+      to: params.now,
+    },
+    params.resolved.settings,
+  )
+
+  return params.intervalSupport?.support.mode === 'derived'
+    ? aggregateKlines(sourceKlines, requestedInterval, params.intervalSupport.support.aggregation)
+    : sourceKlines
 }
 
 function makeSubscriptionId(): string {
@@ -242,9 +355,7 @@ export class RealtimeDataService {
 
     let source = chooseMode(
       message.mode,
-      intervalSupport?.support.mode === 'derived'
-        ? channelCapabilities.modes.filter((mode) => mode === 'poll')
-        : channelCapabilities.modes,
+      channelCapabilities.modes,
       message.channel === 'quote'
         ? typeof resolved.provider.subscribeQuote === 'function'
         : typeof resolved.provider.subscribeKlines === 'function',
@@ -257,12 +368,24 @@ export class RealtimeDataService {
     let upstream = this.upstreams.get(key)
     if (!upstream) {
       try {
+        logRealtimeMode(message, source, {
+          reason: 'start-upstream',
+          pollIntervalMs,
+          supportedModes: channelCapabilities.modes,
+          intervalMode: intervalSupport?.support.mode,
+          baseInterval: intervalSupport?.support.baseInterval,
+        })
         upstream = await this.startUpstream({
+          userId,
           key,
           message,
           intervalSupport,
           source,
           pollIntervalMs,
+          streamFallbackPollIntervalMs:
+            source === 'stream' && channelCapabilities.modes.includes('poll')
+              ? normalizePollInterval(message.pollIntervalMs, channelCapabilities.minPollIntervalMs)
+              : undefined,
           resolved,
         })
       } catch (e) {
@@ -272,7 +395,7 @@ export class RealtimeDataService {
           channelCapabilities.modes.includes('poll')
         if (!canFallbackToPoll) throw e
 
-        console.warn('[realtime] stream unavailable, falling back to poll', {
+        console.warn('[market-data realtime] stream unavailable, falling back to poll', {
           providerId: message.providerId,
           channel: message.channel,
           symbol: message.symbol,
@@ -288,22 +411,39 @@ export class RealtimeDataService {
         key = this.getUpstreamKey(userId, message, source, pollIntervalMs)
         upstream = this.upstreams.get(key)
         if (!upstream) {
+          logRealtimeMode(message, source, {
+            reason: 'stream-start-fallback',
+            pollIntervalMs,
+          })
           upstream = await this.startUpstream({
+            userId,
             key,
             message,
             intervalSupport,
             source,
             pollIntervalMs,
+            streamFallbackPollIntervalMs: undefined,
             resolved,
           })
         }
       }
       this.upstreams.set(key, upstream)
+    } else {
+      logRealtimeMode(message, source, {
+        reason: 'reuse-upstream',
+        pollIntervalMs,
+      })
     }
 
     const subscriptionId = makeSubscriptionId()
     upstream.listeners.set(subscriptionId, emit)
     this.subscriptionToUpstream.set(subscriptionId, key)
+    logRealtimeMode(message, source, {
+      reason: 'subscribed',
+      subscriptionId,
+      pollIntervalMs,
+      listenerCount: upstream.listeners.size,
+    })
 
     return {
       subscriptionId,
@@ -344,19 +484,46 @@ export class RealtimeDataService {
       throw new AppError('Instance not found', 404)
     }
 
-    const { config: settings, provider } = await decryptInstance(instance)
-    return { settings, provider: provider as DataSourceProvider<DataSourceSettings> }
+    const keyHex = getEncryptionKey()
+    const settings = JSON.parse(
+      decrypt(instance.configEncrypted, instance.configIv, keyHex),
+    ) as DataSourceSettings
+    const provider = getDataSourceProvider(instance.providerKind)
+    if (!provider) {
+      throw new AppError(`Provider not found: ${instance.providerKind}`, 500)
+    }
+
+    return {
+      settings,
+      provider: provider as DataSourceProvider<DataSourceSettings>,
+      instance: {
+        id: instance.id,
+        providerKind: instance.providerKind,
+        identityKey: instance.identityKey,
+      },
+    }
   }
 
   private async startUpstream(params: {
+    userId: string
     key: string
     message: RealtimeSubscribeMessage
     intervalSupport?: ResolvedIntervalSupport
     source: RealtimeMode
     pollIntervalMs?: number
+    streamFallbackPollIntervalMs?: number
     resolved: ResolvedProvider
   }): Promise<UpstreamTask> {
-    const { key, message, intervalSupport, source, pollIntervalMs, resolved } = params
+    const {
+      userId,
+      key,
+      message,
+      intervalSupport,
+      source,
+      pollIntervalMs,
+      streamFallbackPollIntervalMs,
+      resolved,
+    } = params
     const listeners = new Map<string, Emit>()
     const emitToListeners = (event: RealtimeQuoteEvent | RealtimeKlineEvent) => {
       for (const [subscriptionId, listener] of listeners) {
@@ -367,11 +534,92 @@ export class RealtimeDataService {
         })
       }
     }
+    const ingestAndEmit = async (event: RealtimeQuoteEvent | RealtimeKlineEvent) => {
+      if (event.type === 'quote') {
+        console.debug('[market-data realtime] quote event', {
+          source: event.source,
+          transport: event.source === 'stream' ? 'provider-socket' : 'provider-poll',
+          providerId: message.providerId,
+          symbol: message.symbol,
+          timestamp: event.timestamp,
+        })
+        emitToListeners(event)
+        return
+      }
 
+      const normalized = await realtimeIngestService.ingestKline({
+        series: {
+          dataSourceInstanceId: resolved.instance.id,
+          providerKind: resolved.instance.providerKind,
+          identityKey: resolved.instance.identityKey,
+          symbol: message.symbol,
+          interval: event.interval,
+        },
+        kline: event.data,
+        source: event.source,
+        timestamp: event.timestamp,
+      })
+      if (normalized) {
+        console.debug('[market-data realtime] kline event', {
+          source: normalized.source,
+          transport: normalized.source === 'stream' ? 'provider-socket' : 'provider-poll',
+          providerId: message.providerId,
+          symbol: normalized.symbol,
+          interval: normalized.interval,
+          klineTimestamp: normalized.data.timestamp,
+          isFinal: normalized.isFinal,
+        })
+        emitToListeners(normalized)
+      }
+    }
+
+    const streamMapper =
+      message.channel === 'kline' ? createKlineStreamMapper(intervalSupport) : null
+    let lastStreamEventAt = Date.now()
     const stop =
       source === 'stream'
-        ? await this.startStream(message, resolved, emitToListeners)
-        : this.startPoll(message, intervalSupport, pollIntervalMs!, resolved, emitToListeners)
+        ? await this.startStream(message, resolved, streamMapper?.upstreamInterval, (event) => {
+            lastStreamEventAt = Date.now()
+            const mapped = event.type === 'kline' && streamMapper ? streamMapper.map(event) : event
+            if (!mapped) return
+            void ingestAndEmit(mapped).catch((error) => {
+              console.error('[realtime ingest] stream event failed', {
+                providerId: message.providerId,
+                channel: message.channel,
+                symbol: message.symbol,
+                interval: message.interval,
+                error: error instanceof Error ? error.message : String(error),
+              })
+            })
+          })
+        : this.startPoll(userId, message, intervalSupport, pollIntervalMs!, resolved, ingestAndEmit)
+
+    let fallbackStop: RealtimeUnsubscribe | null = null
+    let watchdog: ReturnType<typeof setInterval> | null = null
+    if (source === 'stream' && streamFallbackPollIntervalMs && message.channel === 'kline') {
+      const staleAfterMs = Math.max(streamFallbackPollIntervalMs * 3, 30_000)
+      watchdog = setInterval(
+        () => {
+          if (fallbackStop || Date.now() - lastStreamEventAt < staleAfterMs) return
+          console.warn('[market-data realtime] stream stale, starting poll fallback', {
+            providerId: message.providerId,
+            channel: message.channel,
+            symbol: message.symbol,
+            interval: message.interval,
+            staleAfterMs,
+          })
+          fallbackStop = this.startPoll(
+            userId,
+            message,
+            intervalSupport,
+            streamFallbackPollIntervalMs,
+            resolved,
+            ingestAndEmit,
+          )
+        },
+        Math.max(streamFallbackPollIntervalMs, 10_000),
+      )
+    }
 
     return {
       key,
@@ -382,15 +630,28 @@ export class RealtimeDataService {
       source,
       pollIntervalMs,
       listeners,
-      stop,
+      stop: async () => {
+        if (watchdog) clearInterval(watchdog)
+        if (fallbackStop) await fallbackStop()
+        await stop()
+      },
     }
   }
 
   private async startStream(
     message: RealtimeSubscribeMessage,
     resolved: ResolvedProvider,
+    upstreamInterval: string | undefined,
     emit: (event: RealtimeQuoteEvent | RealtimeKlineEvent) => void,
   ): Promise<RealtimeUnsubscribe> {
+    console.info('[market-data realtime] provider socket connect', {
+      providerId: message.providerId,
+      channel: message.channel,
+      symbol: message.symbol,
+      interval: message.interval,
+      upstreamInterval,
+      providerKind: resolved.instance.providerKind,
+    })
     if (message.channel === 'quote') {
       if (!resolved.provider.subscribeQuote) {
         throw new AppError('Realtime quote stream is not implemented by provider', 400)
@@ -408,7 +669,7 @@ export class RealtimeDataService {
     return resolved.provider.subscribeKlines(
       {
         symbol: message.symbol,
-        interval: message.interval!,
+        interval: upstreamInterval ?? message.interval!,
         mode: 'stream',
         pollIntervalMs: message.pollIntervalMs,
       },
@@ -418,15 +679,24 @@ export class RealtimeDataService {
   }
 
   private startPoll(
+    userId: string,
     message: RealtimeSubscribeMessage,
     intervalSupport: ResolvedIntervalSupport | undefined,
     pollIntervalMs: number,
     resolved: ResolvedProvider,
-    emit: (event: RealtimeQuoteEvent | RealtimeKlineEvent) => void,
+    emit: (event: RealtimeQuoteEvent | RealtimeKlineEvent) => void | Promise<void>,
   ): RealtimeUnsubscribe {
     let lastSignature: string | null = null
     let inFlight = false
     let stopped = false
+    console.info('[market-data realtime] provider poll start', {
+      providerId: message.providerId,
+      channel: message.channel,
+      symbol: message.symbol,
+      interval: message.interval,
+      providerKind: resolved.instance.providerKind,
+      pollIntervalMs,
+    })
 
     const tick = async () => {
       if (inFlight || stopped) return
@@ -449,42 +719,28 @@ export class RealtimeDataService {
         }
 
         const requestedInterval = intervalSupport?.support.interval ?? message.interval!
-        const requestInterval =
-          intervalSupport?.support.mode === 'derived'
-            ? intervalSupport.support.baseInterval!
-            : requestedInterval
-        const intervalMs = intervalToMs(requestedInterval) ?? parseIntervalMs(requestedInterval)
-        const requestIntervalMs = intervalToMs(requestInterval) ?? parseIntervalMs(requestInterval)
+        const intervalMs = intervalToMs(requestedInterval) ?? 60_000
         const now = Date.now()
-        const sourceKlines = await resolved.provider.getKlines(
-          {
-            symbol: message.symbol,
-            interval: requestInterval,
-            from: now - Math.max(intervalMs * 3, requestIntervalMs * 6, pollIntervalMs),
-            to: now,
-          },
-          resolved.settings,
-        )
-        const klines =
-          intervalSupport?.support.mode === 'derived'
-            ? aggregateKlines(sourceKlines, requestedInterval, intervalSupport.support.aggregation)
-            : sourceKlines
+        const klines = await fetchPollingKlines({
+          userId,
+          message,
+          intervalSupport,
+          pollIntervalMs,
+          resolved,
+          now,
+        })
         const kline = latestKline(klines)
         if (!kline) return
 
-        const signature = klineSignature(kline)
-        if (signature !== lastSignature) {
-          lastSignature = signature
-          emit({
-            type: 'kline',
-            symbol: message.symbol,
-            interval: requestedInterval,
-            data: kline,
-            isFinal: kline.timestamp + intervalMs <= now,
-            source: 'poll',
-            timestamp: Date.now(),
-          })
-        }
+        await emit({
+          type: 'kline',
+          symbol: message.symbol,
+          interval: requestedInterval,
+          data: kline,
+          isFinal: kline.timestamp + intervalMs <= now,
+          source: 'poll',
+          timestamp: Date.now(),
+        })
       } catch (e) {
         console.error('[realtime poll] failed', {
           providerId: message.providerId,

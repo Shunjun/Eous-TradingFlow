@@ -54,14 +54,15 @@ export function useKlineData() {
   }, [])
 
   const fetchKlines = useMemo<FetchKlinesFn>(() => {
-    return async ({ symbol, interval, from, to, providerId }) => {
+    return async ({ symbol, interval, from, to, limit, providerId }) => {
       if (!providerId) return []
       const body: Record<string, unknown> = { symbol, interval }
       if (from !== undefined) body.from = from
       if (to !== undefined) body.to = to
+      if (limit !== undefined) body.limit = limit
       const data = await api.getDataSourceKlines(
         providerId,
-        body as { symbol: string; interval: string; from?: number; to?: number },
+        body as { symbol: string; interval: string; from?: number; to?: number; limit?: number },
       )
       return data.klines as KlineDataPoint[]
     }

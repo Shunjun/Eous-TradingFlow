@@ -1,11 +1,7 @@
 import {
-  aggregateKlines,
-  canonicalizeInterval,
-  getDefaultKlineBarCount,
   getDataSourceProvider,
   listDataSourceProviders,
   resolveIntervalSupport,
-  subtractIntervals,
   type RealtimeCapabilities,
   type IntervalSupport,
   type SymbolInfo,
@@ -13,6 +9,7 @@ import {
 import type { ConfigFieldOption, ConfigFieldSchema } from '@eous/api-client'
 import { AppError } from '../lib/app-error.js'
 import { encrypt, decrypt, getEncryptionKey } from '../lib/crypto-utils.js'
+import { marketDataService, type KlineReadMode } from '../modules/market-data/index.js'
 import * as chartRepo from '../repositories/chart.repo.js'
 import * as dsRepo from '../repositories/data-source.repo.js'
 
@@ -336,55 +333,28 @@ export async function getKlines(
     interval: string
     from?: number
     to?: number
+    limit?: number
+    mode?: KlineReadMode
   },
 ) {
-  const { symbol, interval, from, to } = body
+  const { symbol, interval, from, to, limit, mode } = body
 
   if (!symbol || !interval) {
     throw new AppError('Missing required fields: symbol, interval', 400)
   }
 
-  const instance = await dsRepo.findByIdAndUser(id, userId)
-  if (!instance) {
-    throw new AppError('Instance not found', 404)
-  }
-
-  const { config, provider } = await decryptInstance(instance)
-
-  const now = Date.now()
-  const normalizedInterval = canonicalizeInterval(interval)
-  if (!normalizedInterval) {
-    throw new AppError(`Invalid interval: ${interval}`, 400)
-  }
-
-  const defaultBarCount = getDefaultKlineBarCount(normalizedInterval)
-  const requestFrom = Math.max(
-    0,
-    from ?? subtractIntervals(now, normalizedInterval, defaultBarCount),
-  )
-  const requestTo = Math.max(requestFrom + 1, to ?? now)
-
   try {
-    const support = (await getProviderIntervalSupport(provider, config, [normalizedInterval]))[0]
-    if (!support?.supported) {
-      throw new AppError(
-        `Unsupported interval for data source: ${support?.reason ?? normalizedInterval}`,
-        400,
-      )
-    }
-
-    const requestInterval =
-      support.mode === 'derived' ? (support.baseInterval ?? normalizedInterval) : normalizedInterval
-    const klines = await provider.getKlines(
-      { symbol, interval: requestInterval, from: requestFrom, to: requestTo },
-      config,
-    )
-
-    if (support.mode === 'derived') {
-      return aggregateKlines(klines, normalizedInterval, support.aggregation)
-    }
-
-    return klines
+    return await marketDataService.getKlines({
+      userId,
+      dataSourceInstanceId: id,
+      symbol,
+      interval,
+      from,
+      to,
+      limit,
+      mode,
+      priority: 'interactive',
+    })
   } catch (e) {
     if (e instanceof AppError) throw e
     throw new AppError(`Failed to fetch K-line data: ${providerErrorMessage(e)}`, 502)

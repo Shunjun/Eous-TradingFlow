@@ -102,20 +102,21 @@ model ProviderModel {
 }
 
 model DataSourceInstance {
-  id              String          @id @default(cuid())
-  name            String
-  providerKind    String
-  defaultSymbol   String          @map("default_symbol")
-  identityKey     String?         @map("identity_key")
-  identityLabel   String?         @map("identity_label")
-  configEncrypted String
-  configIv        String
-  userId          String
-  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  trackedSymbols  TrackedSymbol[]
-  chartDrawings   ChartDrawing[]
-  createdAt       DateTime        @default(now()) @map("created_at")
-  updatedAt       DateTime        @updatedAt @map("updated_at")
+  id               String             @id @default(cuid())
+  name             String
+  providerKind     String
+  defaultSymbol    String             @map("default_symbol")
+  identityKey      String?            @map("identity_key")
+  identityLabel    String?            @map("identity_label")
+  configEncrypted  String
+  configIv         String
+  userId           String
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trackedSymbols   TrackedSymbol[]
+  chartDrawings    ChartDrawing[]
+  marketDataSeries MarketDataSeries[]
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
 
   @@unique([userId, name])
   @@map("data_source_instances")
@@ -133,6 +134,62 @@ model TrackedSymbol {
 
   @@unique([instanceId, symbol])
   @@map("tracked_symbols")
+}
+
+model MarketDataSeries {
+  id                   String             @id @default(cuid())
+  dataSourceInstanceId String             @map("data_source_instance_id")
+  dataSourceInstance   DataSourceInstance @relation(fields: [dataSourceInstanceId], references: [id], onDelete: Cascade)
+  providerKind         String             @map("provider_kind")
+  identityKey          String?            @map("identity_key")
+  symbol               String
+  interval             String
+  timezone             String             @default("UTC")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+
+  bars      MarketDataKlineBar[]
+  syncState MarketDataSyncState?
+
+  @@unique([dataSourceInstanceId, symbol, interval])
+  @@index([providerKind, identityKey, symbol, interval])
+  @@map("market_data_series")
+}
+
+model MarketDataKlineBar {
+  id        String           @id @default(cuid())
+  seriesId  String           @map("series_id")
+  series    MarketDataSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  openTime  DateTime         @map("open_time")
+  closeTime DateTime         @map("close_time")
+  open      Decimal
+  high      Decimal
+  low       Decimal
+  close     Decimal
+  volume    Decimal?
+  isFinal   Boolean          @default(true) @map("is_final")
+  source    String           @default("provider")
+  fetchedAt DateTime         @default(now()) @map("fetched_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  @@unique([seriesId, openTime])
+  @@index([seriesId, openTime])
+  @@index([seriesId, isFinal, openTime])
+  @@map("market_data_kline_bars")
+}
+
+model MarketDataSyncState {
+  id                    String           @id @default(cuid())
+  seriesId              String           @unique @map("series_id")
+  series                MarketDataSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  earliestFinalOpenTime DateTime?        @map("earliest_final_open_time")
+  latestFinalOpenTime   DateTime?        @map("latest_final_open_time")
+  latestLiveOpenTime    DateTime?        @map("latest_live_open_time")
+  lastFetchAt           DateTime?        @map("last_fetch_at")
+  lastFetchError        String?          @map("last_fetch_error")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
+
+  @@map("market_data_sync_states")
 }
 
 model ChartDrawing {

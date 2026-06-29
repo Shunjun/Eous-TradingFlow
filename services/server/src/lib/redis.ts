@@ -3,7 +3,8 @@ import { createClient } from 'redis'
 interface RedisClient {
   connect(): Promise<unknown>
   on(event: 'error', listener: (error: Error) => void): unknown
-  set(key: string, value: string, options: { NX: true; EX: number }): Promise<string | null>
+  get(key: string): Promise<string | null>
+  set(key: string, value: string, options?: { NX?: true; EX?: number }): Promise<string | null>
 }
 
 let clientPromise: Promise<RedisClient | null> | null = null
@@ -57,5 +58,35 @@ export async function setRedisOnce(key: string, ttlSeconds: number): Promise<boo
   } catch (error) {
     console.error('[redis] set-once failed', error)
     return null
+  }
+}
+
+export async function getRedisValue(key: string): Promise<string | null> {
+  const client = await getRedisClient()
+  if (!client) return null
+
+  try {
+    return await client.get(key)
+  } catch (error) {
+    console.error('[redis] get failed', error)
+    return null
+  }
+}
+
+export async function setRedisValue(
+  key: string,
+  value: string,
+  ttlSeconds?: number,
+): Promise<boolean> {
+  const client = await getRedisClient()
+  if (!client) return false
+
+  try {
+    const options = ttlSeconds ? { EX: Math.max(1, ttlSeconds) } : undefined
+    const result = await client.set(key, value, options)
+    return result === 'OK'
+  } catch (error) {
+    console.error('[redis] set failed', error)
+    return false
   }
 }

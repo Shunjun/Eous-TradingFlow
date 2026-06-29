@@ -7,11 +7,11 @@ import {
   type WorkflowNode,
 } from './workflow-trigger.service.js'
 import { setRedisOnce } from '../../lib/redis.js'
-import * as dataSourceService from '../../services/data-source.service.js'
 import {
   scanCandlestickPatterns,
   type SymbolPatternResult,
 } from '../../services/pattern/candlestick-pattern-client.js'
+import { marketDataService } from '../market-data/index.js'
 
 type Direction = 'ANY' | 'BULLISH' | 'BEARISH'
 
@@ -141,11 +141,16 @@ async function claimScanSlot(task: ScanTask): Promise<boolean> {
 
 async function fetchTaskKlines(task: ScanTask): Promise<Kline[]> {
   const from = subtractIntervals(task.slotClose, task.interval, task.limit)
-  const klines = await dataSourceService.getKlines(task.userId, task.dataSourceInstanceId, {
+  const klines = await marketDataService.getKlines({
+    userId: task.userId,
+    dataSourceInstanceId: task.dataSourceInstanceId,
     symbol: task.symbol,
     interval: task.interval,
     from,
     to: task.slotClose,
+    limit: task.limit,
+    mode: 'closed-only',
+    priority: 'workflow',
   })
   return klines.filter((item) => item.timestamp < task.slotClose).slice(-task.limit)
 }
