@@ -1,0 +1,4 @@
+grpcio>=1.76.0
+grpcio-tools>=1.76.0
+pandas>=2.2.0
+pandas-ta-classic>=0.6.52

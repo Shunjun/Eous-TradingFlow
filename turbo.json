@@ -5,7 +5,8 @@
     "PORT",
     "INITIAL_USER_EMAIL",
     "INITIAL_USER_PASSWORD",
-    "ALLOW_SELF_REGISTRATION"
+    "ALLOW_SELF_REGISTRATION",
+    "PATTERN_GRPC_URL"
   ],
   "tasks": {
     "dev": {

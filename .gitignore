@@ -23,3 +23,6 @@ data/
 .DS_Store
 .home/
 .prisma-cache/
+
+# Python service envs
+services/*/.venv/

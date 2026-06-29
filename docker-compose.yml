@@ -40,11 +40,14 @@ services:
       ALLOW_SELF_REGISTRATION: ${ALLOW_SELF_REGISTRATION:-true}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
       EOUS_PROVIDER_PROXY_URL: ${EOUS_PROVIDER_PROXY_URL:-}
+      PATTERN_GRPC_URL: pattern-service:50051
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+      pattern-service:
+        condition: service_started
     command:
       [
         'sh',
@@ -53,6 +56,17 @@ services:
       ]
     expose:
       - '3020'
+    restart: unless-stopped
+
+  pattern-service:
+    build:
+      context: .
+      dockerfile: services/pattern-service/Dockerfile
+    environment:
+      PATTERN_GRPC_HOST: 0.0.0.0
+      PATTERN_GRPC_PORT: 50051
+    expose:
+      - '50051'
     restart: unless-stopped
 
   web:

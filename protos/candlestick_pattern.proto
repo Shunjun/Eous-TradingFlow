@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package eous.patterns.v1;
+
+service CandlestickPatternService {
+  rpc ScanPatterns(ScanPatternsRequest) returns (ScanPatternsResponse);
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+message HealthCheckRequest {}
+
+message HealthCheckResponse {
+  bool ok = 1;
+  string backend = 2;
+}
+
+message ScanPatternsRequest {
+  string timeframe = 1;
+  repeated string patterns = 2;
+  repeated SymbolKlines symbols = 3;
+}
+
+message SymbolKlines {
+  string symbol = 1;
+  repeated Kline klines = 2;
+}
+
+message Kline {
+  int64 timestamp = 1;
+  double open = 2;
+  double high = 3;
+  double low = 4;
+  double close = 5;
+  double volume = 6;
+}
+
+message ScanPatternsResponse {
+  repeated SymbolPatternResult results = 1;
+}
+
+message SymbolPatternResult {
+  string symbol = 1;
+  string timeframe = 2;
+  int64 signal_time = 3;
+  repeated PatternSignal signals = 4;
+}
+
+message PatternSignal {
+  string pattern = 1;
+  int32 value = 2;
+}

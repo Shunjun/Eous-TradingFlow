@@ -9,6 +9,7 @@ import { YahooFinanceProvider } from '@eous/data-sources/providers/yahoo-finance
 import { CCXTProvider } from '@eous/data-sources/providers/ccxt'
 import { installMarketDataSocket } from './ws/market-data-socket.js'
 import { startWorkflowScheduler } from './services/workflow-scheduler.service.js'
+import { startCandlestickPatternScanner } from './services/candlestick-pattern-trigger.service.js'
 
 function formatListenAddress(address: string): string {
   if (address === '::' || address === '0.0.0.0') return '0.0.0.0'
@@ -39,6 +40,7 @@ async function main() {
   )
   installMarketDataSocket(server as HttpServer)
   startWorkflowScheduler()
+  startCandlestickPatternScanner()
 }
 
 main().catch((err) => {
