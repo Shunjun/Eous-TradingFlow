@@ -189,7 +189,7 @@ export default function WorkflowsPage() {
                     navigate(`/workflows/${workflow.id}`)
                   }
                 }}
-                className="group relative gap-3 rounded-lg py-0 transition-colors hover:bg-card/90"
+                className="group relative gap-3 rounded-lg py-0 transition-colors hover:bg-card/90 cursor-pointer"
               >
                 <div className="absolute right-3 top-3 z-10 flex opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
                   <Tooltip>

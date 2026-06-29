@@ -93,7 +93,7 @@ function VariableInspector({ workflowId }: VariableInspectorProps) {
   }
 
   return (
-    <ScrollArea className="h-full w-full overflow-hidden [&_[data-radix-scroll-area-viewport]>div]:!block [&_[data-radix-scroll-area-viewport]>div]:!w-full [&_[data-radix-scroll-area-viewport]>div]:!min-w-0 [&_[data-radix-scroll-area-viewport]>div]:!max-w-full [&_[data-slot=scroll-area-viewport]]:overflow-x-hidden">
+    <ScrollArea className="h-full w-full overflow-hidden">
       <div className="box-border flex w-full min-w-0 max-w-full flex-col gap-4 overflow-hidden px-4 py-4">
         {entries.map(({ node, outputs, rawOutputs }) => {
           const nodeLabel =
