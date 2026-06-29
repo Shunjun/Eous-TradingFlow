@@ -136,7 +136,7 @@ import { allNodeMetas, getNodeDef, getNodeOutputs } from '@eous/nodes'
 
 ## Runner
 
-服务端 Runner 位于 `apps/server/src/services/workflow-runner.service.ts`。
+服务端 Runner 位于 `services/server/src/services/workflow-runner.service.ts`。
 
 当前能力：
 
@@ -158,7 +158,7 @@ import { allNodeMetas, getNodeDef, getNodeOutputs } from '@eous/nodes'
 
 ## 变量语法
 
-变量解析由 `apps/server/src/lib/var-resolver.ts` 实现。
+变量解析由 `services/server/src/lib/var-resolver.ts` 实现。
 
 典型写法：
 

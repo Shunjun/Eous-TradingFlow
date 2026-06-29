@@ -16,7 +16,7 @@
 状态：已完成
 
 - Monorepo：pnpm workspaces + Turborepo。
-- 应用：`apps/web`、`apps/server`、`apps/docs`。
+- 应用：`apps/web`、`services/server`、`apps/docs`。
 - 包：`api-client`、`db`、`data-sources`、`nodes`、`chart`、`ui`、`tailwind`、`stores`。
 - TypeScript、Vite、Hono、Prisma、SQLite 基础链路已可用。
 

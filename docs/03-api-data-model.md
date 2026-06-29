@@ -151,4 +151,4 @@ export const api: ApiClient = createHttpClient({
 
 ## Market Data Socket
 
-`packages/api-client/src/market-data.ts` 提供 `createMarketDataSocketClient()`。前端可订阅 quote/kline，server 端由 `apps/server/src/ws/market-data-socket.ts` 处理。
+`packages/api-client/src/market-data.ts` 提供 `createMarketDataSocketClient()`。前端可订阅 quote/kline，server 端由 `services/server/src/ws/market-data-socket.ts` 处理。

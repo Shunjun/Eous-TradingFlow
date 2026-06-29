@@ -30,7 +30,7 @@ services:
   server:
     build:
       context: .
-      target: server-runner
+      dockerfile: services/server/Dockerfile
     environment:
       DATABASE_URL: ${APP_DATABASE_URL:-postgresql://${POSTGRES_USER:-eous}:${POSTGRES_PASSWORD:-eous_password}@postgres:5432/${POSTGRES_DB:-eous_tradingflow}?schema=public}
       REDIS_URL: ${APP_REDIS_URL:-redis://redis:6379}
@@ -52,7 +52,7 @@ services:
       [
         'sh',
         '-c',
-        'pnpm --filter @eous/db db:deploy && pnpm exec node --import tsx apps/server/src/index.ts',
+        'pnpm --filter @eous/db db:deploy && pnpm exec node --import tsx services/server/src/index.ts',
       ]
     expose:
       - '3020'

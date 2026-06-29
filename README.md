@@ -34,7 +34,7 @@ AI:      @earendil-works/pi-ai
 ## 当前实现摘要
 
 - `apps/web`：认证后控制台、Sidebar、工作区、Workflow 编辑器、Agent 页面、Settings、Watchlist/News/Datasets 页面入口。
-- `apps/server`：Hono API、认证、Provider/Data Source/Workspace/Workflow/Agent 服务、Workflow Runner、Market Data socket。
+- `services/server`：Hono API、认证、Provider/Data Source/Workspace/Workflow/Agent 服务、Workflow Runner、Market Data socket。
 - `apps/docs`：组件/产品展示用 Vite 文档应用。
 - `packages/api-client`：共享 DTO、HTTP client、market data socket client。
 - `packages/db`：Prisma schema、SQLite client。

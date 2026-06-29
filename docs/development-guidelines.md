@@ -132,13 +132,13 @@ interface KlineChartProps {
 Route → Service → Repository → Prisma
 ```
 
-**Route 层（`apps/server/src/routes/`）**：
+**Route 层（`services/server/src/routes/`）**：
 
 - 只做 HTTP 协议转换：解析参数、调用 Service、返回 JSON/Set-Cookie
 - **不允许**：业务逻辑、数据库操作、try/catch（全局 `app.onError` 统一处理）
 - 文件命名：`{资源名}.ts`（如 `auth.ts`、`data-source.ts`）
 
-**Service 层（`apps/server/src/services/`）**：
+**Service 层（`services/server/src/services/`）**：
 
 - 业务逻辑编排：校验、权限、冲突检测
 - 调用 Repository、外部 API、加解密
@@ -146,7 +146,7 @@ Route → Service → Repository → Prisma
 - 不直接访问 `ctx` 或 Request/Response 对象
 - 文件命名：`{资源名}.service.ts`
 
-**Repository 层（`apps/server/src/repositories/`）**：
+**Repository 层（`services/server/src/repositories/`）**：
 
 - 封装 Prisma 调用，不含任何业务逻辑
 - 每个 repo 负责一组相关数据表

@@ -8,15 +8,11 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.base.json ./
 COPY apps ./apps
 COPY packages ./packages
+COPY services ./services
 RUN pnpm install --frozen-lockfile
 
 FROM deps AS web-builder
 RUN pnpm --filter @eous/web build
-
-FROM deps AS server-runner
-ENV NODE_ENV=production
-EXPOSE 3020
-CMD ["pnpm", "exec", "node", "--import", "tsx", "apps/server/src/index.ts"]
 
 FROM nginx:1.27-alpine AS web-runner
 COPY docker/nginx/default.conf /etc/nginx/conf.d/default.conf

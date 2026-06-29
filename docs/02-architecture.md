@@ -55,7 +55,7 @@ packages/
 
 ## 后端结构
 
-`apps/server/src` 采用 Route -> Service -> Repository 分层。
+`services/server/src` 采用 Route -> Service -> Repository 分层。
 
 ```text
 routes/        HTTP 参数解析、返回 JSON/SSE
@@ -101,7 +101,7 @@ app.route('/api/agents', agentRouter)
 | `INITIAL_USER_PASSWORD`   | seed 初始用户密码 | `changeme`                                                                      |
 | `ALLOW_SELF_REGISTRATION` | 是否允许注册      | `true`                                                                          |
 
-`apps/server` dev script 使用 Node 22 的 `--env-file ../../.env` 在模块初始化前加载环境变量。
+`services/server` dev script 使用 Node 22 的 `--env-file ../../.env` 在模块初始化前加载环境变量。
 
 ## 本地命令
 

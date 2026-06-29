@@ -126,7 +126,7 @@ Agent service
 
 ## 文件布局
 
-建议在 `apps/server/src/llm/` 下组织：
+建议在 `services/server/src/llm/` 下组织：
 
 ```text
 llm/
