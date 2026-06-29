@@ -135,7 +135,7 @@ function HeaderBar({
           <Button
             variant="outline"
             size="xs"
-            className={cn('w-7 px-0', active && 'bg-accent text-accent-foreground')}
+            className={cn('w-7 px-0', active && 'bg-primary/10 text-primary')}
             disabled={disabled}
             onClick={onClick}
             aria-label={label}

@@ -161,7 +161,7 @@ function ConfigField({
                       type="button"
                       className={cn(
                         'flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left font-mono text-xs hover:bg-accent/50',
-                        String(value ?? '') === opt.value && 'bg-accent',
+                        String(value ?? '') === opt.value && 'bg-primary/10 text-primary',
                       )}
                       onClick={() => {
                         onChange(field.key, opt.value)

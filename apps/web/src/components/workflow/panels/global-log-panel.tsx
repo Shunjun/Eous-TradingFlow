@@ -142,7 +142,7 @@ function GlobalLogPanel({ workflowId }: GlobalLogPanelProps) {
                         className={cn(
                           'flex items-center gap-2 rounded-md px-2 py-2 text-left transition-colors',
                           selected
-                            ? 'bg-accent text-accent-foreground'
+                            ? 'bg-primary/10 text-primary'
                             : 'hover:bg-accent/50 hover:text-accent-foreground',
                         )}
                       >
