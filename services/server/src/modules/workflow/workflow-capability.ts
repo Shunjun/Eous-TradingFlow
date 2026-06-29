@@ -3,10 +3,10 @@ import type {
   WorkflowNodeExecutionRecord,
   WorkflowRecord,
 } from '@eous/agent-skills'
-import { AppError } from '../lib/app-error.js'
-import * as workflowService from '../services/workflow.service.js'
-import * as workflowEditService from '../services/workflow-edit.service.js'
-import * as workflowRunner from '../services/workflow-runner.service.js'
+import { AppError } from '../../lib/app-error.js'
+import * as workflowService from './workflow.service.js'
+import * as workflowEditService from './workflow-edit.service.js'
+import * as workflowRunner from './workflow-runner.service.js'
 
 export class ServerWorkflowCapability implements WorkflowCapability {
   async list(params: {

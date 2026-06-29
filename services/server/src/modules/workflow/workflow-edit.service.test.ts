@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { WorkflowEditOp } from '@eous/api-client'
-import { AppError } from '../lib/app-error'
+import { AppError } from '../../lib/app-error'
 
 const workflowRepo = vi.hoisted(() => ({
   workflow: {
@@ -26,7 +26,7 @@ const workflowRepo = vi.hoisted(() => ({
   update: vi.fn(),
 }))
 
-vi.mock('../repositories/workflow.repo', () => ({
+vi.mock('./workflow.repo', () => ({
   findById: workflowRepo.findById,
   update: workflowRepo.update,
 }))

@@ -1,5 +1,5 @@
-import type { WorkflowWithActiveVersion } from '../repositories/workflow.repo.js'
-import * as workflowRepo from '../repositories/workflow.repo.js'
+import type { WorkflowWithActiveVersion } from './workflow.repo.js'
+import * as workflowRepo from './workflow.repo.js'
 import * as workflowRunner from './workflow-runner.service.js'
 
 export type WorkflowTriggerKind = 'manual' | 'cron' | 'event' | 'webhook' | 'market-pattern'

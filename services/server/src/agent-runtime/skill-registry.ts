@@ -6,7 +6,7 @@ import {
   type AgentSkillManifest,
 } from '@eous/agent-skills'
 import type { ToolsInput } from '@mastra/core/agent'
-import { workflowCapability } from '../capabilities/workflow-capability.js'
+import { workflowCapability } from '../modules/workflow/workflow-capability.js'
 
 export interface ResolveAgentToolsOptions extends AgentSkillContext {
   userId: string

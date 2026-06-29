@@ -8,8 +8,8 @@ import type {
 import { prisma } from '@eous/db'
 import { nodeRegistry } from '@eous/nodes/server'
 import type { ParamDef } from '@eous/nodes/types'
-import { AppError } from '../lib/app-error.js'
-import * as workflowRepo from '../repositories/workflow.repo.js'
+import { AppError } from '../../lib/app-error.js'
+import * as workflowRepo from './workflow.repo.js'
 
 interface ApplyWorkflowOpsResult {
   workflow: Awaited<ReturnType<typeof workflowRepo.update>>

@@ -6,12 +6,12 @@ import {
   type PublishedWorkflowTarget,
   type WorkflowNode,
 } from './workflow-trigger.service.js'
-import { setRedisOnce } from '../lib/redis.js'
-import * as dataSourceService from './data-source.service.js'
+import { setRedisOnce } from '../../lib/redis.js'
+import * as dataSourceService from '../../services/data-source.service.js'
 import {
   scanCandlestickPatterns,
   type SymbolPatternResult,
-} from './pattern/candlestick-pattern-client.js'
+} from '../../services/pattern/candlestick-pattern-client.js'
 
 type Direction = 'ANY' | 'BULLISH' | 'BEARISH'
 
@@ -222,6 +222,7 @@ async function processTask(task: ScanTask, now: Date) {
       },
     ],
   })
+
   const result = results.find((item) => item.symbol === task.symbol)
   if (!result) return
 

@@ -1,5 +1,5 @@
-import { AppError } from '../lib/app-error.js'
-import * as workflowRepo from '../repositories/workflow.repo.js'
+import { AppError } from '../../lib/app-error.js'
+import * as workflowRepo from './workflow.repo.js'
 import * as workflowEditService from './workflow-edit.service.js'
 
 export function listWorkflows(userId: string) {

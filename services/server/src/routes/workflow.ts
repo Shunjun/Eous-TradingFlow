@@ -1,8 +1,8 @@
 import { Hono } from 'hono'
 import { authMiddleware } from '../lib/auth-middleware.js'
-import * as workflowService from '../services/workflow.service.js'
-import * as workflowEditService from '../services/workflow-edit.service.js'
-import * as workflowRunner from '../services/workflow-runner.service.js'
+import * as workflowService from '../modules/workflow/workflow.service.js'
+import * as workflowEditService from '../modules/workflow/workflow-edit.service.js'
+import * as workflowRunner from '../modules/workflow/workflow-runner.service.js'
 import type { ApplyWorkflowOpsRequest } from '@eous/api-client'
 
 export const workflowRouter = new Hono()

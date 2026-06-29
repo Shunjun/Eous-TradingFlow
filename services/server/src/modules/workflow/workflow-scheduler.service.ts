@@ -3,7 +3,7 @@ import {
   listPublishedWorkflowTriggerTargets,
   triggerPublishedWorkflow,
 } from './workflow-trigger.service.js'
-import { setRedisOnce } from '../lib/redis.js'
+import { setRedisOnce } from '../../lib/redis.js'
 
 interface ZonedDateParts {
   year: number
