@@ -82,6 +82,11 @@ providerRouter.post('/:id/models', async (c) => {
   return c.json(result)
 })
 
+providerRouter.delete('/:id/models/:modelId', async (c) => {
+  await providerService.deleteModel(c.get('userId'), c.req.param('id'), c.req.param('modelId'))
+  return c.json({ ok: true })
+})
+
 // ── Provider Templates ────────────────────────────────────────────────────
 
 export const templatesRouter = new Hono()

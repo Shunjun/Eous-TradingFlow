@@ -95,3 +95,7 @@ export function createModel(
     },
   })
 }
+
+export async function removeModel(id: string): Promise<void> {
+  await prisma.providerModel.delete({ where: { id } })
+}

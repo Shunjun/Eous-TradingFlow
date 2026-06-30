@@ -133,16 +133,6 @@ export async function createProvider(
     userId,
   })
 
-  // Async fetch models — don't block the response on failure
-  try {
-    const models = await fetchModelsFromProvider(kind, baseUrl, apiKey, apiFormat)
-    for (const m of models) {
-      await providerRepo.upsertModel(provider.id, m)
-    }
-  } catch {
-    // Model fetch failure should not prevent provider creation
-  }
-
   return provider
 }
 
@@ -213,27 +203,7 @@ export async function syncModels(userId: string, id: string) {
     provider.apiFormat,
   )
 
-  let newCount = 0
-  for (const m of models) {
-    const existingModel = await providerRepo.findModel(id, m.modelId)
-    if (existingModel) {
-      await providerRepo.updateModel(existingModel.id, {
-        displayName: m.displayName ?? existingModel.displayName,
-        maxTokens: m.maxTokens ?? existingModel.maxTokens,
-      })
-    } else {
-      await providerRepo.upsertModel(id, m)
-      newCount++
-    }
-  }
-
-  const allModels = await providerRepo.findModelsByProvider(id)
-  const parsedModels = allModels.map((m) => ({
-    ...m,
-    capabilities: parseModelCapabilities(m.capabilities),
-  }))
-
-  return { models: parsedModels, newCount }
+  return { models }
 }
 
 export async function testConnection(userId: string, id: string) {
@@ -353,4 +323,18 @@ export async function createModel(
       capabilities: parseModelCapabilities(model.capabilities),
     },
   }
+}
+
+export async function deleteModel(userId: string, providerId: string, modelId: string) {
+  const provider = await providerRepo.findByIdAndUser(providerId, userId)
+  if (!provider) {
+    throw new AppError('Provider not found', 404)
+  }
+
+  const model = await providerRepo.findModel(providerId, modelId)
+  if (!model) {
+    throw new AppError('Model not found', 404)
+  }
+
+  await providerRepo.removeModel(model.id)
 }

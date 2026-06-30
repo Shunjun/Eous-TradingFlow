@@ -259,6 +259,13 @@ export interface ProviderModel {
   enabled: boolean
 }
 
+export interface ProviderRemoteModel {
+  modelId: string
+  displayName?: string
+  maxTokens?: number
+  capabilities: string[]
+}
+
 export interface ProviderTemplate {
   kind: string
   label: string
@@ -562,7 +569,7 @@ export interface ApiClient {
   ): Promise<{ provider: Provider }>
   deleteProvider(id: string): Promise<void>
   testProvider(id: string): Promise<TestResult>
-  syncProvider(id: string): Promise<void>
+  syncProvider(id: string): Promise<{ models: ProviderRemoteModel[] }>
   listProviderTemplates(): Promise<{ templates: ProviderTemplate[] }>
   addProviderModel(
     providerId: string,
@@ -1042,8 +1049,7 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
     updateProvider: (id, params) => patch(`/providers/${encodeURIComponent(id)}`, params),
     deleteProvider: (id: string) => del(`/providers/${encodeURIComponent(id)}`, true),
     testProvider: (id: string) => post(`/providers/${encodeURIComponent(id)}/test`),
-    syncProvider: (id: string) =>
-      post(`/providers/${encodeURIComponent(id)}/sync`, undefined, true),
+    syncProvider: (id: string) => post(`/providers/${encodeURIComponent(id)}/sync`),
     listProviderTemplates: () => get('/provider-templates'),
     addProviderModel: (providerId, params) =>
       post(`/providers/${encodeURIComponent(providerId)}/models`, params, true),

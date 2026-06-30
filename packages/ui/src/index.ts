@@ -99,6 +99,7 @@ export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './comp
 export { Badge, badgeVariants } from './components/ui/badge'
 export { Skeleton } from './components/ui/skeleton'
 export { Checkbox } from './components/ui/checkbox'
+export { Switch } from './components/ui/switch'
 export { Slider } from './components/ui/slider'
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './components/ui/tabs'
 export { ToggleGroup, ToggleGroupItem } from './components/ui/toggle-group'

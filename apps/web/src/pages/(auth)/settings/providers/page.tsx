@@ -27,9 +27,13 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  Switch,
 } from '@eous/ui'
 import {
+  Brain,
   Bot,
+  Database,
+  Eye,
   Plus,
   X,
   Trash2,
@@ -45,7 +49,14 @@ import {
   KeyRound,
   Route,
 } from 'lucide-react'
-import type { Provider, ProviderModel, ProviderTemplate, TestResult } from '@eous/api-client'
+import type { LucideIcon } from 'lucide-react'
+import type {
+  Provider,
+  ProviderModel,
+  ProviderRemoteModel,
+  ProviderTemplate,
+  TestResult,
+} from '@eous/api-client'
 import { api } from '@/lib/api'
 import { PageLoading } from '../../../../components/PageLoading'
 import { useI18n } from '../../../../lib/i18n'
@@ -58,10 +69,14 @@ const CAP_COLORS: Record<string, string> = {
   embedding: 'text-amber-400 bg-amber-400/10',
 }
 
-const CAPABILITY_OPTIONS = [
-  { value: 'reasoning', label: 'Reasoning' },
-  { value: 'vision', label: 'Vision' },
-  { value: 'embedding', label: 'Embedding' },
+const CAPABILITY_OPTIONS: {
+  value: 'reasoning' | 'vision' | 'embedding'
+  label: string
+  icon: LucideIcon
+}[] = [
+  { value: 'reasoning', label: 'Reasoning', icon: Brain },
+  { value: 'vision', label: 'Vision', icon: Eye },
+  { value: 'embedding', label: 'Embedding', icon: Database },
 ]
 
 const API_FORMAT_LABELS: Record<string, string> = {
@@ -77,6 +92,8 @@ const FALLBACK_API_FORMATS = Object.entries(API_FORMAT_LABELS).map(([value, labe
   label,
 }))
 
+const MANUAL_MODEL_OPTION = '__manual_model__'
+
 function normalizeCapabilities(input: string[]): string[] {
   return [...new Set(input.map((item) => item.trim().toLowerCase()).filter(Boolean))]
 }
@@ -87,7 +104,13 @@ function toggleCapability(capabilities: string[], capability: string): string[] 
     : [...capabilities, capability]
 }
 
-function CapabilityPicker({
+function formatModelOption(model: ProviderRemoteModel): string {
+  return model.displayName && model.displayName !== model.modelId
+    ? `${model.displayName} (${model.modelId})`
+    : model.modelId
+}
+
+function CapabilitySwitches({
   value,
   onChange,
 }: {
@@ -95,23 +118,63 @@ function CapabilityPicker({
   onChange: (next: string[]) => void
 }) {
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="grid gap-2 sm:grid-cols-3">
       {CAPABILITY_OPTIONS.map((capability) => {
         const selected = value.includes(capability.value)
+        const Icon = capability.icon
         return (
-          <button
+          <label
             key={capability.value}
-            type="button"
-            onClick={() => onChange(toggleCapability(value, capability.value))}
             className={cn(
-              'rounded border px-2 py-1 font-mono text-[10px] transition-colors',
-              selected
-                ? 'border-primary bg-primary/10 text-primary'
-                : 'border-border bg-transparent text-muted-foreground hover:text-foreground',
+              'flex min-h-10 items-center justify-between gap-3 rounded border px-3 py-2 transition-colors',
+              selected ? 'border-primary bg-primary/10' : 'border-border bg-muted/20',
             )}
           >
-            {capability.label}
-          </button>
+            <span className="flex min-w-0 items-center gap-2">
+              <span
+                className={cn(
+                  'flex size-6 shrink-0 items-center justify-center rounded',
+                  CAP_COLORS[capability.value],
+                )}
+              >
+                <Icon size={13} />
+              </span>
+              <span className="truncate font-mono text-[11px]">{capability.label}</span>
+            </span>
+            <Switch
+              checked={selected}
+              onCheckedChange={() => onChange(toggleCapability(value, capability.value))}
+            />
+          </label>
+        )
+      })}
+    </div>
+  )
+}
+
+function CapabilityIcons({ capabilities }: { capabilities: string[] }) {
+  const knownCapabilities = capabilities
+    .map((capability) => CAPABILITY_OPTIONS.find((item) => item.value === capability))
+    .filter((item): item is (typeof CAPABILITY_OPTIONS)[number] => Boolean(item))
+
+  if (knownCapabilities.length === 0) return null
+
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {knownCapabilities.map((capability) => {
+        const Icon = capability.icon
+        return (
+          <span
+            key={capability.value}
+            title={capability.label}
+            aria-label={capability.label}
+            className={cn(
+              'flex size-6 items-center justify-center rounded border border-border/60',
+              CAP_COLORS[capability.value],
+            )}
+          >
+            <Icon size={13} />
+          </span>
         )
       })}
     </div>
@@ -486,7 +549,7 @@ function ModelFormFields({
         <Label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
           Capabilities
         </Label>
-        <CapabilityPicker value={capabilities} onChange={onCapabilitiesChange} />
+        <CapabilitySwitches value={capabilities} onChange={onCapabilitiesChange} />
       </div>
     </div>
   )
@@ -685,12 +748,17 @@ function ProviderCard({
   onRefresh: () => void
 }) {
   const [models, setModels] = useState<ProviderModel[]>([])
+  const [remoteModels, setRemoteModels] = useState<ProviderRemoteModel[]>([])
+  const [remoteModelsLoaded, setRemoteModelsLoaded] = useState(false)
   const [loaded, setLoaded] = useState(false)
   const [expanded, setExpanded] = useState(true)
   const [editingProvider, setEditingProvider] = useState(false)
   const [showAddModel, setShowAddModel] = useState(false)
   const [editingModelId, setEditingModelId] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
+  const [addingModelId, setAddingModelId] = useState<string | null>(null)
+  const [deletingModelId, setDeletingModelId] = useState<string | null>(null)
+  const [modelActionError, setModelActionError] = useState('')
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<TestResult | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -708,6 +776,12 @@ function ProviderCard({
   useEffect(() => {
     loadModels()
   }, [loadModels])
+
+  useEffect(() => {
+    setRemoteModels([])
+    setRemoteModelsLoaded(false)
+    setModelActionError('')
+  }, [provider.baseUrl, provider.apiFormat, provider.kind])
 
   async function handleTest() {
     setTesting(true)
@@ -736,13 +810,44 @@ function ProviderCard({
 
   async function handleSync() {
     setSyncing(true)
+    setModelActionError('')
     try {
-      await api.syncProvider(provider.id)
-      await loadModels()
-    } catch {
-      // silent
+      const result = await api.syncProvider(provider.id)
+      setRemoteModels(result.models)
+      setRemoteModelsLoaded(true)
+    } catch (err: unknown) {
+      setRemoteModels([])
+      setRemoteModelsLoaded(true)
+      setModelActionError(err instanceof Error ? err.message : 'Failed to fetch models')
     } finally {
       setSyncing(false)
+    }
+  }
+
+  async function handleAddModelOption(value: string) {
+    if (value === MANUAL_MODEL_OPTION) {
+      setShowAddModel(true)
+      return
+    }
+
+    const model = remoteModels.find((item) => item.modelId === value)
+    if (!model) return
+
+    setAddingModelId(value)
+    setModelActionError('')
+    try {
+      await api.addProviderModel(provider.id, {
+        modelId: model.modelId,
+        displayName: model.displayName,
+        maxTokens: model.maxTokens,
+        capabilities: model.capabilities,
+      })
+      setRemoteModels((prev) => prev.filter((item) => item.modelId !== model.modelId))
+      await loadModels()
+    } catch (err: unknown) {
+      setModelActionError(err instanceof Error ? err.message : 'Failed to add model')
+    } finally {
+      setAddingModelId(null)
     }
   }
 
@@ -755,12 +860,30 @@ function ProviderCard({
     }
   }
 
+  async function handleDeleteModel(model: ProviderModel) {
+    const label = model.displayName ?? model.modelId
+    if (!confirm(`Delete model "${label}"?`)) return
+
+    setDeletingModelId(model.modelId)
+    setModelActionError('')
+    try {
+      await api.deleteProviderModel(provider.id, model.modelId)
+      setModels((prev) => prev.filter((item) => item.id !== model.id))
+    } catch (err: unknown) {
+      setModelActionError(err instanceof Error ? err.message : 'Failed to delete model')
+    } finally {
+      setDeletingModelId(null)
+    }
+  }
+
   const enabledCount = models.filter((m) => m.enabled).length
   const embeddingCount = models.filter(
     (m) => m.enabled && m.capabilities.includes('embedding'),
   ).length
   const template = templates.find((item) => item.kind === provider.kind)
   const editingModel = models.find((model) => model.id === editingModelId) ?? null
+  const existingModelIds = new Set(models.map((model) => model.modelId))
+  const availableRemoteModels = remoteModels.filter((model) => !existingModelIds.has(model.modelId))
 
   return (
     <CardPanel className="mb-4">
@@ -874,83 +997,88 @@ function ProviderCard({
               <EmptyTitle className="text-sm font-mono">No models yet</EmptyTitle>
             </Empty>
           ) : (
-            models.map((model) => (
-              <DataRow
-                key={model.id}
-                className={cn(!model.enabled && 'opacity-50')}
-                leading={
-                  <button
-                    onClick={() => handleToggleModel(model)}
-                    className={cn(
-                      'w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0',
-                      model.enabled
-                        ? 'border-primary bg-primary/15 text-primary'
-                        : 'border-border bg-transparent text-transparent',
-                    )}
-                  >
-                    {model.enabled && <Check size={10} />}
-                  </button>
-                }
-                trailing={
-                  <Button
-                    variant="ghost"
-                    size="xs"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground"
-                    onClick={() => setEditingModelId(model.id)}
-                  >
-                    <Pencil size={10} />
-                  </Button>
-                }
-              >
-                <div className="grid min-w-0 gap-1 md:grid-cols-[minmax(0,1.4fr)_auto_minmax(160px,0.8fr)] md:items-center">
-                  <div className="min-w-0">
-                    <div className="font-mono text-xs truncate">
-                      {model.displayName ?? model.modelId}
-                    </div>
-                    {model.displayName && (
-                      <div className="font-mono text-[10px] text-muted-foreground truncate">
-                        {model.modelId}
-                      </div>
-                    )}
-                  </div>
-                  <span className="font-mono text-[10px] text-muted-foreground shrink-0">
-                    {model.maxTokens ? `${model.maxTokens.toLocaleString()} tokens` : 'tokens -'}
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {model.capabilities.map((cap) => (
-                      <Badge
-                        key={cap}
-                        variant="secondary"
-                        className={cn(
-                          'font-mono text-[9px] px-1.5 py-0.5 rounded shrink-0',
-                          CAP_COLORS[cap] ?? 'text-muted-foreground bg-muted',
-                        )}
+            <div className="max-h-[360px] overflow-y-auto">
+              {models.map((model) => (
+                <DataRow
+                  key={model.id}
+                  className={cn(!model.enabled && 'opacity-50')}
+                  leading={
+                    <button
+                      onClick={() => handleToggleModel(model)}
+                      className={cn(
+                        'w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0',
+                        model.enabled
+                          ? 'border-primary bg-primary/15 text-primary'
+                          : 'border-border bg-transparent text-transparent',
+                      )}
+                    >
+                      {model.enabled && <Check size={10} />}
+                    </button>
+                  }
+                  trailing={
+                    <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        className="text-muted-foreground"
+                        onClick={() => setEditingModelId(model.id)}
                       >
-                        {cap}
-                      </Badge>
-                    ))}
-                    {model.capabilities.length === 0 && (
-                      <span className="font-mono text-[10px] text-muted-foreground">
-                        no capabilities
-                      </span>
-                    )}
+                        <Pencil size={10} />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        className="text-muted-foreground hover:text-red-400"
+                        onClick={() => handleDeleteModel(model)}
+                        disabled={deletingModelId === model.modelId}
+                      >
+                        {deletingModelId === model.modelId ? (
+                          <Loader2 size={10} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={10} />
+                        )}
+                      </Button>
+                    </div>
+                  }
+                >
+                  <div className="grid min-w-0 gap-1 md:grid-cols-[minmax(0,1.4fr)_auto_minmax(160px,0.8fr)] md:items-center">
+                    <div className="min-w-0">
+                      <div className="font-mono text-xs truncate">
+                        {model.displayName ?? model.modelId}
+                      </div>
+                      {model.displayName && (
+                        <div className="font-mono text-[10px] text-muted-foreground truncate">
+                          {model.modelId}
+                        </div>
+                      )}
+                    </div>
+                    <span className="font-mono text-[10px] text-muted-foreground shrink-0">
+                      {model.maxTokens ? `${model.maxTokens.toLocaleString()} tokens` : 'tokens -'}
+                    </span>
+                    <CapabilityIcons capabilities={model.capabilities} />
                   </div>
-                </div>
-              </DataRow>
-            ))
+                </DataRow>
+              ))}
+            </div>
           )}
 
           {/* Footer actions */}
-          <div className="flex items-center gap-2 px-4 py-3 border-t border-border/50">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="font-mono text-[11px] gap-1.5 text-muted-foreground"
-              onClick={() => setShowAddModel(true)}
-            >
-              <Plus size={10} />
-              Add model
-            </Button>
+          <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-t border-border/50">
+            <Select value="" onValueChange={handleAddModelOption} disabled={Boolean(addingModelId)}>
+              <SelectTrigger className="h-8 w-[260px] font-mono text-[11px]">
+                <SelectValue placeholder={addingModelId ? 'Adding model...' : 'Add model'} />
+              </SelectTrigger>
+              <SelectContent className="max-h-[320px]">
+                {availableRemoteModels.map((model) => (
+                  <SelectItem key={model.modelId} value={model.modelId} className="font-mono">
+                    {formatModelOption(model)}
+                  </SelectItem>
+                ))}
+                <SelectItem value={MANUAL_MODEL_OPTION} className="font-mono">
+                  Enter model manually...
+                </SelectItem>
+              </SelectContent>
+            </Select>
             <Button
               variant="ghost"
               size="sm"
@@ -959,8 +1087,16 @@ function ProviderCard({
               disabled={syncing}
             >
               {syncing ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
-              Sync from API
+              Fetch models
             </Button>
+            {remoteModelsLoaded && (
+              <span className="font-mono text-[10px] text-muted-foreground">
+                {availableRemoteModels.length}/{remoteModels.length} available
+              </span>
+            )}
+            {modelActionError && (
+              <span className="font-mono text-[10px] text-red-400">{modelActionError}</span>
+            )}
           </div>
 
           <AddModelDialog
