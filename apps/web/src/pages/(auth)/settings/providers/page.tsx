@@ -57,6 +57,7 @@ import type {
   ProviderTemplate,
   TestResult,
 } from '@eous/api-client'
+import type { TextKey } from '@eous/i18n'
 import { api } from '@/lib/api'
 import { PageLoading } from '../../../../components/PageLoading'
 import { useI18n } from '../../../../lib/i18n'
@@ -71,12 +72,12 @@ const CAP_COLORS: Record<string, string> = {
 
 const CAPABILITY_OPTIONS: {
   value: 'reasoning' | 'vision' | 'embedding'
-  label: string
+  labelKey: TextKey
   icon: LucideIcon
 }[] = [
-  { value: 'reasoning', label: 'Reasoning', icon: Brain },
-  { value: 'vision', label: 'Vision', icon: Eye },
-  { value: 'embedding', label: 'Embedding', icon: Database },
+  { value: 'reasoning', labelKey: 'settings.capabilityReasoning', icon: Brain },
+  { value: 'vision', labelKey: 'settings.capabilityVision', icon: Eye },
+  { value: 'embedding', labelKey: 'settings.capabilityEmbedding', icon: Database },
 ]
 
 const API_FORMAT_LABELS: Record<string, string> = {
@@ -93,6 +94,8 @@ const FALLBACK_API_FORMATS = Object.entries(API_FORMAT_LABELS).map(([value, labe
 }))
 
 const MANUAL_MODEL_OPTION = '__manual_model__'
+
+type Translate = (key: TextKey) => string
 
 function normalizeCapabilities(input: string[]): string[] {
   return [...new Set(input.map((item) => item.trim().toLowerCase()).filter(Boolean))]
@@ -113,9 +116,11 @@ function formatModelOption(model: ProviderRemoteModel): string {
 function CapabilitySwitches({
   value,
   onChange,
+  t,
 }: {
   value: string[]
   onChange: (next: string[]) => void
+  t: Translate
 }) {
   return (
     <div className="grid gap-2 sm:grid-cols-3">
@@ -139,7 +144,7 @@ function CapabilitySwitches({
               >
                 <Icon size={13} />
               </span>
-              <span className="truncate font-mono text-[11px]">{capability.label}</span>
+              <span className="truncate font-mono text-[11px]">{t(capability.labelKey)}</span>
             </span>
             <Switch
               checked={selected}
@@ -152,7 +157,7 @@ function CapabilitySwitches({
   )
 }
 
-function CapabilityIcons({ capabilities }: { capabilities: string[] }) {
+function CapabilityIcons({ capabilities, t }: { capabilities: string[]; t: Translate }) {
   const knownCapabilities = capabilities
     .map((capability) => CAPABILITY_OPTIONS.find((item) => item.value === capability))
     .filter((item): item is (typeof CAPABILITY_OPTIONS)[number] => Boolean(item))
@@ -166,8 +171,8 @@ function CapabilityIcons({ capabilities }: { capabilities: string[] }) {
         return (
           <span
             key={capability.value}
-            title={capability.label}
-            aria-label={capability.label}
+            title={t(capability.labelKey)}
+            aria-label={t(capability.labelKey)}
             className={cn(
               'flex size-6 items-center justify-center rounded border border-border/60',
               CAP_COLORS[capability.value],
@@ -187,10 +192,12 @@ function AddProviderForm({
   templates,
   onClose,
   onCreated,
+  t,
 }: {
   templates: ProviderTemplate[]
   onClose: () => void
   onCreated: () => void
+  t: Translate
 }) {
   const [kind, setKind] = useState('')
   const [apiFormat, setApiFormat] = useState('')
@@ -228,7 +235,7 @@ function AddProviderForm({
       await api.createProvider({ name, kind, apiFormat, baseUrl, apiKey })
       onCreated()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to create provider')
+      setError(err instanceof Error ? err.message : t('settings.failedToCreateProvider'))
     } finally {
       setLoading(false)
     }
@@ -238,7 +245,7 @@ function AddProviderForm({
     <CardPanel className="mb-4">
       <CardPanelHeader
         icon={ServerCog}
-        title="Add Provider"
+        title={t('settings.addProvider')}
         action={{ label: <X size={14} />, onClick: onClose }}
       />
       <CardPanelBody className="p-4">
@@ -246,11 +253,11 @@ function AddProviderForm({
           {/* Template selector */}
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-              Vendor
+              {t('settings.vendor')}
             </Label>
             <Select value={kind || undefined} onValueChange={handleKindChange}>
               <SelectTrigger>
-                <SelectValue placeholder="Select vendor..." />
+                <SelectValue placeholder={t('settings.selectVendor')} />
               </SelectTrigger>
               <SelectContent>
                 {templates.map((t) => (
@@ -262,7 +269,7 @@ function AddProviderForm({
             </Select>
             {selected?.hint && (
               <p className="text-[10px] font-mono text-muted-foreground">
-                Get API key: {selected.hint}
+                {t('settings.getApiKey')}: {selected.hint}
               </p>
             )}
           </div>
@@ -273,23 +280,23 @@ function AddProviderForm({
               <div className="grid gap-3 md:grid-cols-[1fr_220px]">
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-                    Name
+                    {t('settings.name')}
                   </Label>
                   <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="My Provider"
+                    placeholder={t('settings.providerNamePlaceholder')}
                     className="font-mono text-xs"
                     required
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-                    API Format
+                    {t('settings.apiFormat')}
                   </Label>
                   <Select value={apiFormat || undefined} onValueChange={handleApiFormatChange}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select API format…" />
+                      <SelectValue placeholder={t('settings.selectApiFormat')} />
                     </SelectTrigger>
                     <SelectContent>
                       {(selected?.apiFormats ?? []).map((format) => (
@@ -305,7 +312,7 @@ function AddProviderForm({
               {/* Base URL */}
               <div className="flex flex-col gap-1.5">
                 <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-                  Base URL
+                  {t('settings.baseUrl')}
                 </Label>
                 <Input
                   value={baseUrl}
@@ -320,7 +327,7 @@ function AddProviderForm({
               {kind !== 'ollama' && (
                 <div className="flex flex-col gap-1.5">
                   <Label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-                    API Key
+                    {t('settings.apiKey')}
                   </Label>
                   <Input
                     type="password"
@@ -344,7 +351,7 @@ function AddProviderForm({
                   className="font-mono gap-1.5"
                 >
                   {loading ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                  Create
+                  {t('settings.create')}
                 </Button>
                 <Button
                   type="button"
@@ -353,7 +360,7 @@ function AddProviderForm({
                   onClick={onClose}
                   className="font-mono text-muted-foreground"
                 >
-                  Cancel
+                  {t('settings.cancel')}
                 </Button>
               </div>
             </>
@@ -371,11 +378,13 @@ function EditProviderForm({
   template,
   onCancel,
   onSaved,
+  t,
 }: {
   provider: Provider
   template?: ProviderTemplate
   onCancel: () => void
   onSaved: () => void
+  t: Translate
 }) {
   const [name, setName] = useState(provider.name)
   const [apiFormat, setApiFormat] = useState(provider.apiFormat)
@@ -398,7 +407,7 @@ function EditProviderForm({
       })
       onSaved()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to update provider')
+      setError(err instanceof Error ? err.message : t('settings.failedToUpdateProvider'))
     } finally {
       setLoading(false)
     }
@@ -411,7 +420,9 @@ function EditProviderForm({
     >
       <div className="grid gap-2 lg:grid-cols-[1fr_220px_1.5fr_1fr]">
         <div className="flex flex-col gap-1">
-          <Label className="text-[10px] font-mono text-muted-foreground">Name</Label>
+          <Label className="text-[10px] font-mono text-muted-foreground">
+            {t('settings.name')}
+          </Label>
           <Input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -420,7 +431,9 @@ function EditProviderForm({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <Label className="text-[10px] font-mono text-muted-foreground">API Format</Label>
+          <Label className="text-[10px] font-mono text-muted-foreground">
+            {t('settings.apiFormat')}
+          </Label>
           <Select value={apiFormat} onValueChange={setApiFormat}>
             <SelectTrigger className="h-8 font-mono text-xs">
               <SelectValue />
@@ -435,7 +448,9 @@ function EditProviderForm({
           </Select>
         </div>
         <div className="flex flex-col gap-1">
-          <Label className="text-[10px] font-mono text-muted-foreground">Base URL</Label>
+          <Label className="text-[10px] font-mono text-muted-foreground">
+            {t('settings.baseUrl')}
+          </Label>
           <Input
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
@@ -444,12 +459,14 @@ function EditProviderForm({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <Label className="text-[10px] font-mono text-muted-foreground">New API Key</Label>
+          <Label className="text-[10px] font-mono text-muted-foreground">
+            {t('settings.newApiKey')}
+          </Label>
           <Input
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder="Leave unchanged"
+            placeholder={t('settings.leaveUnchanged')}
             className="h-8 font-mono text-xs"
           />
         </div>
@@ -464,7 +481,7 @@ function EditProviderForm({
           className="h-7 gap-1.5 font-mono text-[11px]"
         >
           {loading ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />}
-          Save Provider
+          {t('settings.saveProvider')}
         </Button>
         <Button
           type="button"
@@ -473,7 +490,7 @@ function EditProviderForm({
           onClick={onCancel}
           className="h-7 font-mono text-[11px] text-muted-foreground"
         >
-          Cancel
+          {t('settings.cancel')}
         </Button>
       </div>
     </form>
@@ -483,6 +500,7 @@ function EditProviderForm({
 /* ── Model Form Dialogs ───────────────────────────────── */
 
 interface ModelFormFieldsProps {
+  t: Translate
   modelId?: string
   modelIdReadOnly?: boolean
   displayName: string
@@ -495,6 +513,7 @@ interface ModelFormFieldsProps {
 }
 
 function ModelFormFields({
+  t,
   modelId = '',
   modelIdReadOnly = false,
   displayName,
@@ -510,7 +529,7 @@ function ModelFormFields({
       <div className="grid gap-3 md:grid-cols-[1.4fr_1fr]">
         <div className="flex flex-col gap-1.5">
           <Label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-            Model ID
+            {t('settings.modelId')}
           </Label>
           <Input
             value={modelId}
@@ -523,7 +542,7 @@ function ModelFormFields({
         </div>
         <div className="flex flex-col gap-1.5">
           <Label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-            Max Tokens
+            {t('settings.maxTokens')}
           </Label>
           <Input
             type="number"
@@ -536,7 +555,7 @@ function ModelFormFields({
       </div>
       <div className="flex flex-col gap-1.5">
         <Label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-          Display Name
+          {t('settings.displayName')}
         </Label>
         <Input
           value={displayName}
@@ -547,9 +566,9 @@ function ModelFormFields({
       </div>
       <div className="flex flex-col gap-2">
         <Label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-          Capabilities
+          {t('settings.capabilities')}
         </Label>
-        <CapabilitySwitches value={capabilities} onChange={onCapabilitiesChange} />
+        <CapabilitySwitches value={capabilities} onChange={onCapabilitiesChange} t={t} />
       </div>
     </div>
   )
@@ -560,11 +579,13 @@ function AddModelDialog({
   providerId,
   onOpenChange,
   onAdded,
+  t,
 }: {
   open: boolean
   providerId: string
   onOpenChange: (open: boolean) => void
   onAdded: () => void
+  t: Translate
 }) {
   const [modelId, setModelId] = useState('')
   const [displayName, setDisplayName] = useState('')
@@ -595,7 +616,7 @@ function AddModelDialog({
       })
       onAdded()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to add model')
+      setError(err instanceof Error ? err.message : t('settings.failedToAddModel'))
     } finally {
       setLoading(false)
     }
@@ -606,12 +627,11 @@ function AddModelDialog({
       <DialogContent className="sm:max-w-[560px]">
         <form onSubmit={handleSubmit} className="space-y-4">
           <DialogHeader>
-            <DialogTitle>Add model</DialogTitle>
-            <DialogDescription>
-              Add a chat, vision, reasoning, or embedding model under this provider.
-            </DialogDescription>
+            <DialogTitle>{t('settings.addModel')}</DialogTitle>
+            <DialogDescription>{t('settings.addModelDescription')}</DialogDescription>
           </DialogHeader>
           <ModelFormFields
+            t={t}
             modelId={modelId}
             displayName={displayName}
             maxTokens={maxTokens}
@@ -631,7 +651,7 @@ function AddModelDialog({
               disabled={loading}
               className="font-mono text-muted-foreground"
             >
-              Cancel
+              {t('settings.cancel')}
             </Button>
             <Button
               type="submit"
@@ -641,7 +661,7 @@ function AddModelDialog({
               className="font-mono gap-1.5"
             >
               {loading ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-              Add Model
+              {t('settings.addModel')}
             </Button>
           </DialogFooter>
         </form>
@@ -656,12 +676,14 @@ function EditModelDialog({
   providerId,
   onOpenChange,
   onSaved,
+  t,
 }: {
   open: boolean
   model: ProviderModel
   providerId: string
   onOpenChange: (open: boolean) => void
   onSaved: () => void
+  t: Translate
 }) {
   const [displayName, setDisplayName] = useState(model.displayName ?? '')
   const [maxTokens, setMaxTokens] = useState(model.maxTokens?.toString() ?? '')
@@ -681,7 +703,7 @@ function EditModelDialog({
       })
       onSaved()
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to update model')
+      setError(err instanceof Error ? err.message : t('settings.failedToUpdateModel'))
     } finally {
       setLoading(false)
     }
@@ -692,12 +714,11 @@ function EditModelDialog({
       <DialogContent className="sm:max-w-[560px]">
         <form onSubmit={handleSubmit} className="space-y-4">
           <DialogHeader>
-            <DialogTitle>Configure model</DialogTitle>
-            <DialogDescription>
-              Update display metadata and enabled model capabilities.
-            </DialogDescription>
+            <DialogTitle>{t('settings.configureModel')}</DialogTitle>
+            <DialogDescription>{t('settings.configureModelDescription')}</DialogDescription>
           </DialogHeader>
           <ModelFormFields
+            t={t}
             modelId={model.modelId}
             modelIdReadOnly
             displayName={displayName}
@@ -717,7 +738,7 @@ function EditModelDialog({
               disabled={loading}
               className="font-mono text-muted-foreground"
             >
-              Cancel
+              {t('settings.cancel')}
             </Button>
             <Button
               type="submit"
@@ -727,7 +748,7 @@ function EditModelDialog({
               className="font-mono gap-1.5"
             >
               {loading ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-              Save
+              {t('settings.save')}
             </Button>
           </DialogFooter>
         </form>
@@ -742,10 +763,12 @@ function ProviderCard({
   provider,
   templates,
   onRefresh,
+  t,
 }: {
   provider: Provider
   templates: ProviderTemplate[]
   onRefresh: () => void
+  t: Translate
 }) {
   const [models, setModels] = useState<ProviderModel[]>([])
   const [remoteModels, setRemoteModels] = useState<ProviderRemoteModel[]>([])
@@ -790,15 +813,14 @@ function ProviderCard({
       const result = await api.testProvider(provider.id)
       setTestResult(result)
     } catch (err: unknown) {
-      setTestResult({ error: err instanceof Error ? err.message : 'Connection failed' })
+      setTestResult({ error: err instanceof Error ? err.message : t('settings.connectionFailed') })
     } finally {
       setTesting(false)
     }
   }
 
   async function handleDelete() {
-    if (!confirm(`Delete provider "${provider.name}"? This will also remove all its models.`))
-      return
+    if (!confirm(t('settings.deleteProviderConfirm').replace('{name}', provider.name))) return
     setDeleting(true)
     try {
       await api.deleteProvider(provider.id)
@@ -818,7 +840,7 @@ function ProviderCard({
     } catch (err: unknown) {
       setRemoteModels([])
       setRemoteModelsLoaded(true)
-      setModelActionError(err instanceof Error ? err.message : 'Failed to fetch models')
+      setModelActionError(err instanceof Error ? err.message : t('settings.failedToFetchModels'))
     } finally {
       setSyncing(false)
     }
@@ -845,7 +867,7 @@ function ProviderCard({
       setRemoteModels((prev) => prev.filter((item) => item.modelId !== model.modelId))
       await loadModels()
     } catch (err: unknown) {
-      setModelActionError(err instanceof Error ? err.message : 'Failed to add model')
+      setModelActionError(err instanceof Error ? err.message : t('settings.failedToAddModel'))
     } finally {
       setAddingModelId(null)
     }
@@ -862,7 +884,7 @@ function ProviderCard({
 
   async function handleDeleteModel(model: ProviderModel) {
     const label = model.displayName ?? model.modelId
-    if (!confirm(`Delete model "${label}"?`)) return
+    if (!confirm(t('settings.deleteModelConfirm').replace('{name}', label))) return
 
     setDeletingModelId(model.modelId)
     setModelActionError('')
@@ -870,7 +892,7 @@ function ProviderCard({
       await api.deleteProviderModel(provider.id, model.modelId)
       setModels((prev) => prev.filter((item) => item.id !== model.id))
     } catch (err: unknown) {
-      setModelActionError(err instanceof Error ? err.message : 'Failed to delete model')
+      setModelActionError(err instanceof Error ? err.message : t('settings.failedToDeleteModel'))
     } finally {
       setDeletingModelId(null)
     }
@@ -913,14 +935,16 @@ function ProviderCard({
           {loaded && (
             <>
               <span className="font-mono text-[10px] text-muted-foreground">
-                {enabledCount}/{models.length} models
+                {t('settings.modelsEnabledCount')
+                  .replace('{enabled}', String(enabledCount))
+                  .replace('{total}', String(models.length))}
               </span>
               {embeddingCount > 0 && (
                 <Badge
                   variant="secondary"
                   className="font-mono text-[10px] text-amber-400 bg-amber-400/10"
                 >
-                  {embeddingCount} embedding
+                  {t('settings.embeddingCount').replace('{count}', String(embeddingCount))}
                 </Badge>
               )}
             </>
@@ -933,8 +957,11 @@ function ProviderCard({
               status={testResult.ok ? 'success' : 'error'}
               label={
                 testResult.ok
-                  ? `Connected (${testResult.modelCount} models)`
-                  : (testResult.error ?? 'Failed')
+                  ? t('settings.connectedModelCount').replace(
+                      '{count}',
+                      String(testResult.modelCount),
+                    )
+                  : (testResult.error ?? t('settings.failed'))
               }
             />
           )}
@@ -946,7 +973,7 @@ function ProviderCard({
             className="font-mono gap-1.5 h-7 text-[11px]"
           >
             {testing ? <Loader2 size={10} className="animate-spin" /> : <Zap size={10} />}
-            Test
+            {t('settings.test')}
           </Button>
           <Button
             variant="ghost"
@@ -981,6 +1008,7 @@ function ProviderCard({
                 setEditingProvider(false)
                 onRefresh()
               }}
+              t={t}
             />
           )}
 
@@ -994,7 +1022,7 @@ function ProviderCard({
               <EmptyMedia variant="icon">
                 <Bot size={20} />
               </EmptyMedia>
-              <EmptyTitle className="text-sm font-mono">No models yet</EmptyTitle>
+              <EmptyTitle className="text-sm font-mono">{t('settings.noModelsYet')}</EmptyTitle>
             </Empty>
           ) : (
             <div className="max-h-[360px] overflow-y-auto">
@@ -1053,9 +1081,14 @@ function ProviderCard({
                       )}
                     </div>
                     <span className="font-mono text-[10px] text-muted-foreground shrink-0">
-                      {model.maxTokens ? `${model.maxTokens.toLocaleString()} tokens` : 'tokens -'}
+                      {model.maxTokens
+                        ? t('settings.tokensCount').replace(
+                            '{count}',
+                            model.maxTokens.toLocaleString(),
+                          )
+                        : t('settings.tokensEmpty')}
                     </span>
-                    <CapabilityIcons capabilities={model.capabilities} />
+                    <CapabilityIcons capabilities={model.capabilities} t={t} />
                   </div>
                 </DataRow>
               ))}
@@ -1066,7 +1099,9 @@ function ProviderCard({
           <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-t border-border/50">
             <Select value="" onValueChange={handleAddModelOption} disabled={Boolean(addingModelId)}>
               <SelectTrigger className="h-8 w-[260px] font-mono text-[11px]">
-                <SelectValue placeholder={addingModelId ? 'Adding model...' : 'Add model'} />
+                <SelectValue
+                  placeholder={addingModelId ? t('settings.addingModel') : t('settings.addModel')}
+                />
               </SelectTrigger>
               <SelectContent className="max-h-[320px]">
                 {availableRemoteModels.map((model) => (
@@ -1075,7 +1110,7 @@ function ProviderCard({
                   </SelectItem>
                 ))}
                 <SelectItem value={MANUAL_MODEL_OPTION} className="font-mono">
-                  Enter model manually...
+                  {t('settings.enterModelManually')}
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -1087,11 +1122,13 @@ function ProviderCard({
               disabled={syncing}
             >
               {syncing ? <Loader2 size={10} className="animate-spin" /> : <RefreshCw size={10} />}
-              Fetch models
+              {t('settings.fetchModels')}
             </Button>
             {remoteModelsLoaded && (
               <span className="font-mono text-[10px] text-muted-foreground">
-                {availableRemoteModels.length}/{remoteModels.length} available
+                {t('settings.availableModelsCount')
+                  .replace('{available}', String(availableRemoteModels.length))
+                  .replace('{total}', String(remoteModels.length))}
               </span>
             )}
             {modelActionError && (
@@ -1107,6 +1144,7 @@ function ProviderCard({
               setShowAddModel(false)
               loadModels()
             }}
+            t={t}
           />
           {editingModel && (
             <EditModelDialog
@@ -1118,6 +1156,7 @@ function ProviderCard({
                 setEditingModelId(null)
                 loadModels()
               }}
+              t={t}
             />
           )}
         </CardPanelBody>
@@ -1233,6 +1272,7 @@ export default function ProvidersPage() {
             setShowAdd(false)
             loadProviders()
           }}
+          t={t}
         />
       )}
 
@@ -1262,7 +1302,13 @@ export default function ProvidersPage() {
         </CardPanel>
       ) : (
         providers.map((p) => (
-          <ProviderCard key={p.id} provider={p} templates={templates} onRefresh={loadProviders} />
+          <ProviderCard
+            key={p.id}
+            provider={p}
+            templates={templates}
+            onRefresh={loadProviders}
+            t={t}
+          />
         ))
       )}
     </div>
