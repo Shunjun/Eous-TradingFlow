@@ -27,6 +27,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  ConfirmDialog,
   Switch,
 } from '@eous/ui'
 import {
@@ -785,6 +786,8 @@ function ProviderCard({
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<TestResult | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [confirmDeleteProviderOpen, setConfirmDeleteProviderOpen] = useState(false)
+  const [pendingDeleteModel, setPendingDeleteModel] = useState<ProviderModel | null>(null)
 
   const loadModels = useCallback(async () => {
     try {
@@ -820,10 +823,10 @@ function ProviderCard({
   }
 
   async function handleDelete() {
-    if (!confirm(t('settings.deleteProviderConfirm').replace('{name}', provider.name))) return
     setDeleting(true)
     try {
       await api.deleteProvider(provider.id)
+      setConfirmDeleteProviderOpen(false)
       onRefresh()
     } catch {
       setDeleting(false)
@@ -883,14 +886,12 @@ function ProviderCard({
   }
 
   async function handleDeleteModel(model: ProviderModel) {
-    const label = model.displayName ?? model.modelId
-    if (!confirm(t('settings.deleteModelConfirm').replace('{name}', label))) return
-
     setDeletingModelId(model.modelId)
     setModelActionError('')
     try {
       await api.deleteProviderModel(provider.id, model.modelId)
       setModels((prev) => prev.filter((item) => item.id !== model.id))
+      setPendingDeleteModel(null)
     } catch (err: unknown) {
       setModelActionError(err instanceof Error ? err.message : t('settings.failedToDeleteModel'))
     } finally {
@@ -987,7 +988,7 @@ function ProviderCard({
           </Button>
           <Button
             variant="ghost"
-            onClick={handleDelete}
+            onClick={() => setConfirmDeleteProviderOpen(true)}
             disabled={deleting}
             className="text-muted-foreground hover:text-red-400"
           >
@@ -1057,7 +1058,7 @@ function ProviderCard({
                         variant="ghost"
                         size="xs"
                         className="text-muted-foreground hover:text-red-400"
-                        onClick={() => handleDeleteModel(model)}
+                        onClick={() => setPendingDeleteModel(model)}
                         disabled={deletingModelId === model.modelId}
                       >
                         {deletingModelId === model.modelId ? (
@@ -1159,8 +1160,34 @@ function ProviderCard({
               t={t}
             />
           )}
+          <ConfirmDialog
+            open={pendingDeleteModel !== null}
+            onOpenChange={(open) => !open && setPendingDeleteModel(null)}
+            title={t('settings.deleteModelConfirm').replace(
+              '{name}',
+              pendingDeleteModel?.displayName ?? pendingDeleteModel?.modelId ?? '',
+            )}
+            description={t('settings.deleteModelDescription')}
+            confirmLabel={t('settings.delete')}
+            cancelLabel={t('settings.cancel')}
+            loading={Boolean(pendingDeleteModel && deletingModelId === pendingDeleteModel.modelId)}
+            onConfirm={() => {
+              if (!pendingDeleteModel) return
+              handleDeleteModel(pendingDeleteModel)
+            }}
+          />
         </CardPanelBody>
       )}
+      <ConfirmDialog
+        open={confirmDeleteProviderOpen}
+        onOpenChange={(open) => !deleting && setConfirmDeleteProviderOpen(open)}
+        title={t('settings.deleteProviderConfirm').replace('{name}', provider.name)}
+        description={t('settings.deleteProviderDescription')}
+        confirmLabel={t('settings.delete')}
+        cancelLabel={t('settings.cancel')}
+        loading={deleting}
+        onConfirm={handleDelete}
+      />
     </CardPanel>
   )
 }

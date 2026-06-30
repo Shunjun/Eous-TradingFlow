@@ -118,7 +118,11 @@ export const en = {
   'settings.connectionFailed': 'Connection failed',
   'settings.deleteProviderConfirm':
     'Delete provider "{name}"? This will also remove all its models.',
+  'settings.deleteProviderDescription':
+    'Requests using this provider will stop working until another provider is selected.',
   'settings.deleteModelConfirm': 'Delete model "{name}"?',
+  'settings.deleteModelDescription':
+    'Agents and workflows using this model may need to be updated.',
   'settings.failedToCreateProvider': 'Failed to create provider',
   'settings.failedToUpdateProvider': 'Failed to update provider',
   'settings.failedToFetchModels': 'Failed to fetch models',

@@ -142,10 +142,6 @@ export const useDashboardLayoutStore = create<DashboardLayoutState>((set, get) =
   },
 
   switchLayout: async (id: string) => {
-    const { dirty } = get()
-    if (dirty) {
-      if (!window.confirm('You have unsaved changes. Discard them?')) return
-    }
     try {
       const detail = await api.getWorkspaceLayout(id)
       const layoutDetail = detail.layout as {

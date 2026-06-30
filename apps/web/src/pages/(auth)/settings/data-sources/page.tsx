@@ -24,6 +24,7 @@ import {
   PopoverTrigger,
   PopoverContent,
   ScrollArea,
+  ConfirmDialog,
 } from '@eous/ui'
 import { Database, Plus, X, Trash2, Zap, Check, Loader2, Search, ChevronDown } from 'lucide-react'
 import { PageLoading } from '../../../../components/PageLoading'
@@ -530,6 +531,7 @@ function DataSourceCard({
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
   async function handleTest() {
     setTesting(true)
@@ -545,10 +547,10 @@ function DataSourceCard({
   }
 
   async function handleDelete() {
-    if (!confirm(`Delete data source "${instance.name}"?`)) return
     setDeleting(true)
     try {
       await api.deleteDataSourceInstance(instance.id)
+      setConfirmDeleteOpen(false)
       onRefresh()
     } catch {
       setDeleting(false)
@@ -587,7 +589,7 @@ function DataSourceCard({
           </Button>
           <Button
             variant="ghost"
-            onClick={handleDelete}
+            onClick={() => setConfirmDeleteOpen(true)}
             disabled={deleting}
             className="text-muted-foreground hover:text-red-400"
           >
@@ -595,6 +597,15 @@ function DataSourceCard({
           </Button>
         </div>
       </div>
+      <ConfirmDialog
+        open={confirmDeleteOpen}
+        onOpenChange={(open) => !deleting && setConfirmDeleteOpen(open)}
+        title={`Delete data source "${instance.name}"?`}
+        description="Market data requests using this source will no longer be available."
+        confirmLabel="Delete"
+        loading={deleting}
+        onConfirm={handleDelete}
+      />
     </CardPanel>
   )
 }

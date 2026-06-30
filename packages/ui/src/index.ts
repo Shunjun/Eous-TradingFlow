@@ -24,6 +24,8 @@ export {
   DialogTitle,
   DialogDescription,
 } from './components/ui/dialog'
+export { ConfirmDialog } from './components/ui/confirm-dialog'
+export type { ConfirmDialogProps } from './components/ui/confirm-dialog'
 
 export {
   Card,
