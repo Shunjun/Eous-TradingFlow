@@ -1,20 +1,8 @@
 import { clampThinkingLevel } from './families/common.js'
 import { resolveModelFamily } from './families/index.js'
-import { applyProviderAdapter } from './adapters/index.js'
-import { resolveDialect } from './dialects/index.js'
-import type { ApiFormat, LlmPlan, ResolvedModel, ThinkingLevel } from './types.js'
-
-function normalizeApiFormat(value: string): ApiFormat {
-  if (
-    value === 'openai-chat' ||
-    value === 'openai-responses' ||
-    value === 'anthropic-messages' ||
-    value === 'google-generative'
-  ) {
-    return value
-  }
-  return 'openai-chat'
-}
+import { resolveProviderAdapter, resolveProviderDialect } from './adapters/index.js'
+import { normalizeApiFormat, resolveDialect } from './dialects/index.js'
+import type { LlmPlan, ResolvedModel, ThinkingLevel } from './types.js'
 
 export function planLlmRequest(
   model: ResolvedModel,
@@ -31,14 +19,15 @@ export function planLlmRequest(
     : 'off'
 
   const input = { model, family, apiFormat, thinkingLevel }
-  const dialectPlan = resolveDialect(apiFormat).plan(input)
-  const providerPlan = applyProviderAdapter(dialectPlan, input)
+  const dialect = resolveProviderDialect(input, resolveDialect(apiFormat))
+  const providerPlan = dialect.plan(input)
+  const adapter = resolveProviderAdapter(input)
 
   return {
     family: family.family,
     apiFormat,
     providerId: providerPlan.providerId,
-    adapter: providerPlan.adapter,
+    adapter: adapter?.id,
     thinkingLevel,
     providerOptions: providerPlan.providerOptions,
   }

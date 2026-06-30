@@ -1,3 +1,5 @@
+import { lower } from '../families/common.js'
+import { OpenAICompatibleDialect } from '../dialects/openai-compatible.js'
 import type {
   DialectPlan,
   LlmPlanInput,
@@ -5,7 +7,6 @@ import type {
   ProviderOptions,
   ThinkingLevel,
 } from '../types.js'
-import { lower } from '../families/common.js'
 
 function isOfficialDeepSeek(input: LlmPlanInput): boolean {
   const kind = lower(input.model.providerKind)
@@ -26,18 +27,26 @@ function deepseekOptions(level: ThinkingLevel): ProviderOptions {
   }
 }
 
-export const deepseekOfficialAdapter: ProviderAdapter = {
-  id: 'deepseek-official',
+export class DeepSeekOpenAICompatibleAdapter
+  extends OpenAICompatibleDialect
+  implements ProviderAdapter
+{
+  readonly id = 'deepseek-openai-compatible'
+
   matches(input: LlmPlanInput): boolean {
-    return input.family.family === 'deepseek' && isOfficialDeepSeek(input)
-  },
-  patch(_plan: DialectPlan, input: LlmPlanInput): DialectPlan {
+    return (
+      input.apiFormat === this.apiFormat &&
+      input.family.family === 'deepseek' &&
+      isOfficialDeepSeek(input)
+    )
+  }
+
+  override plan(input: LlmPlanInput): DialectPlan {
     return {
-      providerId: input.apiFormat === 'anthropic-messages' ? 'anthropic' : 'deepseek',
-      providerOptions:
-        input.apiFormat === 'anthropic-messages'
-          ? _plan.providerOptions
-          : deepseekOptions(input.thinkingLevel),
+      providerId: 'deepseek',
+      providerOptions: input.family.reasoning ? deepseekOptions(input.thinkingLevel) : undefined,
     }
-  },
+  }
 }
+
+export const deepseekOfficialAdapter = new DeepSeekOpenAICompatibleAdapter()

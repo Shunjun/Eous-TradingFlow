@@ -1,194 +1,9 @@
-export interface SyncModel {
-  modelId: string
-  displayName?: string
-  maxTokens?: number
-  capabilities: string[]
-}
+import type { SyncModel } from '../llm/model-discovery.js'
+import { resolveProviderDiscoveryDialect } from '../llm/adapters/index.js'
+import { normalizeApiFormat, resolveDialect } from '../llm/dialects/index.js'
 
-const TIMEOUT_MS = 10_000
-
-// ── OpenAI / DeepSeek / Custom (OpenAI-compatible) ──────────────────────────
-
-interface OpenAIModel {
-  id: string
-  features?: string[]
-  capabilities?: string[]
-  max_tokens?: number
-  max_context_tokens?: number
-}
-
-interface OpenAIModelsResponse {
-  data: OpenAIModel[]
-}
-
-function parseCapabilities(features?: string[], capabilities?: string[]): string[] {
-  const tags = new Set<string>()
-  const src = features ?? capabilities ?? []
-  for (const f of src) {
-    const lower = f.toLowerCase()
-    if (lower.includes('vision')) tags.add('vision')
-    if (lower.includes('function_calling') || lower.includes('function-calling'))
-      tags.add('function_calling')
-    if (
-      lower.includes('reasoning') ||
-      lower.includes('extended_thinking') ||
-      lower.includes('extended-thinking')
-    )
-      tags.add('reasoning')
-  }
-  return [...tags]
-}
-
-async function fetchOpenAICompatible(baseUrl: string, apiKey: string): Promise<SyncModel[]> {
-  const url = `${baseUrl.replace(/\/+$/, '')}/models`
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
-
-  try {
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-      signal: controller.signal,
-    })
-    if (!res.ok) return []
-
-    const body = (await res.json()) as OpenAIModelsResponse
-    return (body.data ?? []).map((m) => ({
-      modelId: m.id,
-      maxTokens: m.max_tokens ?? m.max_context_tokens,
-      capabilities: parseCapabilities(m.features, m.capabilities),
-    }))
-  } catch {
-    return []
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
-// ── Anthropic ───────────────────────────────────────────────────────────────
-
-interface AnthropicModel {
-  id: string
-  display_name?: string
-  max_tokens?: number
-}
-
-interface AnthropicModelsResponse {
-  data: AnthropicModel[]
-}
-
-async function fetchAnthropic(baseUrl: string, apiKey: string): Promise<SyncModel[]> {
-  const url = `${baseUrl.replace(/\/+$/, '')}/models`
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
-
-  try {
-    const res = await fetch(url, {
-      headers: {
-        Authorization: `x-api-key ${apiKey}`,
-        'anthropic-version': '2023-06-01',
-      },
-      signal: controller.signal,
-    })
-    if (!res.ok) return []
-
-    const body = (await res.json()) as AnthropicModelsResponse
-    return (body.data ?? []).map((m) => ({
-      modelId: m.id,
-      displayName: m.display_name,
-      maxTokens: m.max_tokens,
-      capabilities: [],
-    }))
-  } catch {
-    return []
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
-// ── Google Generative ──────────────────────────────────────────────────────
-
-interface GoogleModel {
-  name: string
-  displayName?: string
-  inputTokenLimit?: number
-  outputTokenLimit?: number
-  supportedGenerationMethods?: string[]
-}
-
-interface GoogleModelsResponse {
-  models: GoogleModel[]
-}
-
-async function fetchGoogleGenerative(baseUrl: string, apiKey: string): Promise<SyncModel[]> {
-  const base = baseUrl.replace(/\/+$/, '')
-  const url = `${base}/models?key=${encodeURIComponent(apiKey)}`
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
-
-  try {
-    const res = await fetch(url, { signal: controller.signal })
-    if (!res.ok) return []
-
-    const body = (await res.json()) as GoogleModelsResponse
-    return (body.models ?? [])
-      .filter((m) => m.supportedGenerationMethods?.includes('generateContent') ?? true)
-      .map((m) => {
-        const modelId = m.name.replace(/^models\//, '')
-        const caps = new Set<string>()
-        if (modelId.toLowerCase().includes('gemini')) caps.add('vision')
-        if (modelId.toLowerCase().includes('thinking')) caps.add('reasoning')
-        return {
-          modelId,
-          displayName: m.displayName,
-          maxTokens: m.outputTokenLimit,
-          capabilities: [...caps],
-        }
-      })
-  } catch {
-    return []
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
-// ── Ollama ──────────────────────────────────────────────────────────────────
-
-interface OllamaModel {
-  name: string
-  details?: {
-    parameter_size?: string
-    family?: string
-  }
-}
-
-interface OllamaTagsResponse {
-  models: OllamaModel[]
-}
-
-async function fetchOllama(baseUrl: string): Promise<SyncModel[]> {
-  // Strip trailing /v1 if present, then use /api/tags
-  const normalized = baseUrl.replace(/\/+$/, '').replace(/\/v1\/?$/, '')
-  const url = `${normalized}/api/tags`
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
-
-  try {
-    const res = await fetch(url, { signal: controller.signal })
-    if (!res.ok) return []
-
-    const body = (await res.json()) as OllamaTagsResponse
-    return (body.models ?? []).map((m) => ({
-      modelId: m.name,
-      capabilities: [],
-    }))
-  } catch {
-    return []
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
-// ── Public API ──────────────────────────────────────────────────────────────
+export type { SyncModel } from '../llm/model-discovery.js'
+export { inferDefaultModelCapabilities } from '../llm/model-discovery.js'
 
 /**
  * Fetch available models from a provider's API.
@@ -198,23 +13,15 @@ export async function fetchModelsFromProvider(
   kind: string,
   baseUrl: string,
   apiKey: string,
-  apiFormat = 'openai-chat',
+  apiFormat = 'openai-compatible',
 ): Promise<SyncModel[]> {
   try {
-    if (apiFormat === 'anthropic-messages') return await fetchAnthropic(baseUrl, apiKey)
-    if (apiFormat === 'google-generative') return await fetchGoogleGenerative(baseUrl, apiKey)
-
-    switch (kind) {
-      case 'ollama':
-        return await fetchOllama(baseUrl)
-      case 'anthropic':
-        return await fetchAnthropic(baseUrl, apiKey)
-      case 'openai':
-      case 'deepseek':
-      case 'custom':
-      default:
-        return await fetchOpenAICompatible(baseUrl, apiKey)
-    }
+    const normalizedApiFormat = normalizeApiFormat(apiFormat)
+    const dialect = resolveProviderDiscoveryDialect(
+      { kind, baseUrl, apiKey, apiFormat: normalizedApiFormat },
+      resolveDialect(normalizedApiFormat),
+    )
+    return await dialect.fetchModels({ kind, baseUrl, apiKey, apiFormat: normalizedApiFormat })
   } catch {
     return []
   }

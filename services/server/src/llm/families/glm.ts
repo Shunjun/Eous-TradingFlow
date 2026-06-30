@@ -10,15 +10,16 @@ export function matches(model: ResolvedModel): boolean {
 
 export function capabilities(model: ResolvedModel): ModelFamilyCapabilities {
   const id = lower(model.modelId)
-  const reasoning =
-    hasCapability(model, 'reasoning') || id.includes('z1') || id.includes('thinking')
+  const supportsReasoning = id.includes('z1') || id.includes('thinking')
+  const supportsVision = id.includes('glm-4v')
+  const reasoning = hasCapability(model, 'reasoning') && supportsReasoning
 
   return baseCapabilities({
     family: 'glm',
     reasoning,
-    multimodal: hasCapability(model, 'vision') || id.includes('glm-4v'),
+    multimodal: hasCapability(model, 'vision') && supportsVision,
     supportedThinkingLevels: reasoning ? ['off', 'low', 'medium', 'high'] : ['off'],
     defaultThinkingLevel: reasoning ? 'medium' : 'off',
-    allowedApiFormats: ['openai-chat'],
+    allowedApiFormats: ['openai-compatible'],
   })
 }

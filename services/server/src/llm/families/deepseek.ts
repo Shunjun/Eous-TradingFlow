@@ -10,18 +10,15 @@ export function matches(model: ResolvedModel): boolean {
 
 export function capabilities(model: ResolvedModel): ModelFamilyCapabilities {
   const id = lower(model.modelId)
-  const reasoning =
-    hasCapability(model, 'reasoning') ||
-    id.includes('reasoner') ||
-    id.includes('r1') ||
-    id.includes('v4')
+  const supportsReasoning = id.includes('reasoner') || id.includes('r1') || id.includes('v4')
+  const reasoning = hasCapability(model, 'reasoning') && supportsReasoning
 
   return baseCapabilities({
     family: 'deepseek',
     reasoning,
-    multimodal: hasCapability(model, 'vision'),
+    multimodal: false,
     supportedThinkingLevels: reasoning ? ['off', 'high', 'max'] : ['off'],
     defaultThinkingLevel: reasoning ? 'high' : 'off',
-    allowedApiFormats: ['openai-chat', 'anthropic-messages'],
+    allowedApiFormats: ['openai-compatible', 'anthropic-messages'],
   })
 }

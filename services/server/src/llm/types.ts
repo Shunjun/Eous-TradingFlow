@@ -1,4 +1,7 @@
+import type { ModelDiscoveryInput, SyncModel } from './model-discovery.js'
+
 export type ApiFormat =
+  | 'openai-compatible'
   | 'openai-chat'
   | 'openai-responses'
   | 'anthropic-messages'
@@ -54,13 +57,23 @@ export interface DialectPlan {
   providerOptions?: ProviderOptions
 }
 
-export interface Dialect {
-  apiFormat: ApiFormat
-  plan(input: LlmPlanInput): DialectPlan
+export abstract class Dialect {
+  abstract readonly apiFormat: ApiFormat
+  readonly aliases: readonly ApiFormat[] = []
+
+  matchesApiFormat(apiFormat: ApiFormat): boolean {
+    return this.apiFormat === apiFormat || this.aliases.includes(apiFormat)
+  }
+
+  abstract plan(input: LlmPlanInput): DialectPlan
+
+  fetchModels(_input: ModelDiscoveryInput): Promise<SyncModel[]> {
+    return Promise.resolve([])
+  }
 }
 
-export interface ProviderAdapter {
-  id: string
+export interface ProviderAdapter extends Dialect {
+  readonly id: string
   matches(input: LlmPlanInput): boolean
-  patch(plan: DialectPlan, input: LlmPlanInput): DialectPlan
+  matchesDiscovery?(input: ModelDiscoveryInput): boolean
 }

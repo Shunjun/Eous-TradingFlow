@@ -9,14 +9,14 @@ export function matches(model: ResolvedModel): boolean {
 
 export function capabilities(model: ResolvedModel): ModelFamilyCapabilities {
   const id = lower(model.modelId)
-  const reasoning =
-    hasCapability(model, 'reasoning') || id.includes('sonnet-4') || id.includes('opus-4')
+  const supportsReasoning = id.includes('sonnet-4') || id.includes('opus-4')
+  const supportsVision = id.includes('claude-3') || id.includes('claude-4')
+  const reasoning = hasCapability(model, 'reasoning') && supportsReasoning
 
   return baseCapabilities({
     family: 'anthropic',
     reasoning,
-    multimodal:
-      hasCapability(model, 'vision') || id.includes('claude-3') || id.includes('claude-4'),
+    multimodal: hasCapability(model, 'vision') && supportsVision,
     supportedThinkingLevels: reasoning ? ['off', 'low', 'medium', 'high', 'max'] : ['off'],
     defaultThinkingLevel: reasoning ? 'medium' : 'off',
     allowedApiFormats: ['anthropic-messages'],

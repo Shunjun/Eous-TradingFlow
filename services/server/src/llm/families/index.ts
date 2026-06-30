@@ -2,13 +2,15 @@ import type { ModelFamilyCapabilities, ResolvedModel } from '../types.js'
 import { baseCapabilities } from './common.js'
 import * as anthropic from './anthropic.js'
 import * as deepseek from './deepseek.js'
+import * as doubao from './doubao.js'
 import * as glm from './glm.js'
 import * as google from './google.js'
 import * as kimi from './kimi.js'
 import * as mimo from './mimo.js'
 import * as openai from './openai.js'
+import * as qwen from './qwen.js'
 
-const families = [deepseek, kimi, mimo, glm, google, anthropic, openai]
+const families = [deepseek, kimi, mimo, glm, doubao, qwen, google, anthropic, openai]
 
 export function resolveModelFamily(model: ResolvedModel): ModelFamilyCapabilities {
   const family = families.find((item) => item.matches(model))
@@ -23,7 +25,7 @@ export function resolveModelFamily(model: ResolvedModel): ModelFamilyCapabilitie
       : ['off'],
     defaultThinkingLevel: (model.capabilities ?? []).includes('reasoning') ? 'medium' : 'off',
     allowedApiFormats: [
-      'openai-chat',
+      'openai-compatible',
       'openai-responses',
       'anthropic-messages',
       'google-generative',

@@ -1,6 +1,6 @@
 import { AppError } from '../../lib/app-error.js'
 import { encrypt, decrypt, getEncryptionKey } from '../../lib/crypto-utils.js'
-import { fetchModelsFromProvider } from '../../lib/model-sync.js'
+import { fetchModelsFromProvider, inferDefaultModelCapabilities } from '../../lib/model-sync.js'
 import * as providerRepo from '../../repositories/provider.repo.js'
 
 const VALID_KINDS = [
@@ -11,22 +11,58 @@ const VALID_KINDS = [
   'mimo',
   'glm',
   'google',
+  'bailian',
+  'volcengine',
   'openrouter',
   'ollama',
   'custom',
 ] as const
 
 const VALID_API_FORMATS = [
+  'openai-compatible',
   'openai-chat',
   'openai-responses',
   'anthropic-messages',
   'google-generative',
 ] as const
 
+const KNOWN_MODEL_CAPABILITIES = new Set(['vision', 'reasoning', 'embedding'])
+
 function normalizeApiFormat(apiFormat?: string | null): string {
+  if (apiFormat === 'openai-chat') return 'openai-compatible'
   return apiFormat && VALID_API_FORMATS.includes(apiFormat as (typeof VALID_API_FORMATS)[number])
     ? apiFormat
-    : 'openai-chat'
+    : 'openai-compatible'
+}
+
+function normalizeModelCapabilities(capabilities?: string[]): string[] | undefined {
+  if (capabilities === undefined) return undefined
+
+  const normalized = capabilities
+    .map((item) =>
+      item
+        .trim()
+        .toLowerCase()
+        .replace(/[-\s]+/g, '_'),
+    )
+    .filter(Boolean)
+
+  return [...new Set(normalized)].filter((item) => KNOWN_MODEL_CAPABILITIES.has(item))
+}
+
+function parseModelCapabilities(raw: string): string[] {
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    return (
+      normalizeModelCapabilities(
+        Array.isArray(parsed)
+          ? parsed.filter((item): item is string => typeof item === 'string')
+          : [],
+      ) ?? []
+    )
+  } catch {
+    return []
+  }
 }
 
 export function listProviders(userId: string) {
@@ -42,7 +78,7 @@ export async function getProvider(userId: string, id: string) {
   const models = await providerRepo.findModelsByProvider(id)
   const parsedModels = models.map((m) => ({
     ...m,
-    capabilities: JSON.parse(m.capabilities) as string[],
+    capabilities: parseModelCapabilities(m.capabilities),
   }))
 
   return {
@@ -184,7 +220,6 @@ export async function syncModels(userId: string, id: string) {
       await providerRepo.updateModel(existingModel.id, {
         displayName: m.displayName ?? existingModel.displayName,
         maxTokens: m.maxTokens ?? existingModel.maxTokens,
-        capabilities: JSON.stringify(m.capabilities),
       })
     } else {
       await providerRepo.upsertModel(id, m)
@@ -195,7 +230,7 @@ export async function syncModels(userId: string, id: string) {
   const allModels = await providerRepo.findModelsByProvider(id)
   const parsedModels = allModels.map((m) => ({
     ...m,
-    capabilities: JSON.parse(m.capabilities) as string[],
+    capabilities: parseModelCapabilities(m.capabilities),
   }))
 
   return { models: parsedModels, newCount }
@@ -259,14 +294,16 @@ export async function updateModel(
   if (enabled !== undefined) updateData.enabled = enabled
   if (displayName !== undefined) updateData.displayName = displayName
   if (maxTokens !== undefined) updateData.maxTokens = maxTokens
-  if (capabilities !== undefined) updateData.capabilities = JSON.stringify(capabilities)
+  if (capabilities !== undefined) {
+    updateData.capabilities = JSON.stringify(normalizeModelCapabilities(capabilities) ?? [])
+  }
 
   const updated = await providerRepo.updateModel(model.id, updateData)
 
   return {
     model: {
       ...updated,
-      capabilities: JSON.parse(updated.capabilities) as string[],
+      capabilities: parseModelCapabilities(updated.capabilities),
     },
   }
 }
@@ -301,13 +338,19 @@ export async function createModel(
     modelId,
     displayName,
     maxTokens,
-    capabilities,
+    capabilities:
+      normalizeModelCapabilities(capabilities) ??
+      inferDefaultModelCapabilities({
+        kind: provider.kind,
+        baseUrl: provider.baseUrl,
+        modelId,
+      }),
   })
 
   return {
     model: {
       ...model,
-      capabilities: JSON.parse(model.capabilities) as string[],
+      capabilities: parseModelCapabilities(model.capabilities),
     },
   }
 }

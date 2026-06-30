@@ -21,6 +21,12 @@ import {
   SelectContent,
   SelectItem,
   SelectValue,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@eous/ui'
 import {
   Bot,
@@ -48,14 +54,19 @@ import { useI18n } from '../../../../lib/i18n'
 
 const CAP_COLORS: Record<string, string> = {
   vision: 'text-purple-400 bg-purple-400/10',
-  function_calling: 'text-blue-400 bg-blue-400/10',
   reasoning: 'text-orange-400 bg-orange-400/10',
-  json_mode: 'text-cyan-400 bg-cyan-400/10',
-  streaming: 'text-emerald-400 bg-emerald-400/10',
+  embedding: 'text-amber-400 bg-amber-400/10',
 }
 
+const CAPABILITY_OPTIONS = [
+  { value: 'reasoning', label: 'Reasoning' },
+  { value: 'vision', label: 'Vision' },
+  { value: 'embedding', label: 'Embedding' },
+]
+
 const API_FORMAT_LABELS: Record<string, string> = {
-  'openai-chat': 'OpenAI Chat',
+  'openai-compatible': 'OpenAI Compatible',
+  'openai-chat': 'OpenAI Compatible',
   'openai-responses': 'OpenAI Responses',
   'anthropic-messages': 'Anthropic Messages',
   'google-generative': 'Google Generative',
@@ -65,6 +76,47 @@ const FALLBACK_API_FORMATS = Object.entries(API_FORMAT_LABELS).map(([value, labe
   value,
   label,
 }))
+
+function normalizeCapabilities(input: string[]): string[] {
+  return [...new Set(input.map((item) => item.trim().toLowerCase()).filter(Boolean))]
+}
+
+function toggleCapability(capabilities: string[], capability: string): string[] {
+  return capabilities.includes(capability)
+    ? capabilities.filter((item) => item !== capability)
+    : [...capabilities, capability]
+}
+
+function CapabilityPicker({
+  value,
+  onChange,
+}: {
+  value: string[]
+  onChange: (next: string[]) => void
+}) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {CAPABILITY_OPTIONS.map((capability) => {
+        const selected = value.includes(capability.value)
+        return (
+          <button
+            key={capability.value}
+            type="button"
+            onClick={() => onChange(toggleCapability(value, capability.value))}
+            className={cn(
+              'rounded border px-2 py-1 font-mono text-[10px] transition-colors',
+              selected
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border bg-transparent text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {capability.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
 /* ── Add Provider Form ─────────────────────────────────── */
 
@@ -365,38 +417,118 @@ function EditProviderForm({
   )
 }
 
-/* ── Add Model Inline Form ─────────────────────────────── */
+/* ── Model Form Dialogs ───────────────────────────────── */
 
-function AddModelForm({
+interface ModelFormFieldsProps {
+  modelId?: string
+  modelIdReadOnly?: boolean
+  displayName: string
+  maxTokens: string
+  capabilities: string[]
+  onModelIdChange?: (value: string) => void
+  onDisplayNameChange: (value: string) => void
+  onMaxTokensChange: (value: string) => void
+  onCapabilitiesChange: (value: string[]) => void
+}
+
+function ModelFormFields({
+  modelId = '',
+  modelIdReadOnly = false,
+  displayName,
+  maxTokens,
+  capabilities,
+  onModelIdChange,
+  onDisplayNameChange,
+  onMaxTokensChange,
+  onCapabilitiesChange,
+}: ModelFormFieldsProps) {
+  return (
+    <div className="grid gap-4">
+      <div className="grid gap-3 md:grid-cols-[1.4fr_1fr]">
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            Model ID
+          </Label>
+          <Input
+            value={modelId}
+            onChange={(e) => onModelIdChange?.(e.target.value)}
+            readOnly={modelIdReadOnly}
+            placeholder="deepseek-v4-pro"
+            className="h-8 font-mono text-xs"
+            required
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            Max Tokens
+          </Label>
+          <Input
+            type="number"
+            value={maxTokens}
+            onChange={(e) => onMaxTokensChange(e.target.value)}
+            placeholder="16384"
+            className="h-8 font-mono text-xs"
+          />
+        </div>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+          Display Name
+        </Label>
+        <Input
+          value={displayName}
+          onChange={(e) => onDisplayNameChange(e.target.value)}
+          placeholder="DeepSeek V4 Pro"
+          className="h-8 font-mono text-xs"
+        />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+          Capabilities
+        </Label>
+        <CapabilityPicker value={capabilities} onChange={onCapabilitiesChange} />
+      </div>
+    </div>
+  )
+}
+
+function AddModelDialog({
+  open,
   providerId,
-  onClose,
+  onOpenChange,
   onAdded,
 }: {
+  open: boolean
   providerId: string
-  onClose: () => void
+  onOpenChange: (open: boolean) => void
   onAdded: () => void
 }) {
   const [modelId, setModelId] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [maxTokens, setMaxTokens] = useState('')
-  const [capsInput, setCapsInput] = useState('')
+  const [capabilities, setCapabilities] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (open) return
+    setModelId('')
+    setDisplayName('')
+    setMaxTokens('')
+    setCapabilities([])
+    setError('')
+  }, [open])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      const caps = capsInput
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean)
       await api.addProviderModel(providerId, {
         modelId,
         displayName: displayName || undefined,
         maxTokens: maxTokens ? Number(maxTokens) : undefined,
-        capabilities: caps.length ? caps : undefined,
+        capabilities: capabilities.length ? capabilities : undefined,
       })
       onAdded()
     } catch (err: unknown) {
@@ -407,92 +539,70 @@ function AddModelForm({
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-3 border-t border-border/50 px-4 py-3"
-    >
-      <div className="grid grid-cols-4 gap-2">
-        <div className="flex flex-col gap-1">
-          <Label className="text-[10px] font-mono text-muted-foreground">Model ID *</Label>
-          <Input
-            value={modelId}
-            onChange={(e) => setModelId(e.target.value)}
-            placeholder="gpt-4o"
-            className="font-mono text-xs h-8"
-            required
+    <Dialog open={open} onOpenChange={(nextOpen) => !loading && onOpenChange(nextOpen)}>
+      <DialogContent className="sm:max-w-[560px]">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <DialogHeader>
+            <DialogTitle>Add model</DialogTitle>
+            <DialogDescription>
+              Add a chat, vision, reasoning, or embedding model under this provider.
+            </DialogDescription>
+          </DialogHeader>
+          <ModelFormFields
+            modelId={modelId}
+            displayName={displayName}
+            maxTokens={maxTokens}
+            capabilities={capabilities}
+            onModelIdChange={setModelId}
+            onDisplayNameChange={setDisplayName}
+            onMaxTokensChange={setMaxTokens}
+            onCapabilitiesChange={setCapabilities}
           />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label className="text-[10px] font-mono text-muted-foreground">Display Name</Label>
-          <Input
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="GPT-4o"
-            className="font-mono text-xs h-8"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label className="text-[10px] font-mono text-muted-foreground">Max Tokens</Label>
-          <Input
-            type="number"
-            value={maxTokens}
-            onChange={(e) => setMaxTokens(e.target.value)}
-            placeholder="16384"
-            className="font-mono text-xs h-8"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label className="text-[10px] font-mono text-muted-foreground">Capabilities</Label>
-          <Input
-            value={capsInput}
-            onChange={(e) => setCapsInput(e.target.value)}
-            placeholder="vision, function_calling"
-            className="font-mono text-xs h-8"
-          />
-        </div>
-      </div>
-      {error && <p className="text-[10px] font-mono text-red-400">{error}</p>}
-      <div className="flex items-center gap-2">
-        <Button
-          type="submit"
-          variant="accent-outline"
-          size="sm"
-          disabled={loading}
-          className="font-mono gap-1.5 h-7 text-[11px]"
-        >
-          {loading ? <Loader2 size={10} className="animate-spin" /> : <Check size={10} />}
-          Add Model
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onClose}
-          className="font-mono text-muted-foreground h-7 text-[11px]"
-        >
-          Cancel
-        </Button>
-      </div>
-    </form>
+          {error && <p className="text-[10px] font-mono text-red-400">{error}</p>}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+              className="font-mono text-muted-foreground"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="accent-outline"
+              size="sm"
+              disabled={loading}
+              className="font-mono gap-1.5"
+            >
+              {loading ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+              Add Model
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
-/* ── Edit Model Inline Form ────────────────────────────── */
-
-function EditModelForm({
+function EditModelDialog({
+  open,
   model,
   providerId,
-  onClose,
+  onOpenChange,
   onSaved,
 }: {
+  open: boolean
   model: ProviderModel
   providerId: string
-  onClose: () => void
+  onOpenChange: (open: boolean) => void
   onSaved: () => void
 }) {
   const [displayName, setDisplayName] = useState(model.displayName ?? '')
   const [maxTokens, setMaxTokens] = useState(model.maxTokens?.toString() ?? '')
-  const [capsInput, setCapsInput] = useState(model.capabilities.join(', '))
+  const [capabilities, setCapabilities] = useState(() => normalizeCapabilities(model.capabilities))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -501,14 +611,10 @@ function EditModelForm({
     setError('')
     setLoading(true)
     try {
-      const caps = capsInput
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean)
       await api.updateProviderModel(providerId, model.modelId, {
         displayName: displayName || null,
         maxTokens: maxTokens ? Number(maxTokens) : null,
-        capabilities: caps,
+        capabilities,
       })
       onSaved()
     } catch (err: unknown) {
@@ -519,62 +625,51 @@ function EditModelForm({
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-3 border-t border-border/50 bg-muted/20 px-4 py-3"
-    >
-      <div className="grid grid-cols-3 gap-2">
-        <div className="flex flex-col gap-1">
-          <Label className="text-[10px] font-mono text-muted-foreground">Display Name</Label>
-          <Input
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            className="font-mono text-xs h-8"
+    <Dialog open={open} onOpenChange={(nextOpen) => !loading && onOpenChange(nextOpen)}>
+      <DialogContent className="sm:max-w-[560px]">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <DialogHeader>
+            <DialogTitle>Configure model</DialogTitle>
+            <DialogDescription>
+              Update display metadata and enabled model capabilities.
+            </DialogDescription>
+          </DialogHeader>
+          <ModelFormFields
+            modelId={model.modelId}
+            modelIdReadOnly
+            displayName={displayName}
+            maxTokens={maxTokens}
+            capabilities={capabilities}
+            onDisplayNameChange={setDisplayName}
+            onMaxTokensChange={setMaxTokens}
+            onCapabilitiesChange={setCapabilities}
           />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label className="text-[10px] font-mono text-muted-foreground">Max Tokens</Label>
-          <Input
-            type="number"
-            value={maxTokens}
-            onChange={(e) => setMaxTokens(e.target.value)}
-            className="font-mono text-xs h-8"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label className="text-[10px] font-mono text-muted-foreground">
-            Capabilities (comma-separated)
-          </Label>
-          <Input
-            value={capsInput}
-            onChange={(e) => setCapsInput(e.target.value)}
-            className="font-mono text-xs h-8"
-          />
-        </div>
-      </div>
-      {error && <p className="text-[10px] font-mono text-red-400">{error}</p>}
-      <div className="flex items-center gap-2">
-        <Button
-          type="submit"
-          variant="accent-outline"
-          size="sm"
-          disabled={loading}
-          className="font-mono gap-1.5 h-7 text-[11px]"
-        >
-          {loading ? <Loader2 size={10} className="animate-spin" /> : <Save size={10} />}
-          Save
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onClose}
-          className="font-mono text-muted-foreground h-7 text-[11px]"
-        >
-          Cancel
-        </Button>
-      </div>
-    </form>
+          {error && <p className="text-[10px] font-mono text-red-400">{error}</p>}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+              className="font-mono text-muted-foreground"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="accent-outline"
+              size="sm"
+              disabled={loading}
+              className="font-mono gap-1.5"
+            >
+              {loading ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+              Save
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
@@ -661,7 +756,11 @@ function ProviderCard({
   }
 
   const enabledCount = models.filter((m) => m.enabled).length
+  const embeddingCount = models.filter(
+    (m) => m.enabled && m.capabilities.includes('embedding'),
+  ).length
   const template = templates.find((item) => item.kind === provider.kind)
+  const editingModel = models.find((model) => model.id === editingModelId) ?? null
 
   return (
     <CardPanel className="mb-4">
@@ -689,9 +788,19 @@ function ProviderCard({
             {provider.baseUrl}
           </span>
           {loaded && (
-            <span className="font-mono text-[10px] text-muted-foreground">
-              {enabledCount}/{models.length} models
-            </span>
+            <>
+              <span className="font-mono text-[10px] text-muted-foreground">
+                {enabledCount}/{models.length} models
+              </span>
+              {embeddingCount > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="font-mono text-[10px] text-amber-400 bg-amber-400/10"
+                >
+                  {embeddingCount} embedding
+                </Badge>
+              )}
+            </>
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -766,49 +875,48 @@ function ProviderCard({
             </Empty>
           ) : (
             models.map((model) => (
-              <div key={model.id}>
-                <DataRow
-                  className={cn(!model.enabled && 'opacity-50')}
-                  leading={
-                    <button
-                      onClick={() => handleToggleModel(model)}
-                      className={cn(
-                        'w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0',
-                        model.enabled
-                          ? 'border-primary bg-primary/15 text-primary'
-                          : 'border-border bg-transparent text-transparent',
-                      )}
-                    >
-                      {model.enabled && <Check size={10} />}
-                    </button>
-                  }
-                  trailing={
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground"
-                      onClick={() =>
-                        setEditingModelId((prev) => (prev === model.id ? null : model.id))
-                      }
-                    >
-                      <Pencil size={10} />
-                    </Button>
-                  }
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-mono text-xs truncate">
+              <DataRow
+                key={model.id}
+                className={cn(!model.enabled && 'opacity-50')}
+                leading={
+                  <button
+                    onClick={() => handleToggleModel(model)}
+                    className={cn(
+                      'w-4 h-4 rounded border flex items-center justify-center transition-all shrink-0',
+                      model.enabled
+                        ? 'border-primary bg-primary/15 text-primary'
+                        : 'border-border bg-transparent text-transparent',
+                    )}
+                  >
+                    {model.enabled && <Check size={10} />}
+                  </button>
+                }
+                trailing={
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground"
+                    onClick={() => setEditingModelId(model.id)}
+                  >
+                    <Pencil size={10} />
+                  </Button>
+                }
+              >
+                <div className="grid min-w-0 gap-1 md:grid-cols-[minmax(0,1.4fr)_auto_minmax(160px,0.8fr)] md:items-center">
+                  <div className="min-w-0">
+                    <div className="font-mono text-xs truncate">
                       {model.displayName ?? model.modelId}
-                    </span>
+                    </div>
                     {model.displayName && (
-                      <span className="font-mono text-[10px] text-muted-foreground truncate">
+                      <div className="font-mono text-[10px] text-muted-foreground truncate">
                         {model.modelId}
-                      </span>
+                      </div>
                     )}
-                    {model.maxTokens && (
-                      <span className="font-mono text-[10px] text-muted-foreground shrink-0">
-                        {model.maxTokens.toLocaleString()} tokens
-                      </span>
-                    )}
+                  </div>
+                  <span className="font-mono text-[10px] text-muted-foreground shrink-0">
+                    {model.maxTokens ? `${model.maxTokens.toLocaleString()} tokens` : 'tokens -'}
+                  </span>
+                  <div className="flex flex-wrap gap-1">
                     {model.capabilities.map((cap) => (
                       <Badge
                         key={cap}
@@ -821,20 +929,14 @@ function ProviderCard({
                         {cap}
                       </Badge>
                     ))}
+                    {model.capabilities.length === 0 && (
+                      <span className="font-mono text-[10px] text-muted-foreground">
+                        no capabilities
+                      </span>
+                    )}
                   </div>
-                </DataRow>
-                {editingModelId === model.id && (
-                  <EditModelForm
-                    model={model}
-                    providerId={provider.id}
-                    onClose={() => setEditingModelId(null)}
-                    onSaved={() => {
-                      setEditingModelId(null)
-                      loadModels()
-                    }}
-                  />
-                )}
-              </div>
+                </div>
+              </DataRow>
             ))
           )}
 
@@ -844,7 +946,7 @@ function ProviderCard({
               variant="ghost"
               size="sm"
               className="font-mono text-[11px] gap-1.5 text-muted-foreground"
-              onClick={() => setShowAddModel((v) => !v)}
+              onClick={() => setShowAddModel(true)}
             >
               <Plus size={10} />
               Add model
@@ -861,12 +963,23 @@ function ProviderCard({
             </Button>
           </div>
 
-          {showAddModel && (
-            <AddModelForm
+          <AddModelDialog
+            open={showAddModel}
+            providerId={provider.id}
+            onOpenChange={setShowAddModel}
+            onAdded={() => {
+              setShowAddModel(false)
+              loadModels()
+            }}
+          />
+          {editingModel && (
+            <EditModelDialog
+              open={editingModel !== null}
+              model={editingModel}
               providerId={provider.id}
-              onClose={() => setShowAddModel(false)}
-              onAdded={() => {
-                setShowAddModel(false)
+              onOpenChange={(open) => !open && setEditingModelId(null)}
+              onSaved={() => {
+                setEditingModelId(null)
                 loadModels()
               }}
             />

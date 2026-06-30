@@ -70,7 +70,7 @@ model Provider {
   id              String   @id @default(cuid())
   name            String
   kind            String
-  apiFormat       String   @default("openai-chat") @map("api_format")
+  apiFormat       String   @default("openai-compatible") @map("api_format")
   baseUrl         String
   apiKeyEncrypted String
   apiKeyIv        String

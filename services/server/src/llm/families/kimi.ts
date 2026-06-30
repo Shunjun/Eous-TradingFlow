@@ -12,8 +12,8 @@ export function matches(model: ResolvedModel): boolean {
 
 export function capabilities(model: ResolvedModel): ModelFamilyCapabilities {
   const id = lower(model.modelId)
-  const reasoning =
-    hasCapability(model, 'reasoning') || id.includes('thinking') || id.includes('k2')
+  const supportsReasoning = id.includes('thinking') || id.includes('k2')
+  const reasoning = hasCapability(model, 'reasoning') && supportsReasoning
 
   return baseCapabilities({
     family: 'kimi',
@@ -21,6 +21,6 @@ export function capabilities(model: ResolvedModel): ModelFamilyCapabilities {
     multimodal: hasCapability(model, 'vision'),
     supportedThinkingLevels: reasoning ? ['off', 'low', 'medium', 'high'] : ['off'],
     defaultThinkingLevel: reasoning ? 'medium' : 'off',
-    allowedApiFormats: ['openai-chat'],
+    allowedApiFormats: ['openai-compatible'],
   })
 }

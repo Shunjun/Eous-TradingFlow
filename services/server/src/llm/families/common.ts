@@ -45,6 +45,6 @@ export function baseCapabilities(params: {
     multimodal: params.multimodal ?? false,
     supportedThinkingLevels: params.supportedThinkingLevels ?? ['off'],
     defaultThinkingLevel: params.defaultThinkingLevel ?? 'off',
-    allowedApiFormats: params.allowedApiFormats ?? ['openai-chat'],
+    allowedApiFormats: params.allowedApiFormats ?? ['openai-compatible'],
   }
 }

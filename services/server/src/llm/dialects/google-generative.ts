@@ -1,4 +1,18 @@
-import type { Dialect, LlmPlanInput } from '../types.js'
+import type { ModelDiscoveryInput, SyncModel } from '../model-discovery.js'
+import { inferDefaultModelCapabilities } from '../model-discovery.js'
+import { Dialect, type DialectPlan, type LlmPlanInput } from '../types.js'
+
+interface GoogleModel {
+  name: string
+  displayName?: string
+  inputTokenLimit?: number
+  outputTokenLimit?: number
+  supportedGenerationMethods?: string[]
+}
+
+interface GoogleModelsResponse {
+  models?: GoogleModel[]
+}
 
 function thinkingBudget(input: LlmPlanInput): number {
   if (input.thinkingLevel === 'off') return 0
@@ -13,9 +27,10 @@ function thinkingBudget(input: LlmPlanInput): number {
   return 4096
 }
 
-export const googleGenerativeDialect: Dialect = {
-  apiFormat: 'google-generative',
-  plan(input: LlmPlanInput) {
+export class GoogleGenerativeDialect extends Dialect {
+  readonly apiFormat = 'google-generative'
+
+  plan(input: LlmPlanInput): DialectPlan {
     return {
       providerId: 'google',
       providerOptions: input.family.reasoning
@@ -26,5 +41,44 @@ export const googleGenerativeDialect: Dialect = {
           }
         : undefined,
     }
-  },
+  }
+
+  async fetchModels(input: ModelDiscoveryInput): Promise<SyncModel[]> {
+    const base = input.baseUrl.replace(/\/+$/, '')
+    const url = `${base}/models?key=${encodeURIComponent(input.apiKey)}`
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 10_000)
+
+    try {
+      const res = await fetch(url, { signal: controller.signal })
+      if (!res.ok) return []
+
+      const body = (await res.json()) as GoogleModelsResponse
+      return (body.models ?? [])
+        .filter((model) => model.supportedGenerationMethods?.includes('generateContent') ?? true)
+        .map((model) => {
+          const modelId = model.name.replace(/^models\//, '')
+          const caps = new Set<string>()
+          if (modelId.toLowerCase().includes('gemini')) caps.add('vision')
+          if (modelId.toLowerCase().includes('thinking')) caps.add('reasoning')
+          return {
+            modelId,
+            displayName: model.displayName,
+            maxTokens: model.outputTokenLimit,
+            capabilities: inferDefaultModelCapabilities({
+              kind: input.kind,
+              baseUrl: input.baseUrl,
+              modelId,
+              capabilities: [...caps],
+            }),
+          }
+        })
+    } catch {
+      return []
+    } finally {
+      clearTimeout(timer)
+    }
+  }
 }
+
+export const googleGenerativeDialect = new GoogleGenerativeDialect()

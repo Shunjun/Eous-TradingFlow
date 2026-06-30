@@ -7,14 +7,16 @@ export function matches(model: ResolvedModel): boolean {
 
 export function capabilities(model: ResolvedModel): ModelFamilyCapabilities {
   const id = lower(model.modelId)
-  const reasoning = hasCapability(model, 'reasoning') || /^o\d/.test(id) || id.startsWith('gpt-5')
+  const supportsReasoning = /^o\d/.test(id) || id.startsWith('gpt-5')
+  const supportsVision = id.includes('4o') || id.includes('gpt-5')
+  const reasoning = hasCapability(model, 'reasoning') && supportsReasoning
 
   return baseCapabilities({
     family: 'openai',
     reasoning,
-    multimodal: hasCapability(model, 'vision') || id.includes('4o') || id.includes('gpt-5'),
+    multimodal: hasCapability(model, 'vision') && supportsVision,
     supportedThinkingLevels: reasoning ? ['off', 'low', 'medium', 'high', 'max'] : ['off'],
     defaultThinkingLevel: reasoning ? 'medium' : 'off',
-    allowedApiFormats: ['openai-chat', 'openai-responses'],
+    allowedApiFormats: ['openai-compatible', 'openai-responses'],
   })
 }
