@@ -1,5 +1,5 @@
 import { cloneElement, isValidElement, useCallback } from 'react'
-import { Hand, LayoutGrid, MousePointer2, Plus, Scan } from 'lucide-react'
+import { Hand, LayoutGrid, MousePointer2, Plus, Redo2, Scan, Undo2 } from 'lucide-react'
 import { useReactFlow } from '@xyflow/react'
 import {
   Button,
@@ -58,6 +58,10 @@ function Toolbar() {
   const setCanvasMode = useWorkflowStore((state) => state.setCanvasMode)
   const addDefaultNode = useWorkflowStore((state) => state.addDefaultNode)
   const commitOps = useWorkflowStore((state) => state.commitOps)
+  const undo = useWorkflowStore((state) => state.undo)
+  const redo = useWorkflowStore((state) => state.redo)
+  const canUndo = useWorkflowStore((state) => state.past.length > 0)
+  const canRedo = useWorkflowStore((state) => state.future.length > 0)
   const { autoLayout } = useWorkflowNodeActions({ workflowStore, commitOps, fitView })
 
   const handleFitView = useCallback(() => {
@@ -81,6 +85,34 @@ function Toolbar() {
           </Button>
         </ToolbarTooltip>
       </NodeSelector>
+
+      <Separator className="w-5" />
+
+      <ToolbarTooltip label="撤销" preserveChildState>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 w-7"
+          onClick={undo}
+          disabled={!canUndo}
+          aria-label="撤销"
+        >
+          <Undo2 className="h-4 w-4" />
+        </Button>
+      </ToolbarTooltip>
+
+      <ToolbarTooltip label="重做" preserveChildState>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 w-7"
+          onClick={redo}
+          disabled={!canRedo}
+          aria-label="重做"
+        >
+          <Redo2 className="h-4 w-4" />
+        </Button>
+      </ToolbarTooltip>
 
       <Separator className="w-5" />
 
