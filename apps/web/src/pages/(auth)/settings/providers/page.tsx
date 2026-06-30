@@ -119,6 +119,23 @@ function formatModelOption(model: ProviderRemoteModel): string {
     : model.modelId
 }
 
+function HighlightMatch({ text, query }: { text: string; query: string }) {
+  const normalizedQuery = query.trim().toLowerCase()
+  if (!normalizedQuery) return <>{text}</>
+
+  const start = text.toLowerCase().indexOf(normalizedQuery)
+  if (start === -1) return <>{text}</>
+
+  const end = start + normalizedQuery.length
+  return (
+    <>
+      {text.slice(0, start)}
+      <span className="rounded bg-primary/15 text-primary">{text.slice(start, end)}</span>
+      {text.slice(end)}
+    </>
+  )
+}
+
 function CapabilitySwitches({
   value,
   onChange,
@@ -1159,7 +1176,9 @@ function ProviderCard({
                         onClick={() => handleAddModelOption(model.modelId)}
                         className="flex w-full items-center rounded px-2 py-1.5 text-left font-mono text-[11px] hover:bg-muted"
                       >
-                        <span className="min-w-0 truncate">{formatModelOption(model)}</span>
+                        <span className="min-w-0 truncate">
+                          <HighlightMatch text={formatModelOption(model)} query={modelSearch} />
+                        </span>
                       </button>
                     ))
                   ) : (
