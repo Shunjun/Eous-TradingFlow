@@ -138,6 +138,8 @@ export const en = {
   'settings.tokensCount': '{count} tokens',
   'settings.tokensEmpty': 'tokens -',
   'settings.addingModel': 'Adding model...',
+  'settings.searchModels': 'Search models...',
+  'settings.noModelsFound': 'No models found',
   'settings.enterModelManually': 'Enter model manually...',
   'settings.fetchModels': 'Fetch models',
   'settings.availableModelsCount': '{available}/{total} available',

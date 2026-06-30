@@ -129,6 +129,8 @@ export const zh = {
   'settings.tokensCount': '{count} tokens',
   'settings.tokensEmpty': 'tokens -',
   'settings.addingModel': '正在添加模型...',
+  'settings.searchModels': '搜索模型...',
+  'settings.noModelsFound': '未找到模型',
   'settings.enterModelManually': '手动输入模型...',
   'settings.fetchModels': '获取模型',
   'settings.availableModelsCount': '{available}/{total} 可用',

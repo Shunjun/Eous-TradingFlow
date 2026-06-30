@@ -29,6 +29,10 @@ import {
   DialogTitle,
   ConfirmDialog,
   Switch,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  Separator,
 } from '@eous/ui'
 import {
   Brain,
@@ -49,6 +53,7 @@ import {
   ServerCog,
   KeyRound,
   Route,
+  Search,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type {
@@ -781,6 +786,8 @@ function ProviderCard({
   const [editingModelId, setEditingModelId] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [addingModelId, setAddingModelId] = useState<string | null>(null)
+  const [addModelPickerOpen, setAddModelPickerOpen] = useState(false)
+  const [modelSearch, setModelSearch] = useState('')
   const [deletingModelId, setDeletingModelId] = useState<string | null>(null)
   const [modelActionError, setModelActionError] = useState('')
   const [testing, setTesting] = useState(false)
@@ -807,6 +814,7 @@ function ProviderCard({
     setRemoteModels([])
     setRemoteModelsLoaded(false)
     setModelActionError('')
+    setModelSearch('')
   }, [provider.baseUrl, provider.apiFormat, provider.kind])
 
   async function handleTest() {
@@ -850,6 +858,9 @@ function ProviderCard({
   }
 
   async function handleAddModelOption(value: string) {
+    setAddModelPickerOpen(false)
+    setModelSearch('')
+
     if (value === MANUAL_MODEL_OPTION) {
       setShowAddModel(true)
       return
@@ -907,6 +918,12 @@ function ProviderCard({
   const editingModel = models.find((model) => model.id === editingModelId) ?? null
   const existingModelIds = new Set(models.map((model) => model.modelId))
   const availableRemoteModels = remoteModels.filter((model) => !existingModelIds.has(model.modelId))
+  const normalizedModelSearch = modelSearch.trim().toLowerCase()
+  const filteredRemoteModels = normalizedModelSearch
+    ? availableRemoteModels.filter((model) =>
+        formatModelOption(model).toLowerCase().includes(normalizedModelSearch),
+      )
+    : availableRemoteModels
 
   return (
     <CardPanel className="mb-4">
@@ -1098,23 +1115,69 @@ function ProviderCard({
 
           {/* Footer actions */}
           <div className="flex flex-wrap items-center gap-2 px-4 py-3 border-t border-border/50">
-            <Select value="" onValueChange={handleAddModelOption} disabled={Boolean(addingModelId)}>
-              <SelectTrigger className="h-8 w-[260px] font-mono text-[11px]">
-                <SelectValue
-                  placeholder={addingModelId ? t('settings.addingModel') : t('settings.addModel')}
-                />
-              </SelectTrigger>
-              <SelectContent className="max-h-[320px]">
-                {availableRemoteModels.map((model) => (
-                  <SelectItem key={model.modelId} value={model.modelId} className="font-mono">
-                    {formatModelOption(model)}
-                  </SelectItem>
-                ))}
-                <SelectItem value={MANUAL_MODEL_OPTION} className="font-mono">
-                  {t('settings.enterModelManually')}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <Popover
+              open={addModelPickerOpen}
+              onOpenChange={(open) => {
+                if (addingModelId) return
+                setAddModelPickerOpen(open)
+                if (!open) setModelSearch('')
+              }}
+            >
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={Boolean(addingModelId)}
+                  className="h-8 w-[260px] justify-between font-mono text-[11px] text-muted-foreground"
+                >
+                  {addingModelId ? t('settings.addingModel') : t('settings.addModel')}
+                  <ChevronDown size={12} />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-[320px] p-0">
+                <div className="border-b border-border/60 p-2">
+                  <div className="relative">
+                    <Search
+                      size={12}
+                      className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    />
+                    <Input
+                      value={modelSearch}
+                      onChange={(event) => setModelSearch(event.target.value)}
+                      placeholder={t('settings.searchModels')}
+                      className="h-8 pl-7 font-mono text-[11px]"
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                <div className="max-h-[260px] overflow-y-auto p-1">
+                  {filteredRemoteModels.length > 0 ? (
+                    filteredRemoteModels.map((model) => (
+                      <button
+                        key={model.modelId}
+                        type="button"
+                        onClick={() => handleAddModelOption(model.modelId)}
+                        className="flex w-full items-center rounded px-2 py-1.5 text-left font-mono text-[11px] hover:bg-muted"
+                      >
+                        <span className="min-w-0 truncate">{formatModelOption(model)}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-2 py-6 text-center font-mono text-[11px] text-muted-foreground">
+                      {t('settings.noModelsFound')}
+                    </div>
+                  )}
+                  <Separator className="my-1" />
+                  <button
+                    type="button"
+                    onClick={() => handleAddModelOption(MANUAL_MODEL_OPTION)}
+                    className="flex w-full items-center rounded px-2 py-1.5 text-left font-mono text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground"
+                  >
+                    {t('settings.enterModelManually')}
+                  </button>
+                </div>
+              </PopoverContent>
+            </Popover>
             <Button
               variant="ghost"
               size="sm"
