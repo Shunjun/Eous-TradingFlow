@@ -298,6 +298,35 @@ export interface KnowledgeDocument {
   updatedAt: string
 }
 
+export interface KnowledgeChunkingConfig {
+  strategy?: 'auto_structure' | 'semantic'
+  granularity?: number
+  overlap?: 'none' | 'low' | 'standard' | 'high'
+  boundaryPreference?: 'auto' | 'heading' | 'paragraph' | 'semantic'
+  maxChunks?: number
+}
+
+export interface KnowledgeChunkPreviewItem {
+  index: number
+  content: string
+  tokenCount: number
+  charCount: number
+  metadata: {
+    sectionPath: string[]
+    source: 'raw'
+  }
+}
+
+export interface KnowledgeChunkPreview {
+  chunks: KnowledgeChunkPreviewItem[]
+  config: Required<KnowledgeChunkingConfig>
+  stats: {
+    chunkCount: number
+    tokenCount: number
+    charCount: number
+  }
+}
+
 export interface ProviderRemoteModel {
   modelId: string
   displayName?: string
@@ -625,6 +654,13 @@ export interface ApiClient {
     },
   ): Promise<{ document: KnowledgeDocument }>
   deleteKnowledgeDocument(documentId: string): Promise<void>
+  previewKnowledgeChunks(
+    knowledgeBaseId: string,
+    params: {
+      content: string
+      config?: KnowledgeChunkingConfig
+    },
+  ): Promise<{ preview: KnowledgeChunkPreview }>
 
   listProviders(): Promise<{ providers: Provider[] }>
   getProvider(id: string): Promise<{ provider: Provider; models: ProviderModel[] }>
@@ -1135,6 +1171,8 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       post(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/documents`, params, true),
     deleteKnowledgeDocument: (documentId: string) =>
       del(`/knowledge-bases/documents/${encodeURIComponent(documentId)}`, true),
+    previewKnowledgeChunks: (knowledgeBaseId, params) =>
+      post(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/chunk-preview`, params, true),
 
     listProviders: () => get('/providers'),
     getProvider: (id: string) => get(`/providers/${encodeURIComponent(id)}`),

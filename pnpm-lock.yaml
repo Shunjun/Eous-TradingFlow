@@ -40,7 +40,7 @@ importers:
     devDependencies:
       '@tailwindcss/vite':
         specifier: ^4.0.0
-        version: 4.3.0(vite@6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))
+        version: 4.3.0(vite@6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))
       '@types/react':
         specifier: ^19.0.0
         version: 19.2.15
@@ -49,13 +49,13 @@ importers:
         version: 19.2.3(@types/react@19.2.15)
       '@vitejs/plugin-react':
         specifier: ^4.3.0
-        version: 4.7.0(vite@6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))
+        version: 4.7.0(vite@6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
       vite:
         specifier: ^6.0.0
-        version: 6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0)
+        version: 6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0)
 
   apps/web:
     dependencies:
@@ -152,7 +152,7 @@ importers:
     devDependencies:
       '@tailwindcss/vite':
         specifier: ^4.0.0
-        version: 4.3.0(vite@6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))
+        version: 4.3.0(vite@6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))
       '@types/react':
         specifier: ^19.0.0
         version: 19.2.15
@@ -161,7 +161,7 @@ importers:
         version: 19.2.3(@types/react@19.2.15)
       '@vitejs/plugin-react':
         specifier: ^4.3.0
-        version: 4.7.0(vite@6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))
+        version: 4.7.0(vite@6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))
       eslint:
         specifier: ^9.0.0
         version: 9.39.4(jiti@2.7.0)
@@ -170,10 +170,10 @@ importers:
         version: 5.9.3
       vite:
         specifier: ^6.0.0
-        version: 6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0)
+        version: 6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0)
       vitest:
         specifier: ^4.1.8
-        version: 4.1.8(@types/node@22.19.19)(vite@6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))
+        version: 4.1.8(@types/node@24.13.2)(vite@6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))
 
   packages/agent-skills:
     dependencies:
@@ -223,13 +223,13 @@ importers:
         version: 5.2.0
       lightweight-charts-line-tools-core:
         specifier: github:difurious/lightweight-charts-line-tools-core
-        version: git+https://git@github.com:difurious/lightweight-charts-line-tools-core.git#167a83cf8702e35b4cfbe7beb0dafec94e800a71(lightweight-charts@5.2.0)(typescript@5.9.3)
+        version: https://codeload.github.com/difurious/lightweight-charts-line-tools-core/tar.gz/167a83cf8702e35b4cfbe7beb0dafec94e800a71(lightweight-charts@5.2.0)(typescript@5.9.3)
       lightweight-charts-line-tools-lines:
         specifier: github:difurious/lightweight-charts-line-tools-lines
-        version: git+https://git@github.com:difurious/lightweight-charts-line-tools-lines.git#edb2a6ce00c8bbbe6f19e8469e378350efe6013f(lightweight-charts@5.2.0)(typescript@5.9.3)
+        version: https://codeload.github.com/difurious/lightweight-charts-line-tools-lines/tar.gz/edb2a6ce00c8bbbe6f19e8469e378350efe6013f(lightweight-charts@5.2.0)(typescript@5.9.3)
       lightweight-charts-line-tools-rectangle:
         specifier: github:difurious/lightweight-charts-line-tools-rectangle
-        version: git+https://git@github.com:difurious/lightweight-charts-line-tools-rectangle.git#8c229e62852f72936dbef5fdc198e321b9a85cc3(lightweight-charts@5.2.0)(typescript@5.9.3)
+        version: https://codeload.github.com/difurious/lightweight-charts-line-tools-rectangle/tar.gz/8c229e62852f72936dbef5fdc198e321b9a85cc3(lightweight-charts@5.2.0)(typescript@5.9.3)
       lucide-react:
         specifier: ^0.460.0
         version: 0.460.0(react@19.2.6)
@@ -314,7 +314,7 @@ importers:
         version: 5.9.3
       vite:
         specifier: ^6.4.2
-        version: 6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0)
+        version: 6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0)
 
   packages/stores:
     dependencies:
@@ -330,7 +330,7 @@ importers:
     dependencies:
       '@tailwindcss/vite':
         specifier: ^4.0.0
-        version: 4.3.0(vite@6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))
+        version: 4.3.0(vite@6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))
       tailwindcss:
         specifier: ^4.0.0
         version: 4.3.0
@@ -429,6 +429,9 @@ importers:
       hono:
         specifier: ^4.6.0
         version: 4.12.23
+      llamaindex:
+        specifier: ^0.12.1
+        version: 0.12.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(hono@4.12.23)(tree-sitter@0.22.4)(web-tree-sitter@0.24.7)(zod@4.4.3)
       redis:
         specifier: ^6.0.1
         version: 6.0.1
@@ -502,6 +505,26 @@ packages:
         integrity: sha512-Q3BZ27qfpYqnCYGvE3vt+Qi6LGOF9R5Nmzn+9JoM1lCRsD9mYaIhfJLkSunN48nfGXJ6n+XNV0J/XVpqGQl7Dw==,
       }
     engines: { node: '>=18' }
+
+  '@aws-crypto/sha256-js@5.2.0':
+    resolution:
+      {
+        integrity: sha512-FFQQyu7edu4ufvIZ+OadFpHHOt+eSTBaYaki44c+akjg7qZg9oOQeLlk77F6tSYqjDAFClrHJk9tMf0HdVyOvA==,
+      }
+    engines: { node: '>=16.0.0' }
+
+  '@aws-crypto/util@5.2.0':
+    resolution:
+      {
+        integrity: sha512-4RkU9EsI6ZpBve5fseQlGNUWKMa1RLPQ1dnjnQoe07ldfIzcsGb5hC5W0Dm7u423KWzawlrpbjXBrXCEv9zazQ==,
+      }
+
+  '@aws-sdk/types@3.973.14':
+    resolution:
+      {
+        integrity: sha512-vH4pEu9YBEwr67yT+GVcmKX0GzfIrIYUn+MF5vXg9OspouVnAekuyVyawFvZHEK7WlcwVDwNrqI3ZBDUAiyu9A==,
+      }
+    engines: { node: '>=20.0.0' }
 
   '@babel/code-frame@7.29.7':
     resolution:
@@ -1245,6 +1268,14 @@ packages:
       }
     engines: { node: ^18.18.0 || ^20.9.0 || >=21.1.0 }
 
+  '@finom/zod-to-json-schema@3.24.11':
+    resolution:
+      {
+        integrity: sha512-fL656yBPiWebtfGItvtXLWrFNGlF1NcDFS0WdMQXMs9LluVg0CfT5E2oXYp0pidl0vVG53XkW55ysijNkU5/hA==,
+      }
+    peerDependencies:
+      zod: ^4.0.14
+
   '@floating-ui/core@1.7.5':
     resolution:
       {
@@ -1395,6 +1426,73 @@ packages:
       {
         integrity: sha512-M5UknZPHRu3DEDWoipU6sE8PdkZ6Z/S+v4dD+Ke8IaNlpdSQah50lz1KtcFBa2vsdOnwbbnxJwVM4wty6udA5w==,
       }
+
+  '@llamaindex/core@0.6.22':
+    resolution:
+      {
+        integrity: sha512-/BXyemkvpxMaUhOkbwJ2PTvzKjSWkL8+6QLpz/n+pk8xBwMMe1GVBgli/J57gCyi8GbrlBafBj6GaPOgWub2Eg==,
+      }
+
+  '@llamaindex/env@0.1.30':
+    resolution:
+      {
+        integrity: sha512-y6kutMcCevzbmexUgz+HXf7KiZemzAoFEYSjAILfR+cG6FmYSF8XvLbGOB34Kx8mlRi7EI8rZXpezJ5qCqOyZg==,
+      }
+    peerDependencies:
+      '@huggingface/transformers': ^3.5.0
+      gpt-tokenizer: ^2.5.0
+    peerDependenciesMeta:
+      '@huggingface/transformers':
+        optional: true
+      gpt-tokenizer:
+        optional: true
+
+  '@llamaindex/node-parser@2.0.22':
+    resolution:
+      {
+        integrity: sha512-uj5O89WShAAyiSZ8f8tU7hnLJ6pSmlY2a6hkAOs8odkUgT87dEqaPHpsK7w0iJdEFiob7GoLeRhv2K624FooXg==,
+      }
+    peerDependencies:
+      '@llamaindex/core': 0.6.22
+      '@llamaindex/env': 0.1.30
+      tree-sitter: ^0.22.0
+      web-tree-sitter: ^0.24.3
+
+  '@llamaindex/workflow-core@1.3.4':
+    resolution:
+      {
+        integrity: sha512-nDQ61VEYY5lTJFLHZzN7swdpbYrkoqLHKmct/KXF0wZN2Ih7sB4jk9eaVqWbd6zmkkOADT84I6eSd7hSY9kurg==,
+      }
+    deprecated: 'This package is deprecated. Please use LlamaAgents (Python Workflows) instead: https://developers.llamaindex.ai/python/llamaagents/overview/'
+    peerDependencies:
+      '@modelcontextprotocol/sdk': ^1.7.0
+      hono: ^4.7.4
+      next: ^15.2.2
+      p-retry: ^6.2.1
+      rxjs: ^7.8.2
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      '@modelcontextprotocol/sdk':
+        optional: true
+      hono:
+        optional: true
+      next:
+        optional: true
+      p-retry:
+        optional: true
+      rxjs:
+        optional: true
+      zod:
+        optional: true
+
+  '@llamaindex/workflow@1.1.24':
+    resolution:
+      {
+        integrity: sha512-VyKsbRkFlnT5dRNKbgLXQV+ZpQ+CAFgmC9LaZv6hD/fIKo6wq1wQW/ZqLZgZt569xeHgxmrXPB6KHdqn/AhPbQ==,
+      }
+    peerDependencies:
+      '@llamaindex/core': 0.6.22
+      '@llamaindex/env': 0.1.30
 
   '@lukeed/csprng@1.1.0':
     resolution:
@@ -2782,6 +2880,12 @@ packages:
         integrity: sha512-831qok9r2t8AlxLko40y2ebgSDhenenCatLVeW/uBtnHPyhHOvG0C7TvfgecV+wHzIm5KUICgzmVpWS+IMEAeg==,
       }
 
+  '@selderee/plugin-htmlparser2@0.11.0':
+    resolution:
+      {
+        integrity: sha512-P33hHGdldxGabLFjPPpaTxVolMrzrcegejx+0GxjrIb9Zv48D8yAIA/QTDR2dFl7Uz7urX8aX6+5bCZslr+gWQ==,
+      }
+
   '@shikijs/engine-oniguruma@3.23.0':
     resolution:
       {
@@ -2832,6 +2936,34 @@ packages:
         integrity: sha512-doH1gimEu3A46VX6aVxpHTeHrytJAG6HgdxntYnCFiIFHEM/ZGpG8KiZGBChchjQmG0XFIBL552kBTjVcMZXwQ==,
       }
     engines: { node: '>=12' }
+
+  '@smithy/is-array-buffer@2.2.0':
+    resolution:
+      {
+        integrity: sha512-GGP3O9QFD24uGeAXYUjwSTXARoqpZykHadOmA8G5vfJPK0/DC67qa//0qvqrJzL1xc8WQWX7/yc7fwudjPHPhA==,
+      }
+    engines: { node: '>=14.0.0' }
+
+  '@smithy/types@4.15.1':
+    resolution:
+      {
+        integrity: sha512-x3L0XSACF6UYzKpa9biqiRMgvH5+wnFFew9Tm/grFYqgaupPwx/+ojDPpPJM8dZON3S9tjz5U+PQYsCBd1Mw5Q==,
+      }
+    engines: { node: '>=18.0.0' }
+
+  '@smithy/util-buffer-from@2.2.0':
+    resolution:
+      {
+        integrity: sha512-IJdWBbTcMQ6DA0gdNhh/BwrLkDR+ADW5Kr1aZmd4k3DIF6ezMV4R2NIAmT08wQJ3yUK82thHWmC/TnK/wpMMIA==,
+      }
+    engines: { node: '>=14.0.0' }
+
+  '@smithy/util-utf8@2.3.0':
+    resolution:
+      {
+        integrity: sha512-R8Rdn8Hy72KKcebgLiv8jQcQkXoLMOGGv5uI1/k0l+snqkOzQ1R0ChUBCxWMlBsFMekWjq0wRudIweFs7sKT5A==,
+      }
+    engines: { node: '>=14.0.0' }
 
   '@socket.io/component-emitter@3.1.2':
     resolution:
@@ -3399,6 +3531,12 @@ packages:
         integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==,
       }
 
+  '@types/lodash@4.17.24':
+    resolution:
+      {
+        integrity: sha512-gIW7lQLZbue7lRSWEFql49QJJWThrTFFeIMJdp3eH4tKoxm1OvEPg02rm4wCCSHS0cL3/Fizimb35b7k8atwsQ==,
+      }
+
   '@types/mdast@4.0.4':
     resolution:
       {
@@ -3415,6 +3553,12 @@ packages:
     resolution:
       {
         integrity: sha512-dyh/xO2Fh5bYrfWaaqGrRQQGkNdmYw6AmaAUvYeUMNTWQtvb796ikLdmTchRmOlOiIJ1TDXfWgVx1QkUlQ6Hew==,
+      }
+
+  '@types/node@24.13.2':
+    resolution:
+      {
+        integrity: sha512-fRa09kZTgu8o71KFcDjUFuc7F+dEbZYZmkI0mg5YBTRs0yMKjYHsq/c0urDKeDb+D5qVgXOdFcuu+DZPKOITwA==,
       }
 
   '@types/node@6.14.13':
@@ -4145,6 +4289,13 @@ packages:
       }
     engines: { node: '>=16.0.0' }
 
+  deepmerge@4.3.1:
+    resolution:
+      {
+        integrity: sha512-3sUqbMEc77XqpdNO7FRyRog+eW3ph+GYCbj+rK+uYyRMuwsVy0rMiVtPn+QJlKFvWP/1PYpapqYn0Me2knFn+A==,
+      }
+    engines: { node: '>=0.10.0' }
+
   defu@6.1.7:
     resolution:
       {
@@ -4210,6 +4361,31 @@ packages:
       }
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  dom-serializer@2.0.0:
+    resolution:
+      {
+        integrity: sha512-wIkAryiqt/nV5EQKqQpo3SToSOV9J0DnbJqwK7Wv/Trc92zIAYZ4FlMu+JPFW1DfGFt81ZTCGgDEabffXeLyJg==,
+      }
+
+  domelementtype@2.3.0:
+    resolution:
+      {
+        integrity: sha512-OLETBj6w0OsagBwdXnPdN0cnMfF9opN69co+7ZrbfPGrdpPVNBUj02spi6B1N7wChLQiPn4CSH/zJvXw56gmHw==,
+      }
+
+  domhandler@5.0.3:
+    resolution:
+      {
+        integrity: sha512-cgwlv/1iFQiFnU96XXgROh8xTeetsnJiDsTc7TYCLFd9+/WNkIqPTxiM/8pSd8VIrhXGTf1Ny1q1hquVqDJB5w==,
+      }
+    engines: { node: '>= 4' }
+
+  domutils@3.2.2:
+    resolution:
+      {
+        integrity: sha512-6kZKyUajlDuqlHKVX1w7gyslj9MPIXzIFiz/rGu35uC1wMi+kMhQwGhl4lt9unC9Vb9INnY9Z3/ZA3+FhASLaw==,
+      }
 
   dotenv@16.6.1:
     resolution:
@@ -4856,10 +5032,23 @@ packages:
       }
     engines: { node: '>=16.9.0' }
 
+  html-to-text@9.0.5:
+    resolution:
+      {
+        integrity: sha512-qY60FjREgVZL03vJU6IfMV4GDjGBIoOyvuFdpBDIX9yTlDw0TjxVBQp+P8NvpdIXNJvfWBTNul7fsAQJq2FNpg==,
+      }
+    engines: { node: '>=14' }
+
   html-url-attributes@3.0.1:
     resolution:
       {
         integrity: sha512-ol6UPyBWqsrO6EJySPz2O7ZSr856WDrEzM5zMqp+FJJLGMW35cLYmmZnl0vztAZxRUoNZJFTCohfjuIJ8I4QBQ==,
+      }
+
+  htmlparser2@8.0.2:
+    resolution:
+      {
+        integrity: sha512-GYdjWKDkbRLkZ5geuHs5NY1puJ+PXwP7+fHPRz06Eirsb9ugf6d8kkXav6ADhcODhFFPMIXyxkxSuMf3D6NCFA==,
       }
 
   http-errors@2.0.1:
@@ -5079,6 +5268,12 @@ packages:
         integrity: sha512-WZzeDOEtTOBK4Mdsar0IqEU5sMr3vSV2RqkAIzUEV2BHnUfKGyswWFPFwK5EeDo93K3FohSHbLAjj0s1Wzd+dg==,
       }
 
+  js-tiktoken@1.0.21:
+    resolution:
+      {
+        integrity: sha512-biOj/6M5qdgx5TKjDnFT1ymSpM5tbd3ylwDtrQvFQSu0Z7bBYko2dF+W/aUkXUPuk6IVpRxk/3Q2sHOzGlS36g==,
+      }
+
   js-tokens@4.0.0:
     resolution:
       {
@@ -5170,6 +5365,12 @@ packages:
         integrity: sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==,
       }
     engines: { node: '>=0.10.0' }
+
+  leac@0.6.0:
+    resolution:
+      {
+        integrity: sha512-y+SqErxb8h7nE/fiEX07jsbuhrpO9lL8eca7/Y1nuWV2moNlXhyd59iDGcRf6moVyDMbmTNzL40SUyrFU/yDpg==,
+      }
 
   lefthook-darwin-arm64@2.1.9:
     resolution:
@@ -5375,34 +5576,28 @@ packages:
       }
     engines: { node: '>= 12.0.0' }
 
-  lightweight-charts-line-tools-core@git+https://git@github.com:difurious/lightweight-charts-line-tools-core.git#167a83cf8702e35b4cfbe7beb0dafec94e800a71:
+  lightweight-charts-line-tools-core@https://codeload.github.com/difurious/lightweight-charts-line-tools-core/tar.gz/167a83cf8702e35b4cfbe7beb0dafec94e800a71:
     resolution:
       {
-        commit: 167a83cf8702e35b4cfbe7beb0dafec94e800a71,
-        repo: git@github.com:difurious/lightweight-charts-line-tools-core.git,
-        type: git,
+        tarball: https://codeload.github.com/difurious/lightweight-charts-line-tools-core/tar.gz/167a83cf8702e35b4cfbe7beb0dafec94e800a71,
       }
     version: 1.1.1
     peerDependencies:
       lightweight-charts: ^5.2.0
 
-  lightweight-charts-line-tools-lines@git+https://git@github.com:difurious/lightweight-charts-line-tools-lines.git#edb2a6ce00c8bbbe6f19e8469e378350efe6013f:
+  lightweight-charts-line-tools-lines@https://codeload.github.com/difurious/lightweight-charts-line-tools-lines/tar.gz/edb2a6ce00c8bbbe6f19e8469e378350efe6013f:
     resolution:
       {
-        commit: edb2a6ce00c8bbbe6f19e8469e378350efe6013f,
-        repo: git@github.com:difurious/lightweight-charts-line-tools-lines.git,
-        type: git,
+        tarball: https://codeload.github.com/difurious/lightweight-charts-line-tools-lines/tar.gz/edb2a6ce00c8bbbe6f19e8469e378350efe6013f,
       }
     version: 1.1.0
     peerDependencies:
       lightweight-charts: ^5.1.0
 
-  lightweight-charts-line-tools-rectangle@git+https://git@github.com:difurious/lightweight-charts-line-tools-rectangle.git#8c229e62852f72936dbef5fdc198e321b9a85cc3:
+  lightweight-charts-line-tools-rectangle@https://codeload.github.com/difurious/lightweight-charts-line-tools-rectangle/tar.gz/8c229e62852f72936dbef5fdc198e321b9a85cc3:
     resolution:
       {
-        commit: 8c229e62852f72936dbef5fdc198e321b9a85cc3,
-        repo: git@github.com:difurious/lightweight-charts-line-tools-rectangle.git,
-        type: git,
+        tarball: https://codeload.github.com/difurious/lightweight-charts-line-tools-rectangle/tar.gz/8c229e62852f72936dbef5fdc198e321b9a85cc3,
       }
     version: 1.1.0
     peerDependencies:
@@ -5425,6 +5620,13 @@ packages:
       {
         integrity: sha512-P8aEP5U/D1/IlTY2OeYsErdwh9bGuLE30NcXtKEjgdHcahveQoQwM2yZNsioQHsWFz0P7KKudisbrzCgR0sDHg==,
       }
+
+  llamaindex@0.12.1:
+    resolution:
+      {
+        integrity: sha512-/tXXITk/iVGBycOFaDhev6dgTBIr6Ycu4FoPIt6A5JcEAiB6ujONjiV36flVXUR8JdqwMtS767XMjV+36nV4yQ==,
+      }
+    engines: { node: '>=18.0.0' }
 
   locate-path@6.0.0:
     resolution:
@@ -5449,6 +5651,12 @@ packages:
     resolution:
       {
         integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==,
+      }
+
+  lodash@4.18.1:
+    resolution:
+      {
+        integrity: sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==,
       }
 
   long@5.3.2:
@@ -5495,6 +5703,12 @@ packages:
     resolution:
       {
         integrity: sha512-zTU3DaZaF3Rt9rhN3uBMGQD3dD2/vFQqnvZCDv4dl5iOzq2IZQqTxu90r4E5J+nP70J3ilqVCrbho2eWaeW8Ow==,
+      }
+
+  magic-bytes.js@1.13.0:
+    resolution:
+      {
+        integrity: sha512-afO2mnxW7GDTXMm5/AoN1WuOcdoKhtgXjIvHmobqTD1grNplhGdv3PFOyjCVmrnOZBIT/gD/koDKpYG+0mvHcg==,
       }
 
   magic-string@0.30.21:
@@ -5931,6 +6145,20 @@ packages:
       }
     engines: { node: '>=10' }
 
+  node-addon-api@8.9.0:
+    resolution:
+      {
+        integrity: sha512-ekZMeaaIzSQTSpr7X2X3iJM7lTzgnx8ahAG9pJfT/7+14mlEM8ZYQ9cgCDvSSRbReFK0oHli3WrZdCiRsgAT9Q==,
+      }
+    engines: { node: ^18 || ^20 || >= 21 }
+
+  node-gyp-build@4.8.4:
+    resolution:
+      {
+        integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==,
+      }
+    hasBin: true
+
   node-releases@2.0.46:
     resolution:
       {
@@ -6046,6 +6274,12 @@ packages:
       }
     engines: { node: '>=18' }
 
+  parseley@0.12.1:
+    resolution:
+      {
+        integrity: sha512-e6qHKe3a9HWr0oMRVDTRhKce+bRO8VGQR3NyVwcjwrbhMmFCX9KszEV35+rn4AdilFAq9VPxP/Fe1wC9Qjd2lw==,
+      }
+
   parseurl@1.3.3:
     resolution:
       {
@@ -6080,10 +6314,22 @@ packages:
         integrity: sha512-qRcuIdP69NPm4qbACK+aDogI5CBDMi1jKe0ry5rSQJz8JVLsC7jV8XpiJjGRLLol3N+R5ihGYcrPLTno6pAdBA==,
       }
 
+  pathe@1.1.2:
+    resolution:
+      {
+        integrity: sha512-whLdWMYL2TwI08hn8/ZqAbrVemu0LNaNNJZX73O6qaIdCTfXutsLhMkjdENX0qhsQ9uIimo4/aQOmXkoon2nDQ==,
+      }
+
   pathe@2.0.3:
     resolution:
       {
         integrity: sha512-WUjGcAqP1gQacoQe+OBJsFA7Ld4DyXuUIjZ5cc75cLHvJ7dtNsTugphxIADwspS+AraAUePCKrSVtPLFj/F88w==,
+      }
+
+  peberminta@0.9.0:
+    resolution:
+      {
+        integrity: sha512-XIxfHpEuSJbITd1H3EeQwpcZbTLHc+VVr8ANI9t5sit565tsI4/xK3KWTUFE2e6QiangUkh3B0jihzmGnNrRsQ==,
       }
 
   perfect-debounce@2.1.0:
@@ -6704,6 +6950,12 @@ packages:
       }
     engines: { node: '>=4' }
 
+  selderee@0.11.0:
+    resolution:
+      {
+        integrity: sha512-5TF+l7p4+OsnP8BCCvSyZiSPc4x4//p5uPwK8TCnVPJYRmU2aYKMpOXvw8zM5a5JvuuCGN1jmsMwuU2W02ukfA==,
+      }
+
   semver@6.3.1:
     resolution:
       {
@@ -7075,6 +7327,12 @@ packages:
         integrity: sha512-NLdXTEZkKiO0gZuLtMoZKjCXTREXeZZt8nnnNeyoXtNZAfG/GKGSbQtLU5STspc0rMSwcA+UJfWZkbNU01iKmQ==,
       }
 
+  tree-sitter@0.22.4:
+    resolution:
+      {
+        integrity: sha512-usbHZP9/oxNsUY65MQUsduGRqDHQOou1cagUSwjhoSYAmSahjQDAVsh9s+SlZkn8X8+O1FULRGwHu7AFP3kjzg==,
+      }
+
   trim-lines@3.0.1:
     resolution:
       {
@@ -7162,6 +7420,12 @@ packages:
     resolution:
       {
         integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==,
+      }
+
+  undici-types@7.18.2:
+    resolution:
+      {
+        integrity: sha512-AsuCzffGHJybSaRrmr5eHr81mwJU3kjw6M+uprWvCXiNeN9SOGwQ3Jn8jb8m3Z6izVgknn1R0FTCEAP2QrLY/w==,
       }
 
   unicorn-magic@0.3.0:
@@ -7399,6 +7663,12 @@ packages:
         integrity: sha512-dpojBhNsCNN7T82Tm7k26A6G9ML3NkhDsnw9n/eoxSRlVBB4CEtIQ/KTCLI2Fwf3ataSXRhYFkQi3SlnFwPvPQ==,
       }
 
+  web-tree-sitter@0.24.7:
+    resolution:
+      {
+        integrity: sha512-CdC/TqVFbXqR+C51v38hv6wOPatKEUGxa39scAeFSm98wIhZxAYonhRQPSMmfZ2w7JDI0zQDdzdmgtNk06/krQ==,
+      }
+
   which@2.0.2:
     resolution:
       {
@@ -7631,6 +7901,23 @@ snapshots:
   '@ai-sdk/provider@3.0.10':
     dependencies:
       json-schema: 0.4.0
+
+  '@aws-crypto/sha256-js@5.2.0':
+    dependencies:
+      '@aws-crypto/util': 5.2.0
+      '@aws-sdk/types': 3.973.14
+      tslib: 2.8.1
+
+  '@aws-crypto/util@5.2.0':
+    dependencies:
+      '@aws-sdk/types': 3.973.14
+      '@smithy/util-utf8': 2.3.0
+      tslib: 2.8.1
+
+  '@aws-sdk/types@3.973.14':
+    dependencies:
+      '@smithy/types': 4.15.1
+      tslib: 2.8.1
 
   '@babel/code-frame@7.29.7':
     dependencies:
@@ -7987,6 +8274,10 @@ snapshots:
       '@eslint/core': 0.17.0
       levn: 0.4.1
 
+  '@finom/zod-to-json-schema@3.24.11(zod@4.4.3)':
+    dependencies:
+      zod: 4.4.3
+
   '@floating-ui/core@1.7.5':
     dependencies:
       '@floating-ui/utils': 0.2.11
@@ -8072,6 +8363,50 @@ snapshots:
   '@js-sdsl/ordered-map@4.4.2': {}
 
   '@kurkle/color@0.3.4': {}
+
+  '@llamaindex/core@0.6.22':
+    dependencies:
+      '@finom/zod-to-json-schema': 3.24.11(zod@4.4.3)
+      '@llamaindex/env': 0.1.30
+      '@types/node': 24.13.2
+      magic-bytes.js: 1.13.0
+      zod: 4.4.3
+    transitivePeerDependencies:
+      - '@huggingface/transformers'
+      - gpt-tokenizer
+
+  '@llamaindex/env@0.1.30':
+    dependencies:
+      '@aws-crypto/sha256-js': 5.2.0
+      js-tiktoken: 1.0.21
+      pathe: 1.1.2
+
+  '@llamaindex/node-parser@2.0.22(@llamaindex/core@0.6.22)(@llamaindex/env@0.1.30)(tree-sitter@0.22.4)(web-tree-sitter@0.24.7)':
+    dependencies:
+      '@llamaindex/core': 0.6.22
+      '@llamaindex/env': 0.1.30
+      html-to-text: 9.0.5
+      tree-sitter: 0.22.4
+      web-tree-sitter: 0.24.7
+
+  '@llamaindex/workflow-core@1.3.4(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(hono@4.12.23)(zod@4.4.3)':
+    optionalDependencies:
+      '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.3)
+      hono: 4.12.23
+      zod: 4.4.3
+
+  '@llamaindex/workflow@1.1.24(@llamaindex/core@0.6.22)(@llamaindex/env@0.1.30)(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(hono@4.12.23)(zod@4.4.3)':
+    dependencies:
+      '@llamaindex/core': 0.6.22
+      '@llamaindex/env': 0.1.30
+      '@llamaindex/workflow-core': 1.3.4(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(hono@4.12.23)(zod@4.4.3)
+    transitivePeerDependencies:
+      - '@modelcontextprotocol/sdk'
+      - hono
+      - next
+      - p-retry
+      - rxjs
+      - zod
 
   '@lukeed/csprng@1.1.0': {}
 
@@ -9132,6 +9467,11 @@ snapshots:
 
   '@sec-ant/readable-stream@0.4.1': {}
 
+  '@selderee/plugin-htmlparser2@0.11.0':
+    dependencies:
+      domhandler: 5.0.3
+      selderee: 0.11.0
+
   '@shikijs/engine-oniguruma@3.23.0':
     dependencies:
       '@shikijs/types': 3.23.0
@@ -9162,6 +9502,24 @@ snapshots:
   '@sindresorhus/transliterate@1.6.0':
     dependencies:
       escape-string-regexp: 5.0.0
+
+  '@smithy/is-array-buffer@2.2.0':
+    dependencies:
+      tslib: 2.8.1
+
+  '@smithy/types@4.15.1':
+    dependencies:
+      tslib: 2.8.1
+
+  '@smithy/util-buffer-from@2.2.0':
+    dependencies:
+      '@smithy/is-array-buffer': 2.2.0
+      tslib: 2.8.1
+
+  '@smithy/util-utf8@2.3.0':
+    dependencies:
+      '@smithy/util-buffer-from': 2.2.0
+      tslib: 2.8.1
 
   '@socket.io/component-emitter@3.1.2': {}
 
@@ -9228,12 +9586,12 @@ snapshots:
       '@tailwindcss/oxide-win32-arm64-msvc': 4.3.0
       '@tailwindcss/oxide-win32-x64-msvc': 4.3.0
 
-  '@tailwindcss/vite@4.3.0(vite@6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))':
+  '@tailwindcss/vite@4.3.0(vite@6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))':
     dependencies:
       '@tailwindcss/node': 4.3.0
       '@tailwindcss/oxide': 4.3.0
       tailwindcss: 4.3.0
-      vite: 6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0)
+      vite: 6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0)
 
   '@tiptap/core@3.27.1(@tiptap/pm@3.27.1)':
     dependencies:
@@ -9508,6 +9866,8 @@ snapshots:
 
   '@types/json-schema@7.0.15': {}
 
+  '@types/lodash@4.17.24': {}
+
   '@types/mdast@4.0.4':
     dependencies:
       '@types/unist': 3.0.3
@@ -9517,6 +9877,10 @@ snapshots:
   '@types/node@22.19.19':
     dependencies:
       undici-types: 6.21.0
+
+  '@types/node@24.13.2':
+    dependencies:
+      undici-types: 7.18.2
 
   '@types/node@6.14.13': {}
 
@@ -9546,7 +9910,7 @@ snapshots:
 
   '@ungap/structured-clone@1.3.2': {}
 
-  '@vitejs/plugin-react@4.7.0(vite@6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))':
+  '@vitejs/plugin-react@4.7.0(vite@6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))':
     dependencies:
       '@babel/core': 7.29.7
       '@babel/plugin-transform-react-jsx-self': 7.29.7(@babel/core@7.29.7)
@@ -9554,7 +9918,7 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-beta.27
       '@types/babel__core': 7.20.5
       react-refresh: 0.17.0
-      vite: 6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0)
+      vite: 6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -9574,6 +9938,14 @@ snapshots:
       magic-string: 0.30.21
     optionalDependencies:
       vite: 6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0)
+
+  '@vitest/mocker@4.1.8(vite@6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))':
+    dependencies:
+      '@vitest/spy': 4.1.8
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: 6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0)
 
   '@vitest/pretty-format@4.1.8':
     dependencies:
@@ -9686,8 +10058,7 @@ snapshots:
 
   balanced-match@4.0.4: {}
 
-  base64-js@1.5.1:
-    optional: true
+  base64-js@1.5.1: {}
 
   base64id@2.0.0: {}
 
@@ -9945,6 +10316,8 @@ snapshots:
 
   deepmerge-ts@7.1.5: {}
 
+  deepmerge@4.3.1: {}
+
   defu@6.1.7: {}
 
   denque@2.1.0: {}
@@ -9969,6 +10342,24 @@ snapshots:
     dependencies:
       dockview-core: 6.6.1
       react: 19.2.6
+
+  dom-serializer@2.0.0:
+    dependencies:
+      domelementtype: 2.3.0
+      domhandler: 5.0.3
+      entities: 4.5.0
+
+  domelementtype@2.3.0: {}
+
+  domhandler@5.0.3:
+    dependencies:
+      domelementtype: 2.3.0
+
+  domutils@3.2.2:
+    dependencies:
+      dom-serializer: 2.0.0
+      domelementtype: 2.3.0
+      domhandler: 5.0.3
 
   dotenv@16.6.1: {}
 
@@ -10436,7 +10827,22 @@ snapshots:
 
   hono@4.12.23: {}
 
+  html-to-text@9.0.5:
+    dependencies:
+      '@selderee/plugin-htmlparser2': 0.11.0
+      deepmerge: 4.3.1
+      dom-serializer: 2.0.0
+      htmlparser2: 8.0.2
+      selderee: 0.11.0
+
   html-url-attributes@3.0.1: {}
+
+  htmlparser2@8.0.2:
+    dependencies:
+      domelementtype: 2.3.0
+      domhandler: 5.0.3
+      domutils: 3.2.2
+      entities: 4.5.0
 
   http-errors@2.0.1:
     dependencies:
@@ -10522,6 +10928,10 @@ snapshots:
 
   jpeg-js@0.4.4: {}
 
+  js-tiktoken@1.0.21:
+    dependencies:
+      base64-js: 1.5.1
+
   js-tokens@4.0.0: {}
 
   js-yaml@3.14.2:
@@ -10556,6 +10966,8 @@ snapshots:
       json-buffer: 3.0.1
 
   kind-of@6.0.3: {}
+
+  leac@0.6.0: {}
 
   lefthook-darwin-arm64@2.1.9:
     optional: true
@@ -10654,7 +11066,7 @@ snapshots:
       lightningcss-win32-arm64-msvc: 1.32.0
       lightningcss-win32-x64-msvc: 1.32.0
 
-  lightweight-charts-line-tools-core@git+https://git@github.com:difurious/lightweight-charts-line-tools-core.git#167a83cf8702e35b4cfbe7beb0dafec94e800a71(lightweight-charts@5.2.0)(typescript@5.9.3):
+  lightweight-charts-line-tools-core@https://codeload.github.com/difurious/lightweight-charts-line-tools-core/tar.gz/167a83cf8702e35b4cfbe7beb0dafec94e800a71(lightweight-charts@5.2.0)(typescript@5.9.3):
     dependencies:
       lightweight-charts: 5.2.0
       tslib: 2.8.1
@@ -10662,19 +11074,19 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  lightweight-charts-line-tools-lines@git+https://git@github.com:difurious/lightweight-charts-line-tools-lines.git#edb2a6ce00c8bbbe6f19e8469e378350efe6013f(lightweight-charts@5.2.0)(typescript@5.9.3):
+  lightweight-charts-line-tools-lines@https://codeload.github.com/difurious/lightweight-charts-line-tools-lines/tar.gz/edb2a6ce00c8bbbe6f19e8469e378350efe6013f(lightweight-charts@5.2.0)(typescript@5.9.3):
     dependencies:
       lightweight-charts: 5.2.0
-      lightweight-charts-line-tools-core: git+https://git@github.com:difurious/lightweight-charts-line-tools-core.git#167a83cf8702e35b4cfbe7beb0dafec94e800a71(lightweight-charts@5.2.0)(typescript@5.9.3)
+      lightweight-charts-line-tools-core: https://codeload.github.com/difurious/lightweight-charts-line-tools-core/tar.gz/167a83cf8702e35b4cfbe7beb0dafec94e800a71(lightweight-charts@5.2.0)(typescript@5.9.3)
       tslib: 2.8.1
       typedoc: 0.28.19(typescript@5.9.3)
     transitivePeerDependencies:
       - typescript
 
-  lightweight-charts-line-tools-rectangle@git+https://git@github.com:difurious/lightweight-charts-line-tools-rectangle.git#8c229e62852f72936dbef5fdc198e321b9a85cc3(lightweight-charts@5.2.0)(typescript@5.9.3):
+  lightweight-charts-line-tools-rectangle@https://codeload.github.com/difurious/lightweight-charts-line-tools-rectangle/tar.gz/8c229e62852f72936dbef5fdc198e321b9a85cc3(lightweight-charts@5.2.0)(typescript@5.9.3):
     dependencies:
       lightweight-charts: 5.2.0
-      lightweight-charts-line-tools-core: git+https://git@github.com:difurious/lightweight-charts-line-tools-core.git#167a83cf8702e35b4cfbe7beb0dafec94e800a71(lightweight-charts@5.2.0)(typescript@5.9.3)
+      lightweight-charts-line-tools-core: https://codeload.github.com/difurious/lightweight-charts-line-tools-core/tar.gz/167a83cf8702e35b4cfbe7beb0dafec94e800a71(lightweight-charts@5.2.0)(typescript@5.9.3)
       tslib: 2.8.1
       typedoc: 0.28.19(typescript@5.9.3)
     transitivePeerDependencies:
@@ -10690,6 +11102,28 @@ snapshots:
 
   linkifyjs@4.3.3: {}
 
+  llamaindex@0.12.1(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(hono@4.12.23)(tree-sitter@0.22.4)(web-tree-sitter@0.24.7)(zod@4.4.3):
+    dependencies:
+      '@llamaindex/core': 0.6.22
+      '@llamaindex/env': 0.1.30
+      '@llamaindex/node-parser': 2.0.22(@llamaindex/core@0.6.22)(@llamaindex/env@0.1.30)(tree-sitter@0.22.4)(web-tree-sitter@0.24.7)
+      '@llamaindex/workflow': 1.1.24(@llamaindex/core@0.6.22)(@llamaindex/env@0.1.30)(@modelcontextprotocol/sdk@1.29.0(zod@4.4.3))(hono@4.12.23)(zod@4.4.3)
+      '@types/lodash': 4.17.24
+      '@types/node': 24.13.2
+      lodash: 4.18.1
+      magic-bytes.js: 1.13.0
+    transitivePeerDependencies:
+      - '@huggingface/transformers'
+      - '@modelcontextprotocol/sdk'
+      - gpt-tokenizer
+      - hono
+      - next
+      - p-retry
+      - rxjs
+      - tree-sitter
+      - web-tree-sitter
+      - zod
+
   locate-path@6.0.0:
     dependencies:
       p-locate: 5.0.0
@@ -10699,6 +11133,8 @@ snapshots:
   lodash.camelcase@4.3.0: {}
 
   lodash.merge@4.6.2: {}
+
+  lodash@4.18.1: {}
 
   long@5.3.2: {}
 
@@ -10717,6 +11153,8 @@ snapshots:
       react: 19.2.6
 
   lunr@2.3.9: {}
+
+  magic-bytes.js@1.13.0: {}
 
   magic-string@0.30.21:
     dependencies:
@@ -11153,6 +11591,10 @@ snapshots:
       semver: 7.8.1
     optional: true
 
+  node-addon-api@8.9.0: {}
+
+  node-gyp-build@4.8.4: {}
+
   node-releases@2.0.46: {}
 
   npm-run-path@6.0.0:
@@ -11217,6 +11659,11 @@ snapshots:
 
   parse-ms@4.0.0: {}
 
+  parseley@0.12.1:
+    dependencies:
+      leac: 0.6.0
+      peberminta: 0.9.0
+
   parseurl@1.3.3: {}
 
   path-exists@4.0.0: {}
@@ -11227,7 +11674,11 @@ snapshots:
 
   path-to-regexp@8.4.2: {}
 
+  pathe@1.1.2: {}
+
   pathe@2.0.3: {}
+
+  peberminta@0.9.0: {}
 
   perfect-debounce@2.1.0: {}
 
@@ -11743,6 +12194,10 @@ snapshots:
       extend-shallow: 2.0.1
       kind-of: 6.0.3
 
+  selderee@0.11.0:
+    dependencies:
+      parseley: 0.12.1
+
   semver@6.3.1: {}
 
   semver@7.8.1:
@@ -11980,6 +12435,11 @@ snapshots:
 
   tokenx@1.3.0: {}
 
+  tree-sitter@0.22.4:
+    dependencies:
+      node-addon-api: 8.9.0
+      node-gyp-build: 4.8.4
+
   trim-lines@3.0.1: {}
 
   trough@2.2.0: {}
@@ -12032,6 +12492,8 @@ snapshots:
   uc.micro@2.1.0: {}
 
   undici-types@6.21.0: {}
+
+  undici-types@7.18.2: {}
 
   unicorn-magic@0.3.0: {}
 
@@ -12136,6 +12598,22 @@ snapshots:
       tsx: 4.22.3
       yaml: 2.9.0
 
+  vite@6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0):
+    dependencies:
+      esbuild: 0.25.12
+      fdir: 6.5.0(picomatch@4.0.4)
+      picomatch: 4.0.4
+      postcss: 8.5.15
+      rollup: 4.60.4
+      tinyglobby: 0.2.16
+    optionalDependencies:
+      '@types/node': 24.13.2
+      fsevents: 2.3.3
+      jiti: 2.7.0
+      lightningcss: 1.32.0
+      tsx: 4.22.3
+      yaml: 2.9.0
+
   vitest@4.1.8(@types/node@22.19.19)(vite@6.4.2(@types/node@22.19.19)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0)):
     dependencies:
       '@vitest/expect': 4.1.8
@@ -12163,7 +12641,36 @@ snapshots:
     transitivePeerDependencies:
       - msw
 
+  vitest@4.1.8(@types/node@24.13.2)(vite@6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0)):
+    dependencies:
+      '@vitest/expect': 4.1.8
+      '@vitest/mocker': 4.1.8(vite@6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0))
+      '@vitest/pretty-format': 4.1.8
+      '@vitest/runner': 4.1.8
+      '@vitest/snapshot': 4.1.8
+      '@vitest/spy': 4.1.8
+      '@vitest/utils': 4.1.8
+      es-module-lexer: 2.1.0
+      expect-type: 1.3.0
+      magic-string: 0.30.21
+      obug: 2.1.2
+      pathe: 2.0.3
+      picomatch: 4.0.4
+      std-env: 4.1.0
+      tinybench: 2.9.0
+      tinyexec: 1.2.4
+      tinyglobby: 0.2.16
+      tinyrainbow: 3.1.0
+      vite: 6.4.2(@types/node@24.13.2)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.3)(yaml@2.9.0)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@types/node': 24.13.2
+    transitivePeerDependencies:
+      - msw
+
   w3c-keyname@2.2.8: {}
+
+  web-tree-sitter@0.24.7: {}
 
   which@2.0.2:
     dependencies:

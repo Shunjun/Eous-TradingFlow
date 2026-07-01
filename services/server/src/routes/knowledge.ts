@@ -35,6 +35,13 @@ knowledgeRouter.post('/:id/documents', async (c) => {
   return c.json({ document }, 201)
 })
 
+knowledgeRouter.post('/:id/chunk-preview', async (c) => {
+  await knowledgeService.assertKnowledgeBaseAccess(c.get('userId'), c.req.param('id'))
+  const body = await c.req.json<knowledgeService.ChunkPreviewInput>()
+  const preview = knowledgeService.previewChunks(body)
+  return c.json({ preview })
+})
+
 knowledgeRouter.delete('/documents/:documentId', async (c) => {
   await knowledgeService.deleteKnowledgeDocument(c.get('userId'), c.req.param('documentId'))
   return c.json({ ok: true })

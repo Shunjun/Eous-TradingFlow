@@ -164,6 +164,10 @@ export async function deleteKnowledgeBase(userId: string, id: string): Promise<v
   await knowledgeRepo.deleteKnowledgeBase(id)
 }
 
+export async function assertKnowledgeBaseAccess(userId: string, id: string): Promise<void> {
+  await assertKnowledgeBase(userId, id)
+}
+
 export async function listKnowledgeDocuments(
   userId: string,
   knowledgeBaseId: string,
