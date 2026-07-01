@@ -30,6 +30,23 @@ export const en = {
   'settings.languageDescription':
     'Choose the console display language. Switching keeps the current page and updates the locale path.',
   'settings.languageLabel': 'Interface language',
+  'settings.defaultModelsTitle': 'Default models',
+  'settings.defaultModelsDescription':
+    'Choose system defaults for chat, document compression, and knowledge-base embedding. These use enabled models from the Providers page.',
+  'settings.defaultChatModel': 'Default chat model',
+  'settings.defaultChatModelDescription':
+    'Used by agents, chat, and text generation tasks without an explicit model.',
+  'settings.defaultCompressionModel': 'Default compression model',
+  'settings.defaultCompressionModelDescription':
+    'Used for knowledge-base chunk compression and summary generation.',
+  'settings.defaultEmbeddingModel': 'Default embedding model',
+  'settings.defaultEmbeddingModelDescription':
+    'Used for knowledge-base vector indexes and semantic chunking.',
+  'settings.noDefaultModel': 'No default model',
+  'settings.loadingModelSettings': 'Loading model settings...',
+  'settings.failedToLoadModelSettings': 'Failed to load model settings',
+  'settings.failedToSaveModelSettings': 'Failed to save model settings',
+  'settings.saving': 'Saving...',
   'settings.agentsTitle': 'Agents',
   'settings.agentsDescription': 'Configure agent profiles, default models, and tool scope',
   'settings.newAgent': 'New Agent',

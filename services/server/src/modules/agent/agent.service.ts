@@ -3,6 +3,7 @@ import type { Agent, AgentMessage, AgentMemory, AgentSession } from '@eous/db'
 import { AppError } from '../../lib/app-error.js'
 import * as agentRepo from '../../repositories/agent.repo.js'
 import { getAgentRuntime } from '../../agent-runtime/runtime.js'
+import { resolveDefaultModel } from '../model-settings/index.js'
 
 const DEFAULT_AGENT_INSTRUCTIONS = `# Introduction
 You are Eous Analyst, an analytical assistant for a trading workflow product.
@@ -187,15 +188,15 @@ function toMemoryDTO(memory: AgentMemory): AgentMemoryDTO {
 async function resolveAgentModel(agent: Agent, userId: string): Promise<Agent> {
   if (agent.providerId && agent.modelId) return agent
 
-  const defaultModel = await agentRepo.findDefaultProviderModel(userId)
-  if (!defaultModel) {
-    throw new AppError('No enabled provider model found. Add a provider model first.', 400)
+  const systemDefault = await resolveDefaultModel(userId, 'chat')
+  if (systemDefault) {
+    return agentRepo.updateAgent(agent.id, {
+      providerId: systemDefault.providerId,
+      modelId: systemDefault.modelId,
+    })
   }
 
-  return agentRepo.updateAgent(agent.id, {
-    providerId: defaultModel.providerId,
-    modelId: defaultModel.modelId,
-  })
+  throw new AppError('No enabled chat model found. Configure a system default model first.', 400)
 }
 
 async function resolveChatModel(

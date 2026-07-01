@@ -20,6 +20,7 @@ model User {
 
   sessions            Session[]
   providers           Provider[]
+  modelSettings       UserModelSetting?
   dataSourceInstances DataSourceInstance[]
   chartDrawings       ChartDrawing[]
   chartConfigs        UserChartConfig[]
@@ -99,6 +100,22 @@ model ProviderModel {
 
   @@unique([providerId, modelId])
   @@map("provider_models")
+}
+
+model UserModelSetting {
+  id                    String   @id @default(cuid())
+  userId                String   @unique @map("user_id")
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatProviderId        String?  @map("chat_provider_id")
+  chatModelId           String?  @map("chat_model_id")
+  compressionProviderId String?  @map("compression_provider_id")
+  compressionModelId    String?  @map("compression_model_id")
+  embeddingProviderId   String?  @map("embedding_provider_id")
+  embeddingModelId      String?  @map("embedding_model_id")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  @@map("user_model_settings")
 }
 
 model DataSourceInstance {

@@ -4,6 +4,7 @@ export type {
   Session,
   Provider,
   ProviderModel,
+  UserModelSetting,
   DataSourceInstance,
   TrackedSymbol,
   MarketDataSeries,

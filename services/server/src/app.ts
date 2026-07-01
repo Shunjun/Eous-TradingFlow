@@ -7,6 +7,7 @@ import { dataSourceRouter, dataSourceInstanceRouter } from './routes/data-source
 import { workspaceRouter } from './routes/workspace.js'
 import { workflowRouter } from './routes/workflow.js'
 import { agentRouter } from './routes/agent.js'
+import { modelSettingsRouter } from './routes/model-settings.js'
 import { AppError } from './lib/app-error.js'
 
 export const app = new Hono()
@@ -22,6 +23,7 @@ app.route('/api', dataSourceInstanceRouter)
 app.route('/api/workspace', workspaceRouter)
 app.route('/api/workflows', workflowRouter)
 app.route('/api/agents', agentRouter)
+app.route('/api/model-settings', modelSettingsRouter)
 
 app.onError((err, c) => {
   if (err instanceof AppError) {

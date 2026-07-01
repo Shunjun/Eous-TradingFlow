@@ -259,6 +259,17 @@ export interface ProviderModel {
   enabled: boolean
 }
 
+export interface ModelRef {
+  providerId: string
+  modelId: string
+}
+
+export interface UserModelSettings {
+  chat: ModelRef | null
+  compression: ModelRef | null
+  embedding: ModelRef | null
+}
+
 export interface ProviderRemoteModel {
   modelId: string
   displayName?: string
@@ -548,6 +559,9 @@ export interface ApiClient {
   me(): Promise<UserProfile>
   login(params: { email: string; password: string }): Promise<void>
   logout(): Promise<void>
+
+  getModelSettings(): Promise<{ settings: UserModelSettings }>
+  updateModelSettings(params: Partial<UserModelSettings>): Promise<{ settings: UserModelSettings }>
 
   listProviders(): Promise<{ providers: Provider[] }>
   getProvider(id: string): Promise<{ provider: Provider; models: ProviderModel[] }>
@@ -1042,6 +1056,9 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
     me: () => get('/auth/me'),
     login: ({ email, password }) => post('/auth/login', { email, password }, true),
     logout: () => post('/auth/logout', undefined, true),
+
+    getModelSettings: () => get('/model-settings'),
+    updateModelSettings: (params) => patch('/model-settings', params, true),
 
     listProviders: () => get('/providers'),
     getProvider: (id: string) => get(`/providers/${encodeURIComponent(id)}`),
