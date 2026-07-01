@@ -270,6 +270,17 @@ export interface UserModelSettings {
   embedding: ModelRef | null
 }
 
+export interface KnowledgeBase {
+  id: string
+  name: string
+  description: string | null
+  enabled: boolean
+  metadata: Record<string, unknown>
+  activeIndexId: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface ProviderRemoteModel {
   modelId: string
   displayName?: string
@@ -562,6 +573,25 @@ export interface ApiClient {
 
   getModelSettings(): Promise<{ settings: UserModelSettings }>
   updateModelSettings(params: Partial<UserModelSettings>): Promise<{ settings: UserModelSettings }>
+
+  listKnowledgeBases(): Promise<{ knowledgeBases: KnowledgeBase[] }>
+  getKnowledgeBase(id: string): Promise<{ knowledgeBase: KnowledgeBase }>
+  createKnowledgeBase(params: {
+    name: string
+    description?: string | null
+    metadata?: Record<string, unknown>
+  }): Promise<{ knowledgeBase: KnowledgeBase }>
+  updateKnowledgeBase(
+    id: string,
+    params: {
+      name?: string
+      description?: string | null
+      enabled?: boolean
+      metadata?: Record<string, unknown>
+      activeIndexId?: string | null
+    },
+  ): Promise<{ knowledgeBase: KnowledgeBase }>
+  deleteKnowledgeBase(id: string): Promise<void>
 
   listProviders(): Promise<{ providers: Provider[] }>
   getProvider(id: string): Promise<{ provider: Provider; models: ProviderModel[] }>
@@ -1059,6 +1089,13 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
 
     getModelSettings: () => get('/model-settings'),
     updateModelSettings: (params) => patch('/model-settings', params, true),
+
+    listKnowledgeBases: () => get('/knowledge-bases'),
+    getKnowledgeBase: (id: string) => get(`/knowledge-bases/${encodeURIComponent(id)}`),
+    createKnowledgeBase: (params) => post('/knowledge-bases', params),
+    updateKnowledgeBase: (id, params) =>
+      patch(`/knowledge-bases/${encodeURIComponent(id)}`, params, true),
+    deleteKnowledgeBase: (id: string) => del(`/knowledge-bases/${encodeURIComponent(id)}`, true),
 
     listProviders: () => get('/providers'),
     getProvider: (id: string) => get(`/providers/${encodeURIComponent(id)}`),
