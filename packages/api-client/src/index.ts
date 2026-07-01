@@ -281,6 +281,23 @@ export interface KnowledgeBase {
   updatedAt: string
 }
 
+export interface KnowledgeDocument {
+  id: string
+  knowledgeBaseId: string
+  title: string
+  sourceType: string
+  sourceUri: string | null
+  sourceFileName: string | null
+  sourceMimeType: string | null
+  sourceSize: number | null
+  sourceHash: string | null
+  strategy: string
+  status: string
+  metadata: Record<string, unknown>
+  createdAt: string
+  updatedAt: string
+}
+
 export interface ProviderRemoteModel {
   modelId: string
   displayName?: string
@@ -592,6 +609,22 @@ export interface ApiClient {
     },
   ): Promise<{ knowledgeBase: KnowledgeBase }>
   deleteKnowledgeBase(id: string): Promise<void>
+  listKnowledgeDocuments(knowledgeBaseId: string): Promise<{ documents: KnowledgeDocument[] }>
+  createKnowledgeDocument(
+    knowledgeBaseId: string,
+    params: {
+      title: string
+      sourceType?: string
+      sourceUri?: string | null
+      sourceFileName?: string | null
+      sourceMimeType?: string | null
+      sourceSize?: number | null
+      sourceHash?: string | null
+      strategy?: 'raw' | 'compressed' | 'hybrid'
+      metadata?: Record<string, unknown>
+    },
+  ): Promise<{ document: KnowledgeDocument }>
+  deleteKnowledgeDocument(documentId: string): Promise<void>
 
   listProviders(): Promise<{ providers: Provider[] }>
   getProvider(id: string): Promise<{ provider: Provider; models: ProviderModel[] }>
@@ -1096,6 +1129,12 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
     updateKnowledgeBase: (id, params) =>
       patch(`/knowledge-bases/${encodeURIComponent(id)}`, params, true),
     deleteKnowledgeBase: (id: string) => del(`/knowledge-bases/${encodeURIComponent(id)}`, true),
+    listKnowledgeDocuments: (knowledgeBaseId: string) =>
+      get(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/documents`),
+    createKnowledgeDocument: (knowledgeBaseId, params) =>
+      post(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/documents`, params, true),
+    deleteKnowledgeDocument: (documentId: string) =>
+      del(`/knowledge-bases/documents/${encodeURIComponent(documentId)}`, true),
 
     listProviders: () => get('/providers'),
     getProvider: (id: string) => get(`/providers/${encodeURIComponent(id)}`),

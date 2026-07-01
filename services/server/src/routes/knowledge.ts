@@ -17,6 +17,29 @@ knowledgeRouter.post('/', async (c) => {
   return c.json({ knowledgeBase }, 201)
 })
 
+knowledgeRouter.get('/:id/documents', async (c) => {
+  const documents = await knowledgeService.listKnowledgeDocuments(
+    c.get('userId'),
+    c.req.param('id'),
+  )
+  return c.json({ documents })
+})
+
+knowledgeRouter.post('/:id/documents', async (c) => {
+  const body = await c.req.json<knowledgeService.CreateKnowledgeDocumentBody>()
+  const document = await knowledgeService.createKnowledgeDocument(
+    c.get('userId'),
+    c.req.param('id'),
+    body,
+  )
+  return c.json({ document }, 201)
+})
+
+knowledgeRouter.delete('/documents/:documentId', async (c) => {
+  await knowledgeService.deleteKnowledgeDocument(c.get('userId'), c.req.param('documentId'))
+  return c.json({ ok: true })
+})
+
 knowledgeRouter.get('/:id', async (c) => {
   const knowledgeBase = await knowledgeService.getKnowledgeBase(c.get('userId'), c.req.param('id'))
   return c.json({ knowledgeBase })
