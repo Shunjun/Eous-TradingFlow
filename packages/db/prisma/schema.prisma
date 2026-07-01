@@ -310,7 +310,7 @@ model WorkflowRun {
   id                String    @id @default(cuid())
   workflowId        String    @map("workflow_id")
   workflow          Workflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  workflowVersionId String?   @map("workflow_version_id")
+  workflowVersionId String?          @map("workflow_version_id")
   workflowVersion   WorkflowVersion? @relation(fields: [workflowVersionId], references: [id], onDelete: SetNull)
   userId            String    @map("user_id")
   trigger           String
@@ -581,19 +581,22 @@ model AgentMcpServer {
 }
 
 model KnowledgeBase {
-  id          String   @id @default(cuid())
-  userId      String   @map("user_id")
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  agentId     String?  @map("agent_id")
-  agent       Agent?   @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  name        String
-  description String?
-  enabled     Boolean  @default(true)
-  metadata    String   @default("{}")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentId       String?  @map("agent_id")
+  agent         Agent?   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?
+  enabled       Boolean  @default(true)
+  metadata      String   @default("{}")
+  activeIndexId String?  @map("active_index_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  documents KnowledgeDocument[]
+  documents        KnowledgeDocument[]
+  ingestionRuns    KnowledgeIngestionRun[]
+  embeddingIndexes KnowledgeEmbeddingIndex[]
 
   @@index([userId])
   @@index([agentId])
@@ -607,28 +610,113 @@ model KnowledgeDocument {
   title           String
   sourceType      String        @map("source_type")
   sourceUri       String?       @map("source_uri")
-  content         String
+  sourceFileName  String?       @map("source_file_name")
+  sourceMimeType  String?       @map("source_mime_type")
+  sourceSize      Int?          @map("source_size")
+  sourceHash      String?       @map("source_hash")
+  strategy        String        @default("raw")
+  status          String        @default("uploaded")
+  content         String        @default("")
   metadata        String        @default("{}")
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
-  chunks KnowledgeChunk[]
+  chunks        KnowledgeChunk[]
+  ingestionRuns KnowledgeIngestionRun[]
 
   @@index([knowledgeBaseId])
+  @@index([status])
+  @@index([strategy])
   @@map("knowledge_documents")
 }
 
+model KnowledgeIngestionRun {
+  id                String            @id @default(cuid())
+  knowledgeBaseId   String            @map("knowledge_base_id")
+  knowledgeBase     KnowledgeBase     @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  documentId        String            @map("document_id")
+  document          KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  status            String            @default("pending")
+  strategy          String            @default("raw")
+  parseConfig       String            @default("{}") @map("parse_config")
+  chunkConfig       String            @default("{}") @map("chunk_config")
+  compressionConfig String            @default("{}") @map("compression_config")
+  embeddingConfig   String            @default("{}") @map("embedding_config")
+  error             String?
+  startedAt         DateTime?         @map("started_at")
+  finishedAt        DateTime?         @map("finished_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  chunks KnowledgeChunk[]
+
+  @@index([knowledgeBaseId])
+  @@index([documentId])
+  @@index([status])
+  @@map("knowledge_ingestion_runs")
+}
+
 model KnowledgeChunk {
-  id         String            @id @default(cuid())
-  documentId String            @map("document_id")
-  document   KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
-  chunkIndex Int               @map("chunk_index")
-  content    String
-  embedding  Unsupported("vector")?
-  metadata   String            @default("{}")
-  createdAt  DateTime          @default(now()) @map("created_at")
+  id                String                 @id @default(cuid())
+  documentId        String                 @map("document_id")
+  document          KnowledgeDocument      @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  runId             String?                @map("run_id")
+  run               KnowledgeIngestionRun? @relation(fields: [runId], references: [id], onDelete: SetNull)
+  chunkIndex        Int                    @map("chunk_index")
+  sourceRawChunkId  String?                @map("source_raw_chunk_id")
+  compressedChunkId String?                @map("compressed_chunk_id")
+  kind              String                 @default("raw")
+  embeddingRole     String                 @default("indexed") @map("embedding_role")
+  tokenCount        Int                    @default(0) @map("token_count")
+  content           String
+  embedding         Unsupported("vector")?
+  metadata          String                 @default("{}")
+  createdAt         DateTime               @default(now()) @map("created_at")
+
+  embeddings KnowledgeEmbedding[]
 
   @@unique([documentId, chunkIndex])
   @@index([documentId])
+  @@index([runId])
+  @@index([kind])
+  @@index([embeddingRole])
+  @@index([sourceRawChunkId])
   @@map("knowledge_chunks")
+}
+
+model KnowledgeEmbeddingIndex {
+  id              String        @id @default(cuid())
+  knowledgeBaseId String        @map("knowledge_base_id")
+  knowledgeBase   KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  providerId      String        @map("provider_id")
+  modelId         String        @map("model_id")
+  dimension       Int
+  status          String        @default("building")
+  chunkConfigHash String?       @map("chunk_config_hash")
+  strategy        String        @default("raw")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  embeddings KnowledgeEmbedding[]
+
+  @@index([knowledgeBaseId])
+  @@index([status])
+  @@index([providerId, modelId])
+  @@map("knowledge_embedding_indexes")
+}
+
+model KnowledgeEmbedding {
+  id        String                  @id @default(cuid())
+  indexId   String                  @map("index_id")
+  index     KnowledgeEmbeddingIndex @relation(fields: [indexId], references: [id], onDelete: Cascade)
+  chunkId   String                  @map("chunk_id")
+  chunk     KnowledgeChunk          @relation(fields: [chunkId], references: [id], onDelete: Cascade)
+  vector    Unsupported("vector")
+  metadata  String                  @default("{}")
+  createdAt DateTime                @default(now()) @map("created_at")
+
+  @@unique([indexId, chunkId])
+  @@index([indexId])
+  @@index([chunkId])
+  @@map("knowledge_embeddings")
 }

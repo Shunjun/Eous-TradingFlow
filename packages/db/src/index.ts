@@ -23,4 +23,10 @@ export type {
   AgentMessage,
   AgentSummary,
   AgentMemory,
+  KnowledgeBase,
+  KnowledgeDocument,
+  KnowledgeIngestionRun,
+  KnowledgeChunk,
+  KnowledgeEmbeddingIndex,
+  KnowledgeEmbedding,
 } from './generated/prisma/client'
