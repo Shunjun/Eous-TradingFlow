@@ -37,7 +37,7 @@ import {
   Moon,
   Settings,
   Sun,
-  Wallet,
+  Library,
   Plus,
   GitBranch,
   ChevronDown,
@@ -70,7 +70,7 @@ const navSections: { titleKey: TextKey; items: NavItem[] }[] = [
     titleKey: 'nav.build',
     items: [
       { id: 'workflows', labelKey: 'nav.workflows', icon: GitBranch },
-      { id: 'datasets', labelKey: 'nav.datasets', icon: Wallet },
+      { id: 'knowledge', labelKey: 'nav.knowledge', icon: Library },
     ],
   },
 ]
@@ -81,7 +81,7 @@ const navToPath: Record<string, string> = {
   watchlist: '/watchlist',
   news: '/news',
   agents: '/chat',
-  datasets: '/datasets',
+  knowledge: '/knowledge',
   workflows: '/workflows',
   settings: '/settings',
 }
