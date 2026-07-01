@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { KnowledgeBase } from '@eous/api-client'
+import type { KnowledgeBase, KnowledgeChunkPreview } from '@eous/api-client'
 import {
   Button,
   CardPanel,
@@ -17,7 +17,7 @@ import {
   Switch,
   Textarea,
 } from '@eous/ui'
-import { Database, Library, Plus, Trash2 } from 'lucide-react'
+import { Database, FileText, Library, Plus, Scissors, Trash2 } from 'lucide-react'
 import { api } from '../../../lib/api'
 import { useI18n } from '../../../lib/i18n'
 
@@ -35,6 +35,11 @@ export default function KnowledgePage() {
   const [description, setDescription] = useState('')
   const [creating, setCreating] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<KnowledgeBase | null>(null)
+  const [importTarget, setImportTarget] = useState<KnowledgeBase | null>(null)
+  const [importTitle, setImportTitle] = useState('')
+  const [importContent, setImportContent] = useState('')
+  const [preview, setPreview] = useState<KnowledgeChunkPreview | null>(null)
+  const [previewing, setPreviewing] = useState(false)
 
   const enabledCount = useMemo(
     () => knowledgeBases.filter((item) => item.enabled).length,
@@ -105,6 +110,40 @@ export default function KnowledgePage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : t('knowledge.failedToDelete'))
     }
+  }
+
+  async function handlePreviewChunks() {
+    if (!importTarget) return
+    if (!importContent.trim()) {
+      setError(t('knowledge.contentRequired'))
+      return
+    }
+
+    setPreviewing(true)
+    setError(null)
+    try {
+      const res = await api.previewKnowledgeChunks(importTarget.id, {
+        content: importContent,
+        config: {
+          strategy: 'auto_structure',
+          granularity: 50,
+          overlap: 'standard',
+          boundaryPreference: 'auto',
+        },
+      })
+      setPreview(res.preview)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('knowledge.failedToPreviewChunks'))
+    } finally {
+      setPreviewing(false)
+    }
+  }
+
+  function openImportDialog(item: KnowledgeBase) {
+    setImportTarget(item)
+    setImportTitle('')
+    setImportContent('')
+    setPreview(null)
   }
 
   return (
@@ -183,6 +222,10 @@ export default function KnowledgePage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
+                    <Button variant="outline" size="sm" onClick={() => openImportDialog(item)}>
+                      <FileText size={14} />
+                      {t('knowledge.importText')}
+                    </Button>
                     <div className="flex items-center gap-2">
                       <Switch
                         checked={item.enabled}
@@ -251,6 +294,108 @@ export default function KnowledgePage() {
         onConfirm={handleDelete}
         destructive
       />
+
+      <Dialog open={importTarget !== null} onOpenChange={(open) => !open && setImportTarget(null)}>
+        <DialogContent className="sm:max-w-[920px]">
+          <DialogHeader>
+            <DialogTitle>{t('knowledge.importText')}</DialogTitle>
+            <DialogDescription>
+              {t('knowledge.importTextDescription').replace('{name}', importTarget?.name ?? '')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>{t('knowledge.documentTitle')}</Label>
+                <Input
+                  value={importTitle}
+                  onChange={(event) => setImportTitle(event.target.value)}
+                  placeholder={t('knowledge.documentTitlePlaceholder')}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t('knowledge.textContent')}</Label>
+                <Textarea
+                  className="min-h-[320px] font-mono text-xs"
+                  value={importContent}
+                  onChange={(event) => {
+                    setImportContent(event.target.value)
+                    setPreview(null)
+                  }}
+                  placeholder={t('knowledge.textContentPlaceholder')}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-md border border-border bg-muted/20">
+              <div className="flex items-center gap-2 border-b border-border p-3">
+                <Scissors size={15} className="text-primary" />
+                <div className="text-sm font-medium">{t('knowledge.chunkPreview')}</div>
+              </div>
+              {preview ? (
+                <div className="space-y-3 p-3">
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded border border-border bg-background p-2">
+                      <div className="text-[11px] text-muted-foreground">
+                        {t('knowledge.chunks')}
+                      </div>
+                      <div className="text-sm font-semibold">{preview.stats.chunkCount}</div>
+                    </div>
+                    <div className="rounded border border-border bg-background p-2">
+                      <div className="text-[11px] text-muted-foreground">
+                        {t('knowledge.tokens')}
+                      </div>
+                      <div className="text-sm font-semibold">{preview.stats.tokenCount}</div>
+                    </div>
+                    <div className="rounded border border-border bg-background p-2">
+                      <div className="text-[11px] text-muted-foreground">
+                        {t('knowledge.characters')}
+                      </div>
+                      <div className="text-sm font-semibold">{preview.stats.charCount}</div>
+                    </div>
+                  </div>
+                  <div className="max-h-[300px] space-y-2 overflow-auto pr-1">
+                    {preview.chunks.slice(0, 8).map((chunk) => (
+                      <div
+                        key={chunk.index}
+                        className="rounded border border-border bg-background p-2"
+                      >
+                        <div className="mb-1 flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
+                          <span>#{chunk.index + 1}</span>
+                          <span>{chunk.tokenCount} tokens</span>
+                        </div>
+                        {chunk.metadata.sectionPath.length > 0 && (
+                          <div className="mb-1 truncate text-[11px] text-primary">
+                            {chunk.metadata.sectionPath.join(' / ')}
+                          </div>
+                        )}
+                        <p className="line-clamp-4 whitespace-pre-wrap text-xs text-muted-foreground">
+                          {chunk.content}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 text-sm text-muted-foreground">
+                  {t('knowledge.chunkPreviewEmpty')}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setImportTarget(null)}>
+              {t('settings.cancel')}
+            </Button>
+            <Button onClick={handlePreviewChunks} disabled={previewing}>
+              <Scissors size={14} />
+              {previewing ? t('knowledge.previewing') : t('knowledge.previewChunks')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
