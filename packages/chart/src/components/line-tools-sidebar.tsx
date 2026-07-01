@@ -11,18 +11,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@eous/ui'
-import { useCallback, useState } from 'react'
-import {
-  ChartNoAxesCombined,
-  GripVertical,
-  MessageSquare,
-  MousePointer2,
-  PencilLine,
-  Ruler,
-} from 'lucide-react'
+import { ChartNoAxesCombined, MessageSquare, MousePointer2, PencilLine, Ruler } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { LINE_TOOL_GROUPS } from '../line-tools/registry'
-import type { LineToolDefinition } from '../line-tools/types'
 
 interface ToolItem {
   id: string
@@ -45,58 +36,28 @@ const GROUP_ICONS: Record<string, LucideIcon> = {
 
 interface LineToolsSidebarProps {
   activeTool: string
-  tools: LineToolDefinition[]
   onSelectTool: (id: string) => void
 }
 
-export function LineToolsSidebar({
-  activeTool,
-  tools: _tools,
-  onSelectTool,
-}: LineToolsSidebarProps) {
+export function LineToolsSidebar({ activeTool, onSelectTool }: LineToolsSidebarProps) {
   const activeGroup = LINE_TOOL_GROUPS.find((group) =>
     group.tools.some((tool) => tool.type === activeTool),
   )
-  const [width, setWidth] = useState(48)
-  const showLabels = width >= 96
-
-  const handleResizePointerDown = useCallback(
-    (event: React.PointerEvent<HTMLDivElement>) => {
-      event.preventDefault()
-      const startX = event.clientX
-      const startWidth = width
-
-      function handlePointerMove(moveEvent: PointerEvent) {
-        const nextWidth = Math.min(180, Math.max(44, startWidth + moveEvent.clientX - startX))
-        setWidth(nextWidth)
-      }
-
-      function handlePointerUp() {
-        window.removeEventListener('pointermove', handlePointerMove)
-        window.removeEventListener('pointerup', handlePointerUp)
-      }
-
-      window.addEventListener('pointermove', handlePointerMove)
-      window.addEventListener('pointerup', handlePointerUp)
-    },
-    [width],
-  )
 
   return (
-    <div className="relative flex shrink-0 flex-col gap-0.5 py-1.5" style={{ width }}>
+    <div className="flex w-11 shrink-0 flex-col items-center gap-0.5 border-r border-border bg-background py-1.5">
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
             variant="ghost-icon"
             className={cn(
-              'mx-1 justify-start',
-              !showLabels && 'justify-center px-0',
+              'h-7 w-7 px-0',
               activeTool === POINTER_TOOL.id && 'bg-primary/15 text-primary',
             )}
             onClick={() => onSelectTool(POINTER_TOOL.id)}
+            aria-label={POINTER_TOOL.label}
           >
             <POINTER_TOOL.icon size={14} />
-            {showLabels && <span className="truncate text-xs">{POINTER_TOOL.label}</span>}
           </Button>
         </TooltipTrigger>
         <TooltipContent side="right" sideOffset={8}>
@@ -116,14 +77,10 @@ export function LineToolsSidebar({
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost-icon"
-                    className={cn(
-                      'mx-1 justify-start',
-                      !showLabels && 'justify-center px-0',
-                      groupIsActive && 'bg-primary/15 text-primary',
-                    )}
+                    className={cn('h-7 w-7 px-0', groupIsActive && 'bg-primary/15 text-primary')}
+                    aria-label={activeDefinition?.label ?? group.label}
                   >
                     <GroupIcon size={14} />
-                    {showLabels && <span className="truncate text-xs">{group.label}</span>}
                   </Button>
                 </DropdownMenuTrigger>
               </TooltipTrigger>
@@ -155,14 +112,6 @@ export function LineToolsSidebar({
       })}
 
       <div className="flex-1" />
-
-      <div
-        className="absolute right-0 top-0 flex h-full w-2 translate-x-1 cursor-col-resize items-center justify-center text-muted-foreground/60 hover:text-primary"
-        onPointerDown={handleResizePointerDown}
-        aria-hidden="true"
-      >
-        <GripVertical size={12} />
-      </div>
     </div>
   )
 }

@@ -22,7 +22,6 @@ import { IndicatorConfigPanel } from './components/indicator-config-panel'
 import { IndicatorLegend } from './components/indicator-legend'
 import { LineToolsSidebar } from './components/line-tools-sidebar'
 import { ResizablePanelHeader } from './components/resizable-panel-header'
-import { LINE_TOOL_DEFINITIONS } from './line-tools/registry'
 import { getIndicatorDefinition } from './indicators/registry'
 import type { LineToolType } from 'lightweight-charts-line-tools-core'
 import type { DrawingStyle } from './core/line-tools-engine'
@@ -574,11 +573,7 @@ function KlineChartInner({
       {/* Chart area with sidebar */}
       <div className="relative flex-1 flex min-h-0">
         {/* Left sidebar: line tools */}
-        <LineToolsSidebar
-          activeTool={activeDrawingTool}
-          tools={LINE_TOOL_DEFINITIONS}
-          onSelectTool={handleSelectTool}
-        />
+        <LineToolsSidebar activeTool={activeDrawingTool} onSelectTool={handleSelectTool} />
 
         <ResizablePanelGroup orientation="horizontal" className="min-h-0 flex-1">
           <ResizablePanel defaultSize={panelOpen ? 72 : 100} minSize={55} className="min-w-0">

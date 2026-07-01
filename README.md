@@ -14,6 +14,7 @@ Eous TradingFlow 是一个低代码交易分析工作台。它把数据源、图
 | [06 - UI、工作区与图表](./docs/06-ui-workspace-chart.md) | Shell、Sidebar、Dockview 工作区、K 线图表、UI 规范      |
 | [07 - 路线图](./docs/07-roadmap.md)                      | 已完成、部分完成、未开始的阶段状态                      |
 | [08 - Backlog](./docs/08-backlog.md)                     | 合并后的候补需求池                                      |
+| [10 - Knowledge Base](./docs/10-knowledge-base.md)       | 知识库导入、压缩、分片、索引和 Workflow 检索节点方案    |
 | [开发规范](./docs/development-guidelines.md)             | 类型、分层、前后端编码约束                              |
 
 ## 当前技术栈
