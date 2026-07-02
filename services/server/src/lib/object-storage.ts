@@ -16,10 +16,12 @@ export interface StoredObject {
 let client: S3Client | null = null
 let bucketReady = false
 
-function requiredEnv(name: string): string {
-  const value = process.env[name]?.trim()
-  if (!value) throw new AppError(`Missing object storage config: ${name}`, 500)
-  return value
+function envValue(...names: string[]): string | null {
+  for (const name of names) {
+    const value = process.env[name]?.trim()
+    if (value) return value
+  }
+  return null
 }
 
 function getBucket(): string {
@@ -32,14 +34,27 @@ function getClient(): S3Client {
   const endpoint = process.env.KNOWLEDGE_OBJECT_ENDPOINT?.trim() || 'http://localhost:9000'
   const region = process.env.KNOWLEDGE_OBJECT_REGION?.trim() || 'us-east-1'
   const forcePathStyle = process.env.KNOWLEDGE_OBJECT_FORCE_PATH_STYLE !== 'false'
+  const isLocalEndpoint = /^https?:\/\/(localhost|127\.0\.0\.1|minio)(:\d+)?\/?$/i.test(endpoint)
+  const accessKeyId =
+    envValue('KNOWLEDGE_OBJECT_ACCESS_KEY', 'MINIO_ROOT_USER') ?? (isLocalEndpoint ? 'eous' : null)
+  const secretAccessKey =
+    envValue('KNOWLEDGE_OBJECT_SECRET_KEY', 'MINIO_ROOT_PASSWORD') ??
+    (isLocalEndpoint ? 'eous_password' : null)
+
+  if (!accessKeyId || !secretAccessKey) {
+    throw new AppError(
+      'Missing object storage config: KNOWLEDGE_OBJECT_ACCESS_KEY/KNOWLEDGE_OBJECT_SECRET_KEY',
+      500,
+    )
+  }
 
   client = new S3Client({
     endpoint,
     region,
     forcePathStyle,
     credentials: {
-      accessKeyId: requiredEnv('KNOWLEDGE_OBJECT_ACCESS_KEY'),
-      secretAccessKey: requiredEnv('KNOWLEDGE_OBJECT_SECRET_KEY'),
+      accessKeyId,
+      secretAccessKey,
     },
   })
 
