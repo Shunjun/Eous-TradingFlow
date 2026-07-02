@@ -186,6 +186,9 @@ export const zh = {
   'knowledge.importDocument': '导入文档',
   'knowledge.importDocumentDescription':
     '向“{name}”上传文档，文件会先保存到对象存储，后续再执行解析和向量化。',
+  'knowledge.backToKnowledge': '返回知识库',
+  'knowledge.createEyebrow': '新建知识库',
+  'knowledge.createTitle': '创建知识库',
   'knowledge.documentTitle': '文档标题',
   'knowledge.documentTitlePlaceholder': '例如：趋势交易章节笔记',
   'knowledge.documentFile': '文档文件',

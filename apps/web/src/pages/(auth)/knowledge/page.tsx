@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { KnowledgeBase } from '@eous/api-client'
 import {
   Button,
@@ -15,7 +16,6 @@ import {
   Input,
   Label,
   Switch,
-  Textarea,
 } from '@eous/ui'
 import { Database, FileText, Library, Plus, Trash2, Upload } from 'lucide-react'
 import { api } from '../../../lib/api'
@@ -30,10 +30,6 @@ export default function KnowledgePage() {
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [creating, setCreating] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<KnowledgeBase | null>(null)
   const [importTarget, setImportTarget] = useState<KnowledgeBase | null>(null)
   const [importTitle, setImportTitle] = useState('')
@@ -61,31 +57,6 @@ export default function KnowledgePage() {
   useEffect(() => {
     void loadKnowledgeBases()
   }, [])
-
-  async function handleCreate() {
-    const trimmedName = name.trim()
-    if (!trimmedName) {
-      setError(t('knowledge.nameRequired'))
-      return
-    }
-
-    setCreating(true)
-    setError(null)
-    try {
-      await api.createKnowledgeBase({
-        name: trimmedName,
-        description: description.trim() || null,
-      })
-      setDialogOpen(false)
-      setName('')
-      setDescription('')
-      await loadKnowledgeBases()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('knowledge.failedToCreate'))
-    } finally {
-      setCreating(false)
-    }
-  }
 
   async function handleToggleEnabled(item: KnowledgeBase) {
     setError(null)
@@ -143,207 +114,182 @@ export default function KnowledgePage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-[1400px] flex-col gap-5 p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <Library size={18} className="text-primary" />
-            <h1 className="text-xl font-semibold">{t('knowledge.title')}</h1>
+    <div className="min-h-full bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.10),transparent_34rem)] px-6 py-6">
+      <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Library size={18} className="text-primary" />
+              <h1 className="text-xl font-semibold">{t('knowledge.title')}</h1>
+            </div>
+            <p className="max-w-2xl text-sm text-muted-foreground">{t('knowledge.description')}</p>
           </div>
-          <p className="max-w-2xl text-sm text-muted-foreground">{t('knowledge.description')}</p>
+          <Button asChild>
+            <Link to="/knowledge/new">
+              <Plus size={16} />
+              {t('knowledge.newKnowledgeBase')}
+            </Link>
+          </Button>
         </div>
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus size={16} />
-          {t('knowledge.newKnowledgeBase')}
-        </Button>
-      </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        <CardPanel>
-          <CardPanelBody className="p-4">
-            <div className="text-xs text-muted-foreground">{t('knowledge.total')}</div>
-            <div className="mt-1 text-2xl font-semibold">{knowledgeBases.length}</div>
-          </CardPanelBody>
-        </CardPanel>
-        <CardPanel>
-          <CardPanelBody className="p-4">
-            <div className="text-xs text-muted-foreground">{t('knowledge.enabled')}</div>
-            <div className="mt-1 text-2xl font-semibold">{enabledCount}</div>
-          </CardPanelBody>
-        </CardPanel>
-        <CardPanel>
-          <CardPanelBody className="p-4">
-            <div className="text-xs text-muted-foreground">{t('knowledge.disabled')}</div>
-            <div className="mt-1 text-2xl font-semibold">
-              {knowledgeBases.length - enabledCount}
-            </div>
-          </CardPanelBody>
-        </CardPanel>
-      </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          <CardPanel>
+            <CardPanelBody className="p-4">
+              <div className="text-xs text-muted-foreground">{t('knowledge.total')}</div>
+              <div className="mt-1 text-2xl font-semibold">{knowledgeBases.length}</div>
+            </CardPanelBody>
+          </CardPanel>
+          <CardPanel>
+            <CardPanelBody className="p-4">
+              <div className="text-xs text-muted-foreground">{t('knowledge.enabled')}</div>
+              <div className="mt-1 text-2xl font-semibold">{enabledCount}</div>
+            </CardPanelBody>
+          </CardPanel>
+          <CardPanel>
+            <CardPanelBody className="p-4">
+              <div className="text-xs text-muted-foreground">{t('knowledge.disabled')}</div>
+              <div className="mt-1 text-2xl font-semibold">
+                {knowledgeBases.length - enabledCount}
+              </div>
+            </CardPanelBody>
+          </CardPanel>
+        </div>
 
-      <CardPanel>
-        <CardPanelHeader icon={Database} title={t('knowledge.library')} />
-        <CardPanelBody className="p-0">
-          {error && (
-            <div className="border-b border-border p-4 text-sm text-destructive">{error}</div>
-          )}
-          {loading ? (
-            <div className="p-6 text-sm text-muted-foreground">{t('knowledge.loading')}</div>
-          ) : knowledgeBases.length === 0 ? (
-            <div className="p-6">
-              <div className="text-sm font-medium">{t('knowledge.emptyTitle')}</div>
-              <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-                {t('knowledge.emptyDescription')}
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {knowledgeBases.map((item) => (
-                <div
-                  key={item.id}
-                  className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
-                >
-                  <div className="min-w-0 space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <div className="truncate text-sm font-medium">{item.name}</div>
-                      <span className="rounded border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
-                        {item.enabled ? t('knowledge.enabled') : t('knowledge.disabled')}
-                      </span>
+        <CardPanel>
+          <CardPanelHeader icon={Database} title={t('knowledge.library')} />
+          <CardPanelBody className="p-0">
+            {error && (
+              <div className="border-b border-border p-4 text-sm text-destructive">{error}</div>
+            )}
+            {loading ? (
+              <div className="p-6 text-sm text-muted-foreground">{t('knowledge.loading')}</div>
+            ) : knowledgeBases.length === 0 ? (
+              <div className="p-6">
+                <div className="text-sm font-medium">{t('knowledge.emptyTitle')}</div>
+                <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+                  {t('knowledge.emptyDescription')}
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {knowledgeBases.map((item) => (
+                  <div
+                    key={item.id}
+                    className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
+                  >
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="truncate text-sm font-medium">{item.name}</div>
+                        <span className="rounded border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+                          {item.enabled ? t('knowledge.enabled') : t('knowledge.disabled')}
+                        </span>
+                      </div>
+                      <p className="max-w-3xl text-sm text-muted-foreground">
+                        {item.description || t('knowledge.noDescription')}
+                      </p>
+                      <div className="text-xs text-muted-foreground">
+                        {t('knowledge.updatedAt').replace('{time}', formatDate(item.updatedAt))}
+                      </div>
                     </div>
-                    <p className="max-w-3xl text-sm text-muted-foreground">
-                      {item.description || t('knowledge.noDescription')}
-                    </p>
-                    <div className="text-xs text-muted-foreground">
-                      {t('knowledge.updatedAt').replace('{time}', formatDate(item.updatedAt))}
+                    <div className="flex items-center gap-3">
+                      <Button variant="outline" size="sm" onClick={() => openImportDialog(item)}>
+                        <FileText size={14} />
+                        {t('knowledge.importDocument')}
+                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={item.enabled}
+                          onCheckedChange={() => void handleToggleEnabled(item)}
+                          aria-label={t('knowledge.toggleEnabled')}
+                        />
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="size-9 p-0"
+                        onClick={() => setPendingDelete(item)}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Button variant="outline" size="sm" onClick={() => openImportDialog(item)}>
-                      <FileText size={14} />
-                      {t('knowledge.importDocument')}
-                    </Button>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={item.enabled}
-                        onCheckedChange={() => void handleToggleEnabled(item)}
-                        aria-label={t('knowledge.toggleEnabled')}
-                      />
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="size-9 p-0"
-                      onClick={() => setPendingDelete(item)}
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardPanelBody>
-      </CardPanel>
+                ))}
+              </div>
+            )}
+          </CardPanelBody>
+        </CardPanel>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('knowledge.newKnowledgeBase')}</DialogTitle>
-            <DialogDescription>{t('knowledge.newDialogDescription')}</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>{t('knowledge.name')}</Label>
-              <Input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder={t('knowledge.namePlaceholder')}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>{t('knowledge.descriptionLabel')}</Label>
-              <Textarea
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder={t('knowledge.descriptionPlaceholder')}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setDialogOpen(false)}>
-              {t('settings.cancel')}
-            </Button>
-            <Button onClick={handleCreate} disabled={creating}>
-              {creating ? t('knowledge.creating') : t('settings.create')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <ConfirmDialog
+          open={pendingDelete !== null}
+          onOpenChange={(open) => !open && setPendingDelete(null)}
+          title={t('knowledge.deleteTitle').replace('{name}', pendingDelete?.name ?? '')}
+          description={t('knowledge.deleteDescription')}
+          confirmLabel={t('settings.delete')}
+          cancelLabel={t('settings.cancel')}
+          onConfirm={handleDelete}
+          destructive
+        />
 
-      <ConfirmDialog
-        open={pendingDelete !== null}
-        onOpenChange={(open) => !open && setPendingDelete(null)}
-        title={t('knowledge.deleteTitle').replace('{name}', pendingDelete?.name ?? '')}
-        description={t('knowledge.deleteDescription')}
-        confirmLabel={t('settings.delete')}
-        cancelLabel={t('settings.cancel')}
-        onConfirm={handleDelete}
-        destructive
-      />
+        <Dialog
+          open={importTarget !== null}
+          onOpenChange={(open) => !open && setImportTarget(null)}
+        >
+          <DialogContent className="sm:max-w-[720px]">
+            <DialogHeader>
+              <DialogTitle>{t('knowledge.importDocument')}</DialogTitle>
+              <DialogDescription>
+                {t('knowledge.importDocumentDescription').replace(
+                  '{name}',
+                  importTarget?.name ?? '',
+                )}
+              </DialogDescription>
+            </DialogHeader>
 
-      <Dialog open={importTarget !== null} onOpenChange={(open) => !open && setImportTarget(null)}>
-        <DialogContent className="sm:max-w-[720px]">
-          <DialogHeader>
-            <DialogTitle>{t('knowledge.importDocument')}</DialogTitle>
-            <DialogDescription>
-              {t('knowledge.importDocumentDescription').replace('{name}', importTarget?.name ?? '')}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>{t('knowledge.documentTitle')}</Label>
-              <Input
-                value={importTitle}
-                onChange={(event) => setImportTitle(event.target.value)}
-                placeholder={t('knowledge.documentTitlePlaceholder')}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label>{t('knowledge.documentFile')}</Label>
-              <label className="flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-border bg-muted/20 px-4 py-6 text-center transition hover:bg-muted/40">
-                <Upload size={22} className="text-primary" />
-                <div className="mt-3 text-sm font-medium">
-                  {importFile ? importFile.name : t('knowledge.selectDocumentFile')}
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground">
-                  {importFile
-                    ? `${Math.ceil(importFile.size / 1024)} KB`
-                    : t('knowledge.documentFileHint')}
-                </div>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>{t('knowledge.documentTitle')}</Label>
                 <Input
-                  className="hidden"
-                  type="file"
-                  accept=".txt,.md,.markdown,.pdf,.docx,.epub,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/epub+zip"
-                  onChange={(event) => {
-                    setImportFile(event.target.files?.[0] ?? null)
-                  }}
+                  value={importTitle}
+                  onChange={(event) => setImportTitle(event.target.value)}
+                  placeholder={t('knowledge.documentTitlePlaceholder')}
                 />
-              </label>
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t('knowledge.documentFile')}</Label>
+                <label className="flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-border bg-muted/20 px-4 py-6 text-center transition hover:bg-muted/40">
+                  <Upload size={22} className="text-primary" />
+                  <div className="mt-3 text-sm font-medium">
+                    {importFile ? importFile.name : t('knowledge.selectDocumentFile')}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {importFile
+                      ? `${Math.ceil(importFile.size / 1024)} KB`
+                      : t('knowledge.documentFileHint')}
+                  </div>
+                  <Input
+                    className="hidden"
+                    type="file"
+                    accept=".txt,.md,.markdown,.pdf,.docx,.epub,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/epub+zip"
+                    onChange={(event) => {
+                      setImportFile(event.target.files?.[0] ?? null)
+                    }}
+                  />
+                </label>
+              </div>
             </div>
-          </div>
 
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setImportTarget(null)}>
-              {t('settings.cancel')}
-            </Button>
-            <Button onClick={handleUploadDocument} disabled={uploading}>
-              <Upload size={14} />
-              {uploading ? t('knowledge.uploading') : t('knowledge.uploadDocument')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setImportTarget(null)}>
+                {t('settings.cancel')}
+              </Button>
+              <Button onClick={handleUploadDocument} disabled={uploading}>
+                <Upload size={14} />
+                {uploading ? t('knowledge.uploading') : t('knowledge.uploadDocument')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   )
 }

@@ -201,6 +201,9 @@ export const en = {
   'knowledge.importDocument': 'Import document',
   'knowledge.importDocumentDescription':
     'Upload a document into "{name}". The file is stored in object storage before parsing and vector indexing.',
+  'knowledge.backToKnowledge': 'Back to knowledge',
+  'knowledge.createEyebrow': 'New knowledge base',
+  'knowledge.createTitle': 'Create knowledge base',
   'knowledge.documentTitle': 'Document title',
   'knowledge.documentTitlePlaceholder': 'e.g. Trend trading chapter notes',
   'knowledge.documentFile': 'Document file',
