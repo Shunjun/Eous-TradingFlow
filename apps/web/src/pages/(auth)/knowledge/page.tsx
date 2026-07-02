@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import type { KnowledgeBase } from '@eous/api-client'
 import {
   Button,
@@ -16,8 +16,9 @@ import {
   Input,
   Label,
   Switch,
+  Textarea,
 } from '@eous/ui'
-import { Database, FileText, Library, Plus, Trash2, Upload } from 'lucide-react'
+import { Database, FileText, Library, Plus, Trash2 } from 'lucide-react'
 import { api } from '../../../lib/api'
 import { useI18n } from '../../../lib/i18n'
 
@@ -27,14 +28,15 @@ function formatDate(value: string): string {
 
 export default function KnowledgePage() {
   const { t } = useI18n()
+  const navigate = useNavigate()
   const [knowledgeBases, setKnowledgeBases] = useState<KnowledgeBase[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [creating, setCreating] = useState(false)
   const [pendingDelete, setPendingDelete] = useState<KnowledgeBase | null>(null)
-  const [importTarget, setImportTarget] = useState<KnowledgeBase | null>(null)
-  const [importTitle, setImportTitle] = useState('')
-  const [importFile, setImportFile] = useState<File | null>(null)
-  const [uploading, setUploading] = useState(false)
 
   const enabledCount = useMemo(
     () => knowledgeBases.filter((item) => item.enabled).length,
@@ -57,6 +59,31 @@ export default function KnowledgePage() {
   useEffect(() => {
     void loadKnowledgeBases()
   }, [])
+
+  async function handleCreate() {
+    const trimmedName = name.trim()
+    if (!trimmedName) {
+      setError(t('knowledge.nameRequired'))
+      return
+    }
+
+    setCreating(true)
+    setError(null)
+    try {
+      await api.createKnowledgeBase({
+        name: trimmedName,
+        description: description.trim() || null,
+      })
+      setDialogOpen(false)
+      setName('')
+      setDescription('')
+      await loadKnowledgeBases()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('knowledge.failedToCreate'))
+    } finally {
+      setCreating(false)
+    }
+  }
 
   async function handleToggleEnabled(item: KnowledgeBase) {
     setError(null)
@@ -82,37 +109,6 @@ export default function KnowledgePage() {
     }
   }
 
-  async function handleUploadDocument() {
-    if (!importTarget) return
-    if (!importFile) {
-      setError(t('knowledge.fileRequired'))
-      return
-    }
-
-    setUploading(true)
-    setError(null)
-    try {
-      await api.uploadKnowledgeDocument(importTarget.id, {
-        file: importFile,
-        title: importTitle,
-        strategy: 'raw',
-      })
-      setImportTarget(null)
-      setImportTitle('')
-      setImportFile(null)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('knowledge.failedToUploadDocument'))
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  function openImportDialog(item: KnowledgeBase) {
-    setImportTarget(item)
-    setImportTitle('')
-    setImportFile(null)
-  }
-
   return (
     <div className="min-h-full bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.10),transparent_34rem)] px-6 py-6">
       <div className="flex flex-col gap-5">
@@ -124,11 +120,9 @@ export default function KnowledgePage() {
             </div>
             <p className="max-w-2xl text-sm text-muted-foreground">{t('knowledge.description')}</p>
           </div>
-          <Button asChild>
-            <Link to="/knowledge/new">
-              <Plus size={16} />
-              {t('knowledge.newKnowledgeBase')}
-            </Link>
+          <Button onClick={() => setDialogOpen(true)}>
+            <Plus size={16} />
+            {t('knowledge.newKnowledgeBase')}
           </Button>
         </div>
 
@@ -192,7 +186,11 @@ export default function KnowledgePage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <Button variant="outline" size="sm" onClick={() => openImportDialog(item)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/knowledge/${item.id}/import`)}
+                      >
                         <FileText size={14} />
                         {t('knowledge.importDocument')}
                       </Button>
@@ -219,6 +217,41 @@ export default function KnowledgePage() {
           </CardPanelBody>
         </CardPanel>
 
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t('knowledge.newKnowledgeBase')}</DialogTitle>
+              <DialogDescription>{t('knowledge.newDialogDescription')}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>{t('knowledge.name')}</Label>
+                <Input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder={t('knowledge.namePlaceholder')}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>{t('knowledge.descriptionLabel')}</Label>
+                <Textarea
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder={t('knowledge.descriptionPlaceholder')}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setDialogOpen(false)}>
+                {t('settings.cancel')}
+              </Button>
+              <Button onClick={handleCreate} disabled={creating}>
+                {creating ? t('knowledge.creating') : t('settings.create')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <ConfirmDialog
           open={pendingDelete !== null}
           onOpenChange={(open) => !open && setPendingDelete(null)}
@@ -229,66 +262,6 @@ export default function KnowledgePage() {
           onConfirm={handleDelete}
           destructive
         />
-
-        <Dialog
-          open={importTarget !== null}
-          onOpenChange={(open) => !open && setImportTarget(null)}
-        >
-          <DialogContent className="sm:max-w-[720px]">
-            <DialogHeader>
-              <DialogTitle>{t('knowledge.importDocument')}</DialogTitle>
-              <DialogDescription>
-                {t('knowledge.importDocumentDescription').replace(
-                  '{name}',
-                  importTarget?.name ?? '',
-                )}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label>{t('knowledge.documentTitle')}</Label>
-                <Input
-                  value={importTitle}
-                  onChange={(event) => setImportTitle(event.target.value)}
-                  placeholder={t('knowledge.documentTitlePlaceholder')}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>{t('knowledge.documentFile')}</Label>
-                <label className="flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-border bg-muted/20 px-4 py-6 text-center transition hover:bg-muted/40">
-                  <Upload size={22} className="text-primary" />
-                  <div className="mt-3 text-sm font-medium">
-                    {importFile ? importFile.name : t('knowledge.selectDocumentFile')}
-                  </div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {importFile
-                      ? `${Math.ceil(importFile.size / 1024)} KB`
-                      : t('knowledge.documentFileHint')}
-                  </div>
-                  <Input
-                    className="hidden"
-                    type="file"
-                    accept=".txt,.md,.markdown,.pdf,.docx,.epub,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/epub+zip"
-                    onChange={(event) => {
-                      setImportFile(event.target.files?.[0] ?? null)
-                    }}
-                  />
-                </label>
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button variant="ghost" onClick={() => setImportTarget(null)}>
-                {t('settings.cancel')}
-              </Button>
-              <Button onClick={handleUploadDocument} disabled={uploading}>
-                <Upload size={14} />
-                {uploading ? t('knowledge.uploading') : t('knowledge.uploadDocument')}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   )
