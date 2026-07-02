@@ -207,8 +207,19 @@ export const en = {
   'knowledge.importText': 'Import text',
   'knowledge.importTextDescription':
     'Import Markdown or TXT text into "{name}" and preview raw chunks.',
+  'knowledge.importDocument': 'Import document',
+  'knowledge.importDocumentDescription':
+    'Upload a document into "{name}". The file is stored in object storage before parsing and vector indexing.',
   'knowledge.documentTitle': 'Document title',
   'knowledge.documentTitlePlaceholder': 'e.g. Trend trading chapter notes',
+  'knowledge.documentFile': 'Document file',
+  'knowledge.selectDocumentFile': 'Select a document file',
+  'knowledge.documentFileHint':
+    'Supports TXT, Markdown, PDF, DOCX, and EPUB. This step currently stores the upload.',
+  'knowledge.fileRequired': 'Select a document file first',
+  'knowledge.failedToUploadDocument': 'Failed to upload document',
+  'knowledge.uploadDocument': 'Upload document',
+  'knowledge.uploading': 'Uploading...',
   'knowledge.textContent': 'Text content',
   'knowledge.textContentPlaceholder': 'Paste Markdown or TXT content...',
   'knowledge.contentRequired': 'Enter text content first',

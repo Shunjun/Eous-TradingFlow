@@ -27,6 +27,37 @@ services:
       retries: 20
     restart: unless-stopped
 
+  minio:
+    image: quay.io/minio/minio:latest
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-eous}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-eous_password}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  minio-init:
+    image: quay.io/minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-eous}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-eous_password}
+      KNOWLEDGE_OBJECT_BUCKET: ${KNOWLEDGE_OBJECT_BUCKET:-knowledge}
+    entrypoint:
+      [
+        'sh',
+        '-c',
+        'mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" && mc mb --ignore-existing "local/$${KNOWLEDGE_OBJECT_BUCKET}"',
+      ]
+
   server:
     build:
       context: .
@@ -41,10 +72,18 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
       EOUS_PROVIDER_PROXY_URL: ${EOUS_PROVIDER_PROXY_URL:-}
       PATTERN_GRPC_URL: pattern-service:50051
+      KNOWLEDGE_OBJECT_ENDPOINT: ${KNOWLEDGE_OBJECT_ENDPOINT:-http://minio:9000}
+      KNOWLEDGE_OBJECT_REGION: ${KNOWLEDGE_OBJECT_REGION:-us-east-1}
+      KNOWLEDGE_OBJECT_BUCKET: ${KNOWLEDGE_OBJECT_BUCKET:-knowledge}
+      KNOWLEDGE_OBJECT_ACCESS_KEY: ${KNOWLEDGE_OBJECT_ACCESS_KEY:-${MINIO_ROOT_USER:-eous}}
+      KNOWLEDGE_OBJECT_SECRET_KEY: ${KNOWLEDGE_OBJECT_SECRET_KEY:-${MINIO_ROOT_PASSWORD:-eous_password}}
+      KNOWLEDGE_OBJECT_FORCE_PATH_STYLE: ${KNOWLEDGE_OBJECT_FORCE_PATH_STYLE:-true}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      minio:
         condition: service_healthy
       pattern-service:
         condition: service_started
@@ -82,3 +121,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  minio_data:

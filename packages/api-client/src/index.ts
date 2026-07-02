@@ -654,6 +654,14 @@ export interface ApiClient {
     },
   ): Promise<{ document: KnowledgeDocument }>
   deleteKnowledgeDocument(documentId: string): Promise<void>
+  uploadKnowledgeDocument(
+    knowledgeBaseId: string,
+    params: {
+      file: File
+      title?: string
+      strategy?: 'raw' | 'compressed' | 'hybrid'
+    },
+  ): Promise<{ document: KnowledgeDocument }>
   previewKnowledgeChunks(
     knowledgeBaseId: string,
     params: {
@@ -933,12 +941,11 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
     body?: unknown,
     reqOptions?: { skipJSON?: boolean },
   ): Promise<T> => {
+    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
     let ctx: RequestContext = {
       method,
       url: `${baseURL}${path}`,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: isFormData ? {} : { 'Content-Type': 'application/json' },
       body,
     }
 
@@ -954,7 +961,7 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
     const response = await fetch(ctx.url, {
       method: ctx.method,
       headers: ctx.headers,
-      body: ctx.body ? JSON.stringify(ctx.body) : undefined,
+      body: isFormData ? (ctx.body as BodyInit) : ctx.body ? JSON.stringify(ctx.body) : undefined,
       credentials,
     })
 
@@ -1171,6 +1178,13 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       post(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/documents`, params),
     deleteKnowledgeDocument: (documentId: string) =>
       del(`/knowledge-bases/documents/${encodeURIComponent(documentId)}`, true),
+    uploadKnowledgeDocument: (knowledgeBaseId, params) => {
+      const form = new FormData()
+      form.set('file', params.file)
+      if (params.title?.trim()) form.set('title', params.title.trim())
+      if (params.strategy) form.set('strategy', params.strategy)
+      return post(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/documents/upload`, form)
+    },
     previewKnowledgeChunks: (knowledgeBaseId, params) =>
       post(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/chunk-preview`, params),
 

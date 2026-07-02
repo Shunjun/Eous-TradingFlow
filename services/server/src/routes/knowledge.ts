@@ -35,6 +35,33 @@ knowledgeRouter.post('/:id/documents', async (c) => {
   return c.json({ document }, 201)
 })
 
+knowledgeRouter.post('/:id/documents/upload', async (c) => {
+  await knowledgeService.assertKnowledgeBaseAccess(c.get('userId'), c.req.param('id'))
+
+  const body = await c.req.parseBody()
+  const file = body.file
+  if (!(file instanceof File)) {
+    return c.json({ error: 'Document file is required' }, 400)
+  }
+
+  const title = typeof body.title === 'string' ? body.title : undefined
+  const strategy = typeof body.strategy === 'string' ? body.strategy : undefined
+  const document = await knowledgeService.uploadKnowledgeDocument(
+    c.get('userId'),
+    c.req.param('id'),
+    {
+      title,
+      fileName: file.name,
+      mimeType: file.type || null,
+      size: file.size,
+      buffer: Buffer.from(await file.arrayBuffer()),
+      strategy: strategy as 'raw' | 'compressed' | 'hybrid' | undefined,
+    },
+  )
+
+  return c.json({ document }, 201)
+})
+
 knowledgeRouter.post('/:id/chunk-preview', async (c) => {
   await knowledgeService.assertKnowledgeBaseAccess(c.get('userId'), c.req.param('id'))
   const body = await c.req.json<knowledgeService.ChunkPreviewInput>()

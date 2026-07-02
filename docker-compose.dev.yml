@@ -31,6 +31,41 @@ services:
       retries: 20
     restart: unless-stopped
 
+  minio:
+    image: quay.io/minio/minio:latest
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-eous}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-eous_password}
+    ports:
+      - '${MINIO_PORT:-9000}:9000'
+      - '${MINIO_CONSOLE_PORT:-9001}:9001'
+    volumes:
+      - minio_dev_data:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  minio-init:
+    image: quay.io/minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-eous}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-eous_password}
+      KNOWLEDGE_OBJECT_BUCKET: ${KNOWLEDGE_OBJECT_BUCKET:-knowledge}
+    entrypoint:
+      [
+        'sh',
+        '-c',
+        'mc alias set local http://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}" && mc mb --ignore-existing "local/$${KNOWLEDGE_OBJECT_BUCKET}"',
+      ]
+
 volumes:
   postgres_dev_data:
   redis_dev_data:
+  minio_dev_data:

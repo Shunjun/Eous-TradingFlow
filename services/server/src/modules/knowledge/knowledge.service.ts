@@ -1,5 +1,8 @@
 import type { KnowledgeBase, KnowledgeDocument } from '@eous/db'
+import { createHash, randomUUID } from 'node:crypto'
+import { extname } from 'node:path'
 import { AppError } from '../../lib/app-error.js'
+import { putKnowledgeObject } from '../../lib/object-storage.js'
 import * as knowledgeRepo from '../../repositories/knowledge.repo.js'
 
 export interface KnowledgeBaseDTO {
@@ -56,6 +59,16 @@ export interface CreateKnowledgeDocumentBody {
   metadata?: Record<string, unknown>
 }
 
+export interface UploadKnowledgeDocumentInput {
+  title?: string
+  fileName: string
+  mimeType?: string | null
+  size: number
+  buffer: Buffer
+  strategy?: 'raw' | 'compressed' | 'hybrid'
+  metadata?: Record<string, unknown>
+}
+
 function parseJsonObject(raw: string): Record<string, unknown> {
   try {
     const parsed = JSON.parse(raw) as unknown
@@ -69,6 +82,27 @@ function parseJsonObject(raw: string): Record<string, unknown> {
 
 function stringifyMetadata(metadata?: Record<string, unknown>): string | undefined {
   return metadata === undefined ? undefined : JSON.stringify(metadata)
+}
+
+function sanitizeFileName(fileName: string): string {
+  return fileName
+    .trim()
+    .replace(/[/\\]/g, '-')
+    .replace(/[^\w.\-\u4e00-\u9fa5]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 160)
+}
+
+function titleFromFileName(fileName: string): string {
+  const sanitized = sanitizeFileName(fileName)
+  const extension = extname(sanitized)
+  return (extension ? sanitized.slice(0, -extension.length) : sanitized).trim() || 'Untitled'
+}
+
+function validateStrategy(strategy: string): asserts strategy is 'raw' | 'compressed' | 'hybrid' {
+  if (!['raw', 'compressed', 'hybrid'].includes(strategy)) {
+    throw new AppError('Invalid document strategy', 400)
+  }
 }
 
 function toDTO(base: KnowledgeBase): KnowledgeBaseDTO {
@@ -186,9 +220,7 @@ export async function createKnowledgeDocument(
   if (!title) throw new AppError('Document title is required', 400)
 
   const strategy = body.strategy ?? 'raw'
-  if (!['raw', 'compressed', 'hybrid'].includes(strategy)) {
-    throw new AppError('Invalid document strategy', 400)
-  }
+  validateStrategy(strategy)
 
   const document = await knowledgeRepo.createDocument({
     knowledgeBaseId: base.id,
@@ -201,6 +233,63 @@ export async function createKnowledgeDocument(
     sourceHash: body.sourceHash?.trim() || null,
     strategy,
     metadata: stringifyMetadata(body.metadata),
+  })
+
+  return toDocumentDTO(document)
+}
+
+export async function uploadKnowledgeDocument(
+  userId: string,
+  knowledgeBaseId: string,
+  input: UploadKnowledgeDocumentInput,
+): Promise<KnowledgeDocumentDTO> {
+  const base = await assertKnowledgeBase(userId, knowledgeBaseId)
+  const fileName = sanitizeFileName(input.fileName)
+  if (!fileName) throw new AppError('File name is required', 400)
+  if (input.size <= 0) throw new AppError('Uploaded file is empty', 400)
+  if (input.size > 50 * 1024 * 1024) {
+    throw new AppError('Uploaded file exceeds the 50MB limit', 400)
+  }
+
+  const strategy = input.strategy ?? 'raw'
+  validateStrategy(strategy)
+
+  const sourceHash = createHash('sha256').update(input.buffer).digest('hex')
+  const key = [
+    'knowledge-bases',
+    base.id,
+    'documents',
+    `${Date.now()}-${randomUUID()}-${fileName}`,
+  ].join('/')
+  const storedObject = await putKnowledgeObject({
+    key,
+    body: input.buffer,
+    contentType: input.mimeType,
+    metadata: {
+      knowledgeBaseId: base.id,
+      sourceHash,
+    },
+  })
+
+  const document = await knowledgeRepo.createDocument({
+    knowledgeBaseId: base.id,
+    title: input.title?.trim() || titleFromFileName(fileName),
+    sourceType: 'file',
+    sourceUri: storedObject.uri,
+    sourceFileName: fileName,
+    sourceMimeType: input.mimeType?.trim() || null,
+    sourceSize: input.size,
+    sourceHash,
+    strategy,
+    status: 'uploaded',
+    metadata: stringifyMetadata({
+      ...(input.metadata ?? {}),
+      objectStorage: {
+        bucket: storedObject.bucket,
+        key: storedObject.key,
+        etag: storedObject.etag,
+      },
+    }),
   })
 
   return toDocumentDTO(document)
