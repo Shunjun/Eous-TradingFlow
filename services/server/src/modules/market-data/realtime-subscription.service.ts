@@ -364,12 +364,12 @@ export class RealtimeDataService {
               : undefined,
           resolved,
         })
-      } catch {
+      } catch (error) {
         const canFallbackToPoll =
           (message.mode == null || message.mode === 'auto') &&
           source === 'stream' &&
           channelCapabilities.modes.includes('poll')
-        if (!canFallbackToPoll) throw e
+        if (!canFallbackToPoll) throw error
 
         source = 'poll'
         pollIntervalMs = normalizePollInterval(
@@ -560,7 +560,7 @@ export class RealtimeDataService {
       watchdog = setInterval(
         () => {
           if (fallbackStop || Date.now() - lastStreamEventAt < staleAfterMs) return
-          startPollFallback()
+          startPollFallback?.()
         },
         Math.max(streamFallbackPollIntervalMs, 10_000),
       )
