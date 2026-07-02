@@ -33,7 +33,7 @@ export const en = {
   'settings.languageLabel': 'Interface language',
   'settings.defaultModelsTitle': 'Default models',
   'settings.defaultModelsDescription':
-    'Choose system defaults for chat, document compression, and knowledge-base embedding. These use enabled models from the Providers page.',
+    'Choose system defaults for chat, document compression, and knowledge-base embedding. Only enabled provider models are shown.',
   'settings.defaultChatModel': 'Default chat model',
   'settings.defaultChatModelDescription':
     'Used by agents, chat, and text generation tasks without an explicit model.',
@@ -101,12 +101,6 @@ export const en = {
   'settings.providersTitle': 'Providers',
   'settings.providersDescription': 'Configure vendors, API formats, and custom endpoints',
   'settings.addProvider': 'Add Provider',
-  'settings.providersCount': '{count} providers',
-  'settings.customEndpointsSupported': 'Custom endpoints supported',
-  'settings.apiFormatsCount': '4 API formats',
-  'settings.apiFormatsDescription': 'OpenAI, Anthropic, Google',
-  'settings.encryptedKeys': 'Encrypted keys',
-  'settings.encryptedKeysDescription': 'Stored server-side only',
   'settings.loadingProviders': 'Loading providers...',
   'settings.noProvidersConfigured': 'No providers configured',
   'settings.noProvidersDescription': 'Add your first provider to enable AI features.',

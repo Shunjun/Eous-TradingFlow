@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   CardPanel,
   CardPanelHeader,
@@ -51,9 +51,9 @@ import {
   Pencil,
   Save,
   ServerCog,
-  KeyRound,
   Route,
   Search,
+  Sparkles,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type {
@@ -62,6 +62,8 @@ import type {
   ProviderRemoteModel,
   ProviderTemplate,
   TestResult,
+  ModelRef,
+  UserModelSettings,
 } from '@eous/api-client'
 import type { TextKey } from '@eous/i18n'
 import { api } from '@/lib/api'
@@ -100,8 +102,90 @@ const FALLBACK_API_FORMATS = Object.entries(API_FORMAT_LABELS).map(([value, labe
 }))
 
 const MANUAL_MODEL_OPTION = '__manual_model__'
+const NONE_VALUE = '__none__'
 
 type Translate = (key: TextKey) => string
+
+interface ModelOption {
+  value: string
+  label: string
+  providerId: string
+  modelId: string
+  capabilities: string[]
+}
+
+function modelValue(ref: ModelRef | null): string {
+  return ref ? `${ref.providerId}::${ref.modelId}` : NONE_VALUE
+}
+
+function parseModelValue(value: string): ModelRef | null {
+  if (!value || value === NONE_VALUE) return null
+  const [providerId, modelId] = value.split('::')
+  return providerId && modelId ? { providerId, modelId } : null
+}
+
+function buildModelOptions(
+  providers: Provider[],
+  modelsByProviderId: Record<string, ProviderModel[]>,
+): ModelOption[] {
+  return providers.flatMap((provider) =>
+    (modelsByProviderId[provider.id] ?? [])
+      .filter((model) => model.enabled)
+      .map((model) => ({
+        value: `${provider.id}::${model.modelId}`,
+        label: `${model.displayName || model.modelId} (${provider.name})`,
+        providerId: provider.id,
+        modelId: model.modelId,
+        capabilities: model.capabilities,
+      })),
+  )
+}
+
+function ModelSelect({
+  label,
+  description,
+  icon: Icon,
+  value,
+  options,
+  placeholder,
+  onChange,
+}: {
+  label: string
+  description: string
+  icon: LucideIcon
+  value: ModelRef | null
+  options: ModelOption[]
+  placeholder: string
+  onChange: (value: ModelRef | null) => void
+}) {
+  return (
+    <div className="grid gap-3 rounded-md border border-border bg-background/70 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(260px,360px)] lg:items-center">
+      <div className="flex gap-3">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-md border border-border bg-muted/40">
+          <Icon size={16} className="text-primary" />
+        </div>
+        <div className="space-y-1">
+          <div className="text-sm font-medium text-foreground">{label}</div>
+          <p className="max-w-xl text-xs leading-relaxed text-muted-foreground">{description}</p>
+        </div>
+      </div>
+
+      <Select value={modelValue(value)} onValueChange={(next) => onChange(parseModelValue(next))}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NONE_VALUE}>{placeholder}</SelectItem>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
+}
 
 function normalizeCapabilities(input: string[]): string[] {
   return [...new Set(input.map((item) => item.trim().toLowerCase()).filter(Boolean))]
@@ -786,11 +870,13 @@ function ProviderCard({
   provider,
   templates,
   onRefresh,
+  onModelsChanged,
   t,
 }: {
   provider: Provider
   templates: ProviderTemplate[]
   onRefresh: () => void
+  onModelsChanged: () => void
   t: Translate
 }) {
   const [models, setModels] = useState<ProviderModel[]>([])
@@ -897,6 +983,7 @@ function ProviderCard({
       })
       setRemoteModels((prev) => prev.filter((item) => item.modelId !== model.modelId))
       await loadModels()
+      onModelsChanged()
     } catch (err: unknown) {
       setModelActionError(err instanceof Error ? err.message : t('settings.failedToAddModel'))
     } finally {
@@ -908,6 +995,7 @@ function ProviderCard({
     try {
       await api.updateProviderModel(provider.id, model.modelId, { enabled: !model.enabled })
       setModels((prev) => prev.map((m) => (m.id === model.id ? { ...m, enabled: !m.enabled } : m)))
+      onModelsChanged()
     } catch {
       // silent
     }
@@ -920,6 +1008,7 @@ function ProviderCard({
       await api.deleteProviderModel(provider.id, model.modelId)
       setModels((prev) => prev.filter((item) => item.id !== model.id))
       setPendingDeleteModel(null)
+      onModelsChanged()
     } catch (err: unknown) {
       setModelActionError(err instanceof Error ? err.message : t('settings.failedToDeleteModel'))
     } finally {
@@ -1226,6 +1315,7 @@ function ProviderCard({
             onAdded={() => {
               setShowAddModel(false)
               loadModels()
+              onModelsChanged()
             }}
             t={t}
           />
@@ -1238,6 +1328,7 @@ function ProviderCard({
               onSaved={() => {
                 setEditingModelId(null)
                 loadModels()
+                onModelsChanged()
               }}
               t={t}
             />
@@ -1274,6 +1365,146 @@ function ProviderCard({
   )
 }
 
+function DefaultModelsPanel({
+  providers,
+  refreshKey,
+  t,
+}: {
+  providers: Provider[]
+  refreshKey: number
+  t: Translate
+}) {
+  const [modelsByProviderId, setModelsByProviderId] = useState<Record<string, ProviderModel[]>>({})
+  const [settings, setSettings] = useState<UserModelSettings>({
+    chat: null,
+    compression: null,
+    embedding: null,
+  })
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [savedAt, setSavedAt] = useState<string | null>(null)
+
+  const loadSettings = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const [settingsRes, modelEntries] = await Promise.all([
+        api.getModelSettings(),
+        Promise.all(
+          providers.map(async (provider) => {
+            try {
+              const res = await api.getProvider(provider.id)
+              return [provider.id, res.models] as const
+            } catch {
+              return [provider.id, []] as const
+            }
+          }),
+        ),
+      ])
+      setSettings(settingsRes.settings)
+      setModelsByProviderId(Object.fromEntries(modelEntries))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('settings.failedToLoadModelSettings'))
+    } finally {
+      setLoading(false)
+    }
+  }, [providers, refreshKey, t])
+
+  useEffect(() => {
+    void loadSettings()
+  }, [loadSettings])
+
+  const modelOptions = useMemo(
+    () => buildModelOptions(providers, modelsByProviderId),
+    [modelsByProviderId, providers],
+  )
+  const textModelOptions = useMemo(
+    () => modelOptions.filter((option) => !option.capabilities.includes('embedding')),
+    [modelOptions],
+  )
+  const embeddingModelOptions = useMemo(
+    () => modelOptions.filter((option) => option.capabilities.includes('embedding')),
+    [modelOptions],
+  )
+
+  async function handleSave() {
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await api.updateModelSettings(settings)
+      setSettings(res.settings)
+      setSavedAt(new Date().toLocaleTimeString())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('settings.failedToSaveModelSettings'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <section className="mb-4 space-y-4 rounded-md border border-border bg-muted/20 p-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <h2 className="text-sm font-medium text-foreground">
+            {t('settings.defaultModelsTitle')}
+          </h2>
+          <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
+            {t('settings.defaultModelsDescription')}
+          </p>
+        </div>
+        <Button size="sm" onClick={handleSave} disabled={loading || saving}>
+          <Save size={14} />
+          {saving ? t('settings.saving') : t('settings.save')}
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="rounded-md border border-border bg-background/70 p-4 text-sm text-muted-foreground">
+          {t('settings.loadingModelSettings')}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <ModelSelect
+            label={t('settings.defaultChatModel')}
+            description={t('settings.defaultChatModelDescription')}
+            icon={Bot}
+            value={settings.chat}
+            options={textModelOptions}
+            placeholder={t('settings.noDefaultModel')}
+            onChange={(chat) => setSettings((current) => ({ ...current, chat }))}
+          />
+          <ModelSelect
+            label={t('settings.defaultCompressionModel')}
+            description={t('settings.defaultCompressionModelDescription')}
+            icon={Sparkles}
+            value={settings.compression}
+            options={textModelOptions}
+            placeholder={t('settings.noDefaultModel')}
+            onChange={(compression) => setSettings((current) => ({ ...current, compression }))}
+          />
+          <ModelSelect
+            label={t('settings.defaultEmbeddingModel')}
+            description={t('settings.defaultEmbeddingModelDescription')}
+            icon={Database}
+            value={settings.embedding}
+            options={embeddingModelOptions}
+            placeholder={t('settings.noDefaultModel')}
+            onChange={(embedding) => setSettings((current) => ({ ...current, embedding }))}
+          />
+        </div>
+      )}
+
+      {error && <div className="text-xs text-destructive">{error}</div>}
+      {savedAt && (
+        <div className="text-xs text-muted-foreground">
+          {t('settings.savedAt').replace('{time}', savedAt)}
+        </div>
+      )}
+    </section>
+  )
+}
+
 /* ── Main Page ─────────────────────────────────────────── */
 
 export default function ProvidersPage() {
@@ -1282,6 +1513,7 @@ export default function ProvidersPage() {
   const [templates, setTemplates] = useState<ProviderTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
+  const [modelsRefreshKey, setModelsRefreshKey] = useState(0)
 
   const loadProviders = useCallback(async () => {
     try {
@@ -1328,49 +1560,7 @@ export default function ProvidersPage() {
         </Button>
       </div>
 
-      <div className="mb-4 grid gap-3 md:grid-cols-3">
-        <CardPanel>
-          <CardPanelBody className="flex items-center gap-3 p-3">
-            <IconBox size="md">
-              <ServerCog size={14} className="text-muted-foreground" />
-            </IconBox>
-            <div>
-              <div className="text-sm font-medium">
-                {t('settings.providersCount').replace('{count}', String(providers.length))}
-              </div>
-              <div className="font-mono text-[11px] text-muted-foreground">
-                {t('settings.customEndpointsSupported')}
-              </div>
-            </div>
-          </CardPanelBody>
-        </CardPanel>
-        <CardPanel>
-          <CardPanelBody className="flex items-center gap-3 p-3">
-            <IconBox size="md">
-              <Route size={14} className="text-muted-foreground" />
-            </IconBox>
-            <div>
-              <div className="text-sm font-medium">{t('settings.apiFormatsCount')}</div>
-              <div className="font-mono text-[11px] text-muted-foreground">
-                {t('settings.apiFormatsDescription')}
-              </div>
-            </div>
-          </CardPanelBody>
-        </CardPanel>
-        <CardPanel>
-          <CardPanelBody className="flex items-center gap-3 p-3">
-            <IconBox size="md">
-              <KeyRound size={14} className="text-muted-foreground" />
-            </IconBox>
-            <div>
-              <div className="text-sm font-medium">{t('settings.encryptedKeys')}</div>
-              <div className="font-mono text-[11px] text-muted-foreground">
-                {t('settings.encryptedKeysDescription')}
-              </div>
-            </div>
-          </CardPanelBody>
-        </CardPanel>
-      </div>
+      {!loading && <DefaultModelsPanel providers={providers} refreshKey={modelsRefreshKey} t={t} />}
 
       {/* Add form */}
       {showAdd && (
@@ -1416,6 +1606,7 @@ export default function ProvidersPage() {
             provider={p}
             templates={templates}
             onRefresh={loadProviders}
+            onModelsChanged={() => setModelsRefreshKey((value) => value + 1)}
             t={t}
           />
         ))
