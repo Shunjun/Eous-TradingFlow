@@ -1157,22 +1157,22 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
     logout: () => post('/auth/logout', undefined, true),
 
     getModelSettings: () => get('/model-settings'),
-    updateModelSettings: (params) => patch('/model-settings', params, true),
+    updateModelSettings: (params) => patch('/model-settings', params),
 
     listKnowledgeBases: () => get('/knowledge-bases'),
     getKnowledgeBase: (id: string) => get(`/knowledge-bases/${encodeURIComponent(id)}`),
     createKnowledgeBase: (params) => post('/knowledge-bases', params),
     updateKnowledgeBase: (id, params) =>
-      patch(`/knowledge-bases/${encodeURIComponent(id)}`, params, true),
+      patch(`/knowledge-bases/${encodeURIComponent(id)}`, params),
     deleteKnowledgeBase: (id: string) => del(`/knowledge-bases/${encodeURIComponent(id)}`, true),
     listKnowledgeDocuments: (knowledgeBaseId: string) =>
       get(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/documents`),
     createKnowledgeDocument: (knowledgeBaseId, params) =>
-      post(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/documents`, params, true),
+      post(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/documents`, params),
     deleteKnowledgeDocument: (documentId: string) =>
       del(`/knowledge-bases/documents/${encodeURIComponent(documentId)}`, true),
     previewKnowledgeChunks: (knowledgeBaseId, params) =>
-      post(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/chunk-preview`, params, true),
+      post(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/chunk-preview`, params),
 
     listProviders: () => get('/providers'),
     getProvider: (id: string) => get(`/providers/${encodeURIComponent(id)}`),
