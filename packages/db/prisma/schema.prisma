@@ -106,8 +106,6 @@ model UserModelSetting {
   id                    String   @id @default(cuid())
   userId                String   @unique @map("user_id")
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  chatProviderId        String?  @map("chat_provider_id")
-  chatModelId           String?  @map("chat_model_id")
   compressionProviderId String?  @map("compression_provider_id")
   compressionModelId    String?  @map("compression_model_id")
   embeddingProviderId   String?  @map("embedding_provider_id")

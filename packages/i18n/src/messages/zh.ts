@@ -30,9 +30,7 @@ export const zh = {
   'settings.languageLabel': '界面语言',
   'settings.defaultModelsTitle': '默认模型',
   'settings.defaultModelsDescription':
-    '为对话、文档压缩和知识库向量化选择系统默认模型。这里只显示已启用的供应商模型。',
-  'settings.defaultChatModel': '默认对话模型',
-  'settings.defaultChatModelDescription': '用于智能体、对话和未单独指定模型的文本生成任务。',
+    '为知识库文档压缩和向量化选择系统默认模型。这里只显示已启用的供应商模型。',
   'settings.defaultCompressionModel': '默认压缩模型',
   'settings.defaultCompressionModelDescription': '用于知识库导入时的 chunk 压缩和摘要生成。',
   'settings.defaultEmbeddingModel': '默认 Embedding 模型',
@@ -65,7 +63,8 @@ export const zh = {
   'settings.instructions': '指令',
   'settings.provider': '供应商',
   'settings.model': '模型',
-  'settings.useSystemDefault': '使用系统默认',
+  'settings.selectProvider': '选择供应商',
+  'settings.agentModelRequired': '请先为智能体选择供应商和模型',
   'settings.selectModel': '选择模型',
   'settings.toolScope': '工具范围',
   'settings.runtimePermissionHints': '运行时权限提示',
@@ -89,7 +88,6 @@ export const zh = {
   'settings.applyAgentTemplateDescription':
     '应用模板会覆盖当前名称、描述、指令和工具范围。供应商和模型会保留。',
   'settings.applyTemplate': '应用模板',
-  'settings.defaultModelFallback': '默认模型',
   'settings.providersTitle': '供应商',
   'settings.providersDescription': '配置供应商、API 格式和自定义端点',
   'settings.addProvider': '添加供应商',

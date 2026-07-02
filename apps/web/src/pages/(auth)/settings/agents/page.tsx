@@ -386,6 +386,10 @@ export default function AgentSettingsPage() {
       setError(t('settings.selectAgentBeforeSaving'))
       return
     }
+    if (!draft.providerId || !draft.modelId) {
+      setError(t('settings.agentModelRequired'))
+      return
+    }
     setSaving(true)
     setError(null)
     try {
@@ -393,8 +397,8 @@ export default function AgentSettingsPage() {
         name: draft.name.trim(),
         description: draft.description.trim() || null,
         instructions: draft.instructions.trim() || null,
-        providerId: draft.providerId || null,
-        modelId: draft.modelId || null,
+        providerId: draft.providerId,
+        modelId: draft.modelId,
         toolScope: draft.toolScope,
       }
 
@@ -493,7 +497,7 @@ export default function AgentSettingsPage() {
                     key={agent.id}
                     active={agent.id === selectedAgentId}
                     title={agent.name}
-                    subtitle={agent.modelId ?? t('settings.defaultModelFallback')}
+                    subtitle={agent.modelId ?? t('settings.selectModel')}
                     onClick={() => selectAgent(agent)}
                   />
                 ))}
@@ -627,7 +631,7 @@ export default function AgentSettingsPage() {
                             }))
                           }
                         >
-                          <option value="">{t('settings.useSystemDefault')}</option>
+                          <option value="">{t('settings.selectProvider')}</option>
                           {providers.map((provider) => (
                             <option key={provider.id} value={provider.id}>
                               {provider.name}

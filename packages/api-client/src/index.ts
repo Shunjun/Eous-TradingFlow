@@ -265,7 +265,6 @@ export interface ModelRef {
 }
 
 export interface UserModelSettings {
-  chat: ModelRef | null
   compression: ModelRef | null
   embedding: ModelRef | null
 }

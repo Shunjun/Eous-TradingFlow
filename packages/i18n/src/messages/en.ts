@@ -33,10 +33,7 @@ export const en = {
   'settings.languageLabel': 'Interface language',
   'settings.defaultModelsTitle': 'Default models',
   'settings.defaultModelsDescription':
-    'Choose system defaults for chat, document compression, and knowledge-base embedding. Only enabled provider models are shown.',
-  'settings.defaultChatModel': 'Default chat model',
-  'settings.defaultChatModelDescription':
-    'Used by agents, chat, and text generation tasks without an explicit model.',
+    'Choose system defaults for knowledge-base document compression and embedding. Only enabled provider models are shown.',
   'settings.defaultCompressionModel': 'Default compression model',
   'settings.defaultCompressionModelDescription':
     'Used for knowledge-base chunk compression and summary generation.',
@@ -72,7 +69,8 @@ export const en = {
   'settings.instructions': 'Instructions',
   'settings.provider': 'Provider',
   'settings.model': 'Model',
-  'settings.useSystemDefault': 'Use system default',
+  'settings.selectProvider': 'Select provider',
+  'settings.agentModelRequired': 'Select a provider and model for this agent first',
   'settings.selectModel': 'Select model',
   'settings.toolScope': 'Tool Scope',
   'settings.runtimePermissionHints': 'Runtime permission hints',
@@ -97,7 +95,6 @@ export const en = {
   'settings.applyAgentTemplateDescription':
     'Applying a template overwrites the current name, description, instructions, and tool scope. Provider and model are kept.',
   'settings.applyTemplate': 'Apply Template',
-  'settings.defaultModelFallback': 'default model',
   'settings.providersTitle': 'Providers',
   'settings.providersDescription': 'Configure vendors, API formats, and custom endpoints',
   'settings.addProvider': 'Add Provider',

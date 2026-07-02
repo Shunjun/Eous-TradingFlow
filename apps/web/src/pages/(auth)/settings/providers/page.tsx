@@ -1376,7 +1376,6 @@ function DefaultModelsPanel({
 }) {
   const [modelsByProviderId, setModelsByProviderId] = useState<Record<string, ProviderModel[]>>({})
   const [settings, setSettings] = useState<UserModelSettings>({
-    chat: null,
     compression: null,
     embedding: null,
   })
@@ -1465,15 +1464,6 @@ function DefaultModelsPanel({
         </div>
       ) : (
         <div className="space-y-3">
-          <ModelSelect
-            label={t('settings.defaultChatModel')}
-            description={t('settings.defaultChatModelDescription')}
-            icon={Bot}
-            value={settings.chat}
-            options={textModelOptions}
-            placeholder={t('settings.noDefaultModel')}
-            onChange={(chat) => setSettings((current) => ({ ...current, chat }))}
-          />
           <ModelSelect
             label={t('settings.defaultCompressionModel')}
             description={t('settings.defaultCompressionModelDescription')}

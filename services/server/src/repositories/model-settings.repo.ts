@@ -9,8 +9,6 @@ export function findByUser(userId: string): Promise<UserModelSetting | null> {
 export function upsertForUser(
   userId: string,
   data: {
-    chatProviderId?: string | null
-    chatModelId?: string | null
     compressionProviderId?: string | null
     compressionModelId?: string | null
     embeddingProviderId?: string | null
@@ -37,23 +35,5 @@ export function findProviderModelByUser(
       provider: { userId, isActive: true },
     },
     include: { provider: true },
-  })
-}
-
-export function findFirstEnabledProviderModel(
-  userId: string,
-): Promise<ProviderModelWithProvider | null> {
-  return prisma.providerModel.findFirst({
-    where: { enabled: true, provider: { userId, isActive: true } },
-    include: { provider: true },
-    orderBy: { createdAt: 'asc' },
-  })
-}
-
-export function findEnabledProviderModels(userId: string): Promise<ProviderModelWithProvider[]> {
-  return prisma.providerModel.findMany({
-    where: { enabled: true, provider: { userId, isActive: true } },
-    include: { provider: true },
-    orderBy: { createdAt: 'asc' },
   })
 }

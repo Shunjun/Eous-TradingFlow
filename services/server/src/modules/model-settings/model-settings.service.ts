@@ -2,7 +2,7 @@ import type { UserModelSetting } from '@eous/db'
 import { AppError } from '../../lib/app-error.js'
 import * as modelSettingsRepo from '../../repositories/model-settings.repo.js'
 
-type ModelPurpose = 'chat' | 'compression' | 'embedding'
+type ModelPurpose = 'compression' | 'embedding'
 
 export interface ModelRefDTO {
   providerId: string
@@ -10,13 +10,11 @@ export interface ModelRefDTO {
 }
 
 export interface UserModelSettingsDTO {
-  chat: ModelRefDTO | null
   compression: ModelRefDTO | null
   embedding: ModelRefDTO | null
 }
 
 export interface UpdateUserModelSettingsBody {
-  chat?: ModelRefDTO | null
   compression?: ModelRefDTO | null
   embedding?: ModelRefDTO | null
 }
@@ -38,7 +36,6 @@ function toModelRef(providerId: string | null, modelId: string | null): ModelRef
 
 function toDTO(settings: UserModelSetting | null): UserModelSettingsDTO {
   return {
-    chat: settings ? toModelRef(settings.chatProviderId, settings.chatModelId) : null,
     compression: settings
       ? toModelRef(settings.compressionProviderId, settings.compressionModelId)
       : null,
@@ -71,7 +68,7 @@ async function assertModelRef(
   }
 
   if (purpose !== 'embedding' && isEmbedding) {
-    throw new AppError('Chat and compression defaults must use a non-embedding model', 400)
+    throw new AppError('Compression default must use a non-embedding model', 400)
   }
 
   return ref
@@ -85,18 +82,13 @@ export async function updateUserModelSettings(
   userId: string,
   body: UpdateUserModelSettingsBody,
 ): Promise<UserModelSettingsDTO> {
-  const [chat, compression, embedding] = await Promise.all([
-    assertModelRef(userId, 'chat', body.chat),
+  const [compression, embedding] = await Promise.all([
     assertModelRef(userId, 'compression', body.compression),
     assertModelRef(userId, 'embedding', body.embedding),
   ])
 
   const updateData: Parameters<typeof modelSettingsRepo.upsertForUser>[1] = {}
 
-  if (chat !== undefined) {
-    updateData.chatProviderId = chat?.providerId ?? null
-    updateData.chatModelId = chat?.modelId ?? null
-  }
   if (compression !== undefined) {
     updateData.compressionProviderId = compression?.providerId ?? null
     updateData.compressionModelId = compression?.modelId ?? null
@@ -115,23 +107,14 @@ export async function resolveDefaultModel(
 ): Promise<ModelRefDTO | null> {
   const settings = await modelSettingsRepo.findByUser(userId)
   const configured =
-    purpose === 'chat'
-      ? toModelRef(settings?.chatProviderId ?? null, settings?.chatModelId ?? null)
-      : purpose === 'compression'
-        ? toModelRef(settings?.compressionProviderId ?? null, settings?.compressionModelId ?? null)
-        : toModelRef(settings?.embeddingProviderId ?? null, settings?.embeddingModelId ?? null)
+    purpose === 'compression'
+      ? toModelRef(settings?.compressionProviderId ?? null, settings?.compressionModelId ?? null)
+      : toModelRef(settings?.embeddingProviderId ?? null, settings?.embeddingModelId ?? null)
 
   if (configured) {
     const valid = await assertModelRef(userId, purpose, configured)
     return valid ?? null
   }
 
-  if (purpose !== 'chat') return null
-
-  const fallback = (await modelSettingsRepo.findEnabledProviderModels(userId)).find(
-    (model) => !parseCapabilities(model.capabilities).includes('embedding'),
-  )
-  if (!fallback) return null
-
-  return { providerId: fallback.providerId, modelId: fallback.modelId }
+  return null
 }
