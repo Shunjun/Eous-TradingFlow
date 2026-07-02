@@ -364,20 +364,12 @@ export class RealtimeDataService {
               : undefined,
           resolved,
         })
-      } catch (e) {
+      } catch {
         const canFallbackToPoll =
           (message.mode == null || message.mode === 'auto') &&
           source === 'stream' &&
           channelCapabilities.modes.includes('poll')
         if (!canFallbackToPoll) throw e
-
-        console.warn('[market-data realtime] stream unavailable, falling back to poll', {
-          providerId: message.providerId,
-          channel: message.channel,
-          symbol: message.symbol,
-          interval: message.interval,
-          error: e instanceof Error ? e.message : String(e),
-        })
 
         source = 'poll'
         pollIntervalMs = normalizePollInterval(
@@ -521,8 +513,7 @@ export class RealtimeDataService {
     const streamMapper =
       message.channel === 'kline' ? createKlineStreamMapper(intervalSupport) : null
     let lastStreamEventAt = Date.now()
-    let startPollFallback: ((reason: string, details?: Record<string, unknown>) => void) | null =
-      null
+    let startPollFallback: (() => void) | null = null
     const stop =
       source === 'stream'
         ? await this.startStream(
@@ -545,30 +536,15 @@ export class RealtimeDataService {
               })
             },
             (error) => {
-              console.error('[market-data realtime] provider stream error', {
-                providerId: message.providerId,
-                channel: message.channel,
-                symbol: message.symbol,
-                interval: message.interval,
-                error: error.message,
-              })
-              startPollFallback?.('provider-error', { error: error.message })
+              startPollFallback?.()
             },
           )
         : this.startPoll(userId, message, intervalSupport, pollIntervalMs!, resolved, ingestAndEmit)
 
     let fallbackStop: RealtimeUnsubscribe | null = null
     let watchdog: ReturnType<typeof setInterval> | null = null
-    startPollFallback = (reason: string, details: Record<string, unknown> = {}) => {
+    startPollFallback = () => {
       if (fallbackStop || !streamFallbackPollIntervalMs) return
-      console.warn('[market-data realtime] stream fallback to poll', {
-        providerId: message.providerId,
-        channel: message.channel,
-        symbol: message.symbol,
-        interval: message.interval,
-        reason,
-        ...details,
-      })
       fallbackStop = this.startPoll(
         userId,
         message,
@@ -584,9 +560,7 @@ export class RealtimeDataService {
       watchdog = setInterval(
         () => {
           if (fallbackStop || Date.now() - lastStreamEventAt < staleAfterMs) return
-          startPollFallback('stream-stale', {
-            staleAfterMs,
-          })
+          startPollFallback()
         },
         Math.max(streamFallbackPollIntervalMs, 10_000),
       )

@@ -188,13 +188,11 @@ export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
       const total = markets.length
       const sliced = markets.slice(offset, offset + limit)
       return {
-        symbols: sliced.map(
-          (m): SymbolInfo => ({
-            symbol: m?.symbol ?? '',
-            name: m?.symbol ?? '',
-            type: 'crypto',
-          }),
-        ),
+        symbols: sliced.map((m): SymbolInfo => ({
+          symbol: m?.symbol ?? '',
+          name: m?.symbol ?? '',
+          type: 'crypto',
+        })),
         total,
       }
     } catch (e) {
@@ -334,12 +332,6 @@ export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
         } catch (e) {
           if (stopped) return
           const error = toProviderError('watchOHLCV', e)
-          console.error('[ccxt subscribeKlines] stream failed', {
-            exchange: settings.exchange,
-            symbol: request.symbol,
-            interval: request.interval,
-            error: error.message,
-          })
           onError?.(error)
           await ex.close?.().catch(() => undefined)
           return
