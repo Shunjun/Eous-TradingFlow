@@ -78,6 +78,12 @@ function useOptionsSource(
               value: agent.id,
             }),
           )
+        } else if (source.source === 'knowledgeBases') {
+          const res = await api.listKnowledgeBases()
+          next = (res.knowledgeBases ?? []).map((base: { id: string; name: string }) => ({
+            label: base.name,
+            value: base.id,
+          }))
         } else if (source.source === 'providerModels' && providerModelProviderId) {
           const res = await api.getProvider(providerModelProviderId)
           next = (res.models ?? []).map(

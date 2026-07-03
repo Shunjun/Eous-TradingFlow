@@ -144,6 +144,7 @@ export type OptionsSource =
   | { source: 'instanceIntervals' }
   | { source: 'providers' }
   | { source: 'agents' }
+  | { source: 'knowledgeBases' }
   | { source: 'providerModels'; providerIdField: string }
 
 export type AcceptableType = 'string' | 'number' | 'boolean' | 'object' | 'array' | 'file'
