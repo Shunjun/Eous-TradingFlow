@@ -130,7 +130,6 @@ export default function KnowledgeImportPage() {
       const res = await api.uploadKnowledgeDocument(id, {
         file,
         title,
-        strategy,
       })
       setDocument(res.document)
       await loadDocumentPreview(res.document.id)
@@ -290,7 +289,9 @@ export default function KnowledgeImportPage() {
                 : 'flex flex-col gap-4 border-r border-border p-4'
             }
           >
-            <div className="space-y-1">
+            <div
+              className={step === 'source' ? 'space-y-1 border-b border-border pb-5' : 'space-y-1'}
+            >
               <h2
                 className={
                   step === 'source'
@@ -314,38 +315,17 @@ export default function KnowledgeImportPage() {
 
             {step === 'source' ? (
               <>
-                <div className="border-y border-border py-6">
-                  <div className="grid gap-5 md:grid-cols-2">
-                    <div className="space-y-1.5">
-                      <Label>{t('knowledge.documentTitle')}</Label>
-                      <Input
-                        value={title}
-                        onChange={(event) => setTitle(event.target.value)}
-                        placeholder={t('knowledge.documentTitlePlaceholder')}
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label>{t('knowledge.importStrategy')}</Label>
-                      <Select
-                        value={strategy}
-                        onValueChange={(value) => setStrategy(value as ImportStrategy)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="raw">{t('knowledge.strategyRaw')}</SelectItem>
-                          <SelectItem value="compressed">
-                            {t('knowledge.strategyCompressed')}
-                          </SelectItem>
-                          <SelectItem value="hybrid">{t('knowledge.strategyHybrid')}</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                <div className="space-y-6">
+                  <div className="space-y-1.5">
+                    <Label>{t('knowledge.documentTitle')}</Label>
+                    <Input
+                      value={title}
+                      onChange={(event) => setTitle(event.target.value)}
+                      placeholder={t('knowledge.documentTitlePlaceholder')}
+                    />
                   </div>
 
-                  <div className="mt-6 space-y-1.5">
+                  <div className="space-y-1.5">
                     <Label>{t('knowledge.documentFile')}</Label>
                     {file ? (
                       <div className="flex min-h-[120px] items-center justify-between gap-4 border border-border bg-muted/20 px-5 py-4">
@@ -413,6 +393,25 @@ export default function KnowledgeImportPage() {
                     {document?.title ?? displayTitle}
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">{strategyLabel}</div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label>{t('knowledge.importStrategy')}</Label>
+                  <Select
+                    value={strategy}
+                    onValueChange={(value) => setStrategy(value as ImportStrategy)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="raw">{t('knowledge.strategyRaw')}</SelectItem>
+                      <SelectItem value="compressed">
+                        {t('knowledge.strategyCompressed')}
+                      </SelectItem>
+                      <SelectItem value="hybrid">{t('knowledge.strategyHybrid')}</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -507,7 +506,9 @@ export default function KnowledgeImportPage() {
 
             <div
               className={
-                step === 'source' ? 'flex justify-end gap-2' : 'mt-auto flex flex-wrap gap-2'
+                step === 'source'
+                  ? 'flex items-center justify-between gap-2'
+                  : 'mt-auto flex flex-wrap gap-2'
               }
             >
               <Button variant="ghost" disabled={uploading} onClick={() => navigate('/knowledge')}>
@@ -515,8 +516,7 @@ export default function KnowledgeImportPage() {
               </Button>
               {step === 'source' ? (
                 <Button onClick={handleUploadDocument} disabled={uploading || !file || !id}>
-                  <Upload size={14} />
-                  {uploading ? t('knowledge.uploading') : t('knowledge.uploadDocument')}
+                  {uploading ? t('knowledge.uploading') : '下一步'}
                 </Button>
               ) : (
                 <>
