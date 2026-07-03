@@ -305,6 +305,24 @@ export interface KnowledgeChunkingConfig {
   maxChunks?: number
 }
 
+export interface KnowledgeDocumentSectionPreview {
+  index: number
+  title: string | null
+  sectionPath: string[]
+  charCount: number
+  tokenCount: number
+}
+
+export interface KnowledgeDocumentParsePreview {
+  content: string
+  mimeType: string | null
+  fileName: string | null
+  charCount: number
+  tokenCount: number
+  sections: KnowledgeDocumentSectionPreview[]
+  warnings: string[]
+}
+
 export interface KnowledgeChunkPreviewItem {
   index: number
   content: string
@@ -661,6 +679,15 @@ export interface ApiClient {
       strategy?: 'raw' | 'compressed' | 'hybrid'
     },
   ): Promise<{ document: KnowledgeDocument }>
+  previewKnowledgeDocumentParse(
+    documentId: string,
+  ): Promise<{ preview: KnowledgeDocumentParsePreview }>
+  previewKnowledgeDocumentChunks(
+    documentId: string,
+    params: {
+      config?: KnowledgeChunkingConfig
+    },
+  ): Promise<{ preview: KnowledgeChunkPreview }>
   previewKnowledgeChunks(
     knowledgeBaseId: string,
     params: {
@@ -1184,6 +1211,10 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       if (params.strategy) form.set('strategy', params.strategy)
       return post(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/documents/upload`, form)
     },
+    previewKnowledgeDocumentParse: (documentId) =>
+      post(`/knowledge-bases/documents/${encodeURIComponent(documentId)}/parse-preview`),
+    previewKnowledgeDocumentChunks: (documentId, params) =>
+      post(`/knowledge-bases/documents/${encodeURIComponent(documentId)}/chunk-preview`, params),
     previewKnowledgeChunks: (knowledgeBaseId, params) =>
       post(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/chunk-preview`, params),
 

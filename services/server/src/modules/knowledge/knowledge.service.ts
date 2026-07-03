@@ -2,8 +2,14 @@ import type { KnowledgeBase, KnowledgeDocument } from '@eous/db'
 import { createHash, randomUUID } from 'node:crypto'
 import { extname } from 'node:path'
 import { AppError } from '../../lib/app-error.js'
-import { putKnowledgeObject } from '../../lib/object-storage.js'
+import { getKnowledgeObject, putKnowledgeObject } from '../../lib/object-storage.js'
 import * as knowledgeRepo from '../../repositories/knowledge.repo.js'
+import {
+  previewChunks,
+  type ChunkPreviewInput,
+  type ChunkPreviewResult,
+} from './chunking.service.js'
+import { parseDocumentPreview, type ParsedDocumentPreview } from './document-parser.service.js'
 
 export interface KnowledgeBaseDTO {
   id: string
@@ -69,6 +75,10 @@ export interface UploadKnowledgeDocumentInput {
   metadata?: Record<string, unknown>
 }
 
+export interface DocumentChunkPreviewInput {
+  config?: ChunkPreviewInput['config']
+}
+
 function parseJsonObject(raw: string): Record<string, unknown> {
   try {
     const parsed = JSON.parse(raw) as unknown
@@ -78,6 +88,21 @@ function parseJsonObject(raw: string): Record<string, unknown> {
   } catch {
     return {}
   }
+}
+
+function getObjectStorageKey(document: KnowledgeDocument): string {
+  const metadata = parseJsonObject(document.metadata)
+  const objectStorage =
+    metadata.objectStorage && typeof metadata.objectStorage === 'object'
+      ? (metadata.objectStorage as Record<string, unknown>)
+      : null
+  const key = typeof objectStorage?.key === 'string' ? objectStorage.key : null
+
+  if (!key) {
+    throw new AppError('Document object storage key is missing', 400)
+  }
+
+  return key
 }
 
 function stringifyMetadata(metadata?: Record<string, unknown>): string | undefined {
@@ -299,4 +324,36 @@ export async function deleteKnowledgeDocument(userId: string, documentId: string
   const document = await knowledgeRepo.findDocumentByIdAndUser(documentId, userId)
   if (!document) throw new AppError('Knowledge document not found', 404)
   await knowledgeRepo.deleteDocument(document.id)
+}
+
+async function getDocumentForUser(userId: string, documentId: string): Promise<KnowledgeDocument> {
+  const document = await knowledgeRepo.findDocumentByIdAndUser(documentId, userId)
+  if (!document) throw new AppError('Knowledge document not found', 404)
+  return document
+}
+
+export async function previewKnowledgeDocumentParse(
+  userId: string,
+  documentId: string,
+): Promise<ParsedDocumentPreview> {
+  const document = await getDocumentForUser(userId, documentId)
+  const buffer = await getKnowledgeObject(getObjectStorageKey(document))
+
+  return parseDocumentPreview({
+    buffer,
+    fileName: document.sourceFileName,
+    mimeType: document.sourceMimeType,
+  })
+}
+
+export async function previewKnowledgeDocumentChunks(
+  userId: string,
+  documentId: string,
+  input: DocumentChunkPreviewInput,
+): Promise<ChunkPreviewResult> {
+  const parsed = await previewKnowledgeDocumentParse(userId, documentId)
+  return previewChunks({
+    content: parsed.content,
+    config: input.config,
+  })
 }

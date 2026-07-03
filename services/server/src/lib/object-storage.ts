@@ -1,9 +1,11 @@
 import {
   CreateBucketCommand,
+  GetObjectCommand,
   HeadBucketCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3'
+import { Readable } from 'node:stream'
 import { AppError } from './app-error.js'
 
 export interface StoredObject {
@@ -101,4 +103,27 @@ export async function putKnowledgeObject(params: {
     uri: `s3://${bucket}/${params.key}`,
     etag: res.ETag?.replace(/^"|"$/g, '') ?? null,
   }
+}
+
+export async function getKnowledgeObject(key: string): Promise<Buffer> {
+  await ensureBucket()
+
+  const res = await getClient().send(
+    new GetObjectCommand({
+      Bucket: getBucket(),
+      Key: key,
+    }),
+  )
+
+  if (!res.Body) return Buffer.alloc(0)
+  if (res.Body instanceof Readable) {
+    const chunks: Buffer[] = []
+    for await (const chunk of res.Body) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+    }
+    return Buffer.concat(chunks)
+  }
+
+  const bytes = await res.Body.transformToByteArray()
+  return Buffer.from(bytes)
 }

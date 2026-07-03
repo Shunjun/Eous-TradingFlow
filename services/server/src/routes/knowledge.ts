@@ -74,6 +74,24 @@ knowledgeRouter.delete('/documents/:documentId', async (c) => {
   return c.json({ ok: true })
 })
 
+knowledgeRouter.post('/documents/:documentId/parse-preview', async (c) => {
+  const preview = await knowledgeService.previewKnowledgeDocumentParse(
+    c.get('userId'),
+    c.req.param('documentId'),
+  )
+  return c.json({ preview })
+})
+
+knowledgeRouter.post('/documents/:documentId/chunk-preview', async (c) => {
+  const body = await c.req.json<knowledgeService.DocumentChunkPreviewInput>()
+  const preview = await knowledgeService.previewKnowledgeDocumentChunks(
+    c.get('userId'),
+    c.req.param('documentId'),
+    body,
+  )
+  return c.json({ preview })
+})
+
 knowledgeRouter.get('/:id', async (c) => {
   const knowledgeBase = await knowledgeService.getKnowledgeBase(c.get('userId'), c.req.param('id'))
   return c.json({ knowledgeBase })
