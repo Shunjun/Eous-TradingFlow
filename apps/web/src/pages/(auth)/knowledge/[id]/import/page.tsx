@@ -263,29 +263,26 @@ export default function KnowledgeImportPage() {
   return (
     <div className="min-h-full bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.10),transparent_34rem)] px-6 py-6">
       <div className="flex h-full flex-col gap-5">
-        <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div>
-            <Button
-              asChild
-              variant="ghost"
-              size="sm"
-              className="mb-3 w-fit px-0 text-muted-foreground"
-            >
-              <Link to="/knowledge">
-                <ArrowLeft size={15} />
-                {t('knowledge.backToKnowledge')}
-              </Link>
-            </Button>
-            <p className="font-mono text-xs uppercase text-muted-foreground">
-              {t('knowledge.importEyebrow')}
-            </p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-normal text-foreground">
-              {knowledgeBase?.name ?? t('knowledge.importDocument')}
-            </h1>
-          </div>
+        <header className="flex min-w-0 items-center gap-3">
+          <Button asChild variant="ghost" size="sm" className="w-fit px-0 text-muted-foreground">
+            <Link to="/knowledge">
+              <ArrowLeft size={15} />
+              {t('knowledge.backToKnowledge')}
+            </Link>
+          </Button>
+          <div className="h-5 w-px bg-border" />
+          <h1 className="truncate text-xl font-semibold tracking-normal text-foreground">
+            {knowledgeBase?.name ?? t('knowledge.importDocument')}
+          </h1>
         </header>
 
-        <div className="grid min-h-[calc(100vh-13rem)] gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
+        <div
+          className={
+            step === 'source'
+              ? 'grid min-h-[calc(100vh-13rem)] gap-4 xl:grid-cols-[420px_minmax(0,1fr)]'
+              : 'grid min-h-[calc(100vh-13rem)] gap-4 xl:grid-cols-[380px_minmax(0,1fr)]'
+          }
+        >
           <aside className="flex flex-col gap-4 rounded-lg border bg-card/80 p-4 shadow-sm backdrop-blur">
             <div className="space-y-1">
               <h2 className="text-sm font-semibold">
@@ -485,55 +482,17 @@ export default function KnowledgeImportPage() {
             </div>
           </aside>
 
-          <section className="flex min-h-0 flex-col rounded-lg border bg-card/80 shadow-sm backdrop-blur">
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <div className="flex min-w-0 items-center gap-2">
-                <FileText size={16} className="text-primary" />
-                <div className="truncate text-sm font-semibold">{displayTitle}</div>
+          {step === 'chunking' && (
+            <section className="flex min-h-0 flex-col rounded-lg border bg-card/80 shadow-sm backdrop-blur">
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <FileText size={16} className="text-primary" />
+                  <div className="truncate text-sm font-semibold">{displayTitle}</div>
+                </div>
+                <span className="rounded border border-border px-2 py-0.5 text-xs text-muted-foreground">
+                  {strategyLabel}
+                </span>
               </div>
-              <span className="rounded border border-border px-2 py-0.5 text-xs text-muted-foreground">
-                {strategyLabel}
-              </span>
-            </div>
-
-            {step === 'source' && (
-              <div className="grid gap-3 p-4 md:grid-cols-3">
-                <div className="rounded-md border border-border/70 bg-background/50 p-3">
-                  <div className="text-xs text-muted-foreground">
-                    {t('knowledge.previewFileName')}
-                  </div>
-                  <div className="mt-1 truncate text-sm font-medium">
-                    {file?.name ?? t('knowledge.noFileSelected')}
-                  </div>
-                </div>
-                <div className="rounded-md border border-border/70 bg-background/50 p-3">
-                  <div className="text-xs text-muted-foreground">
-                    {t('knowledge.previewFileSize')}
-                  </div>
-                  <div className="mt-1 text-sm font-medium">
-                    {file ? formatFileSize(file.size) : '-'}
-                  </div>
-                </div>
-                <div className="rounded-md border border-border/70 bg-background/50 p-3">
-                  <div className="text-xs text-muted-foreground">
-                    {t('knowledge.previewFileType')}
-                  </div>
-                  <div className="mt-1 truncate text-sm font-medium">{file?.type || '-'}</div>
-                </div>
-              </div>
-            )}
-
-            {step === 'source' ? (
-              <div className="flex flex-1 items-center justify-center border-t border-border p-8 text-center">
-                <div className="max-w-md">
-                  <FileText size={28} className="mx-auto text-muted-foreground" />
-                  <p className="mt-3 text-sm font-medium">{t('knowledge.documentPreviewTitle')}</p>
-                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                    {t('knowledge.documentPreviewDescription')}
-                  </p>
-                </div>
-              </div>
-            ) : (
               <Tabs defaultValue="chunks" className="min-h-0 flex-1 gap-0">
                 <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
                   <TabsList variant="line" className="h-9 justify-start">
@@ -702,8 +661,8 @@ export default function KnowledgeImportPage() {
                   </div>
                 </TabsContent>
               </Tabs>
-            )}
-          </section>
+            </section>
+          )}
         </div>
       </div>
     </div>
