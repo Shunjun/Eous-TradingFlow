@@ -22,7 +22,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@eous/ui'
-import { ArrowLeft, Combine, FileText, Scissors, Upload, X } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Combine, FileText, Scissors, Upload, X } from 'lucide-react'
 import { api } from '../../../../../lib/api'
 import { useI18n } from '../../../../../lib/i18n'
 
@@ -71,8 +71,8 @@ export default function KnowledgeImportPage() {
   const [parsePreview, setParsePreview] = useState<KnowledgeDocumentParsePreview | null>(null)
   const [chunks, setChunks] = useState<LocalChunk[]>([])
   const [chunking, setChunking] = useState(false)
-  const [selectedChunkIndexes, setSelectedChunkIndexes] = useState<number[]>([])
-  const [splitPosition, setSplitPosition] = useState(0)
+  const [expandedChunkIndexes, setExpandedChunkIndexes] = useState<number[]>([])
+  const [splitPositions, setSplitPositions] = useState<Record<number, number>>({})
   const [chunkConfig, setChunkConfig] = useState<KnowledgeChunkingConfig>({
     strategy: 'auto_structure',
     granularity: 50,
@@ -96,8 +96,6 @@ export default function KnowledgeImportPage() {
       : strategy === 'hybrid'
         ? t('knowledge.strategyHybrid')
         : t('knowledge.strategyRaw')
-  const selectedChunk =
-    selectedChunkIndexes.length === 1 ? chunks[selectedChunkIndexes[0] ?? -1] : null
   const chunkStats = useMemo(
     () => ({
       chunkCount: chunks.length,
@@ -160,8 +158,8 @@ export default function KnowledgeImportPage() {
       ])
       setParsePreview(parseResult.preview)
       setChunks(chunkResult.preview.chunks)
-      setSelectedChunkIndexes([])
-      setSplitPosition(0)
+      setExpandedChunkIndexes([])
+      setSplitPositions({})
     } catch (err) {
       setError(err instanceof Error ? err.message : t('knowledge.failedToPreviewChunks'))
     } finally {
@@ -173,71 +171,65 @@ export default function KnowledgeImportPage() {
     setChunkConfig((current) => ({ ...current, ...next }))
   }
 
-  function toggleSelectedChunk(index: number) {
-    setSelectedChunkIndexes((current) => {
-      const next = current.includes(index)
-        ? current.filter((item) => item !== index)
-        : [...current, index].sort((a, b) => a - b)
-      const firstSelected = next.length === 1 ? chunks[next[0] ?? -1] : null
-      setSplitPosition(firstSelected ? Math.floor(firstSelected.content.length / 2) : 0)
-      return next
-    })
+  function toggleExpandedChunk(index: number) {
+    setExpandedChunkIndexes((current) =>
+      current.includes(index) ? current.filter((item) => item !== index) : [...current, index],
+    )
   }
 
-  function mergeSelectedChunks() {
-    if (selectedChunkIndexes.length < 2) return
-    const sorted = [...selectedChunkIndexes].sort((a, b) => a - b)
-    const isAdjacent = sorted.every((index, idx) => idx === 0 || index === sorted[idx - 1] + 1)
-    if (!isAdjacent) {
-      setError(t('knowledge.mergeAdjacentOnly'))
-      return
-    }
+  function setChunkSplitPosition(index: number, position: number) {
+    const chunk = chunks[index]
+    if (!chunk) return
+    const nextPosition = Math.max(0, Math.min(position, chunk.content.length))
+    setSplitPositions((current) => ({ ...current, [index]: nextPosition }))
+  }
 
-    const mergedContent = sorted.map((index) => chunks[index]?.content ?? '').join('\n\n')
-    const first = chunks[sorted[0] ?? 0]
-    if (!first) return
+  function mergeChunksAt(index: number) {
+    const first = chunks[index]
+    const second = chunks[index + 1]
+    if (!first || !second) return
 
+    const mergedContent = [first.content, second.content].join('\n\n')
     const merged: LocalChunk = {
       ...first,
       content: mergedContent,
       charCount: mergedContent.length,
       tokenCount: estimateTokenCount(mergedContent),
     }
-    const next = chunks.filter((_, index) => !sorted.includes(index))
-    next.splice(sorted[0] ?? 0, 0, merged)
+    const next = [...chunks.slice(0, index), merged, ...chunks.slice(index + 2)]
     setChunks(reindexChunks(next))
-    setSelectedChunkIndexes([])
-    setSplitPosition(0)
+    setExpandedChunkIndexes([index])
+    setSplitPositions({})
     setError(null)
   }
 
-  function splitSelectedChunk() {
-    if (!selectedChunk) return
-    const position = Math.max(1, Math.min(splitPosition, selectedChunk.content.length - 1))
-    const leftContent = selectedChunk.content.slice(0, position).trim()
-    const rightContent = selectedChunk.content.slice(position).trim()
+  function splitChunkAt(index: number) {
+    const chunk = chunks[index]
+    if (!chunk) return
+    const position = Math.max(1, Math.min(splitPositions[index] ?? 0, chunk.content.length - 1))
+    const leftContent = chunk.content.slice(0, position).trim()
+    const rightContent = chunk.content.slice(position).trim()
     if (!leftContent || !rightContent) {
       setError(t('knowledge.invalidSplitPosition'))
       return
     }
 
     const left: LocalChunk = {
-      ...selectedChunk,
+      ...chunk,
       content: leftContent,
       charCount: leftContent.length,
       tokenCount: estimateTokenCount(leftContent),
     }
     const right: LocalChunk = {
-      ...selectedChunk,
+      ...chunk,
       content: rightContent,
       charCount: rightContent.length,
       tokenCount: estimateTokenCount(rightContent),
     }
-    const index = selectedChunk.index
     const next = [...chunks.slice(0, index), left, right, ...chunks.slice(index + 1)]
     setChunks(reindexChunks(next))
-    setSelectedChunkIndexes([])
-    setSplitPosition(0)
+    setExpandedChunkIndexes([index, index + 1])
+    setSplitPositions({})
     setError(null)
   }
 
@@ -269,8 +261,8 @@ export default function KnowledgeImportPage() {
   }
 
   return (
-    <div className="min-h-full bg-background px-6 py-6">
-      <div className="flex h-full flex-col gap-5">
+    <div className="h-full overflow-hidden bg-background px-6 py-6">
+      <div className="flex h-full min-h-0 flex-col gap-5">
         <header className="flex min-w-0 items-center gap-3">
           <Button asChild variant="ghost" size="sm" className="w-fit px-0 text-muted-foreground">
             <Link to="/knowledge">
@@ -287,15 +279,15 @@ export default function KnowledgeImportPage() {
         <div
           className={
             step === 'source'
-              ? 'flex min-h-[calc(100vh-13rem)] items-center justify-center'
-              : 'grid min-h-[calc(100vh-13rem)] gap-0 border-t border-border xl:grid-cols-[380px_minmax(0,1fr)]'
+              ? 'flex min-h-0 flex-1 items-center justify-center'
+              : 'grid min-h-0 flex-1 overflow-hidden border-t border-border xl:grid-cols-[380px_minmax(0,1fr)]'
           }
         >
           <aside
             className={
               step === 'source'
                 ? 'flex w-full max-w-3xl flex-col gap-6'
-                : 'flex flex-col gap-4 border-r border-border p-4'
+                : 'flex min-h-0 flex-col gap-4 overflow-auto border-r border-border p-4'
             }
           >
             <div
@@ -547,110 +539,154 @@ export default function KnowledgeImportPage() {
                   {strategyLabel}
                 </span>
               </div>
-              <Tabs defaultValue="chunks" className="min-h-0 flex-1 gap-0">
-                <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
+              <Tabs defaultValue="chunks" className="flex min-h-0 flex-1 flex-col gap-0">
+                <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
                   <TabsList variant="line" className="h-9 justify-start">
                     <TabsTrigger value="chunks">{t('knowledge.rawChunks')}</TabsTrigger>
                     <TabsTrigger value="parsed">{t('knowledge.parsedDocument')}</TabsTrigger>
                     <TabsTrigger value="final">{t('knowledge.finalIndex')}</TabsTrigger>
                   </TabsList>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={selectedChunkIndexes.length < 2}
-                      onClick={mergeSelectedChunks}
-                    >
-                      <Combine size={14} />
-                      {t('knowledge.mergeChunks')}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={!selectedChunk}
-                      onClick={splitSelectedChunk}
-                    >
-                      <Scissors size={14} />
-                      {t('knowledge.splitChunk')}
-                    </Button>
+                  <div className="text-xs text-muted-foreground">
+                    {chunkStats.chunkCount} chunks · {chunkStats.tokenCount} tokens
                   </div>
                 </div>
 
-                <TabsContent value="chunks" className="m-0 min-h-0 flex-1">
-                  <div className="grid min-h-[520px] grid-cols-[minmax(0,1fr)_300px]">
-                    <div className="min-h-0 overflow-auto">
-                      {chunks.length === 0 ? (
-                        <div className="p-6 text-sm text-muted-foreground">
-                          {chunking ? t('knowledge.previewing') : t('knowledge.chunkPreviewEmpty')}
-                        </div>
-                      ) : (
-                        <div className="divide-y">
-                          {chunks.map((chunk) => {
-                            const selected = selectedChunkIndexes.includes(chunk.index)
-                            return (
-                              <button
-                                key={chunk.index}
-                                type="button"
-                                onClick={() => toggleSelectedChunk(chunk.index)}
-                                className={
-                                  'block w-full p-4 text-left transition hover:bg-muted/40 ' +
-                                  (selected ? 'bg-muted/60' : '')
-                                }
-                              >
-                                <div className="flex items-center justify-between gap-3">
-                                  <div className="text-sm font-medium">
-                                    {t('knowledge.chunkNumber').replace(
-                                      '{number}',
-                                      String(chunk.index + 1),
-                                    )}
-                                  </div>
-                                  <div className="flex gap-2 text-xs text-muted-foreground">
-                                    <span>{chunk.tokenCount} tokens</span>
-                                    <span>{chunk.charCount} chars</span>
-                                  </div>
-                                </div>
-                                <div className="mt-1 text-xs text-muted-foreground">
-                                  {chunk.metadata.sectionPath.join(' / ') ||
-                                    t('knowledge.noSection')}
-                                </div>
-                                <p className="mt-3 line-clamp-4 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
-                                  {chunk.content}
-                                </p>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      )}
-                    </div>
-                    <aside className="border-l border-border p-4">
-                      <div className="text-sm font-semibold">{t('knowledge.chunkTools')}</div>
-                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                        {t('knowledge.chunkToolsDescription')}
-                      </p>
-                      <div className="mt-4 space-y-2">
-                        <Label>{t('knowledge.splitPosition')}</Label>
-                        <Input
-                          type="number"
-                          min={1}
-                          max={Math.max(1, (selectedChunk?.content.length ?? 1) - 1)}
-                          value={splitPosition}
-                          disabled={!selectedChunk}
-                          onChange={(event) => setSplitPosition(Number(event.target.value))}
-                        />
-                        <div className="text-xs text-muted-foreground">
-                          {selectedChunk
-                            ? t('knowledge.selectedChunkLength').replace(
-                                '{count}',
-                                String(selectedChunk.content.length),
-                              )
-                            : t('knowledge.selectOneChunkToSplit')}
-                        </div>
+                <TabsContent
+                  value="chunks"
+                  className="m-0 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
+                >
+                  <div className="h-full min-h-0 overflow-auto px-4 py-4">
+                    {chunks.length === 0 ? (
+                      <div className="p-6 text-sm text-muted-foreground">
+                        {chunking ? t('knowledge.previewing') : t('knowledge.chunkPreviewEmpty')}
                       </div>
-                    </aside>
+                    ) : (
+                      <div className="mx-auto flex max-w-5xl flex-col gap-2">
+                        {chunks.map((chunk, index) => {
+                          const expanded = expandedChunkIndexes.includes(index)
+                          const splitPosition = splitPositions[index] ?? 0
+                          return (
+                            <div key={chunk.index}>
+                              <section className="bg-muted/20 px-4 py-3 transition hover:bg-muted/30">
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpandedChunk(index)}
+                                  className="flex w-full items-start justify-between gap-4 text-left"
+                                >
+                                  <div className="min-w-0">
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                      <span className="text-sm font-medium">
+                                        {t('knowledge.chunkNumber').replace(
+                                          '{number}',
+                                          String(index + 1),
+                                        )}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">
+                                        {chunk.tokenCount} tokens · {chunk.charCount} chars
+                                      </span>
+                                    </div>
+                                    <div className="mt-1 truncate text-xs text-muted-foreground">
+                                      {chunk.metadata.sectionPath.join(' / ') ||
+                                        t('knowledge.noSection')}
+                                    </div>
+                                  </div>
+                                  <ChevronDown
+                                    size={16}
+                                    className={
+                                      'mt-0.5 shrink-0 text-muted-foreground transition-transform ' +
+                                      (expanded ? 'rotate-180' : '')
+                                    }
+                                  />
+                                </button>
+
+                                {expanded ? (
+                                  <div className="mt-3 space-y-3">
+                                    <textarea
+                                      className="min-h-[220px] w-full resize-y border border-border bg-background px-3 py-2 font-mono text-sm leading-6 outline-none transition focus:border-primary"
+                                      value={chunk.content}
+                                      onClick={(event) =>
+                                        setChunkSplitPosition(
+                                          index,
+                                          event.currentTarget.selectionStart,
+                                        )
+                                      }
+                                      onKeyUp={(event) =>
+                                        setChunkSplitPosition(
+                                          index,
+                                          event.currentTarget.selectionStart,
+                                        )
+                                      }
+                                      onSelect={(event) =>
+                                        setChunkSplitPosition(
+                                          index,
+                                          event.currentTarget.selectionStart,
+                                        )
+                                      }
+                                      onChange={(event) => {
+                                        const nextContent = event.target.value
+                                        setChunks((current) =>
+                                          reindexChunks(
+                                            current.map((item, itemIndex) =>
+                                              itemIndex === index
+                                                ? { ...item, content: nextContent }
+                                                : item,
+                                            ),
+                                          ),
+                                        )
+                                        setChunkSplitPosition(index, event.target.selectionStart)
+                                      }}
+                                    />
+                                    <div className="flex flex-wrap items-center justify-between gap-3">
+                                      <div className="text-xs text-muted-foreground">
+                                        光标位置 {splitPosition || '-'} / {chunk.content.length}
+                                      </div>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        disabled={
+                                          splitPosition <= 0 ||
+                                          splitPosition >= chunk.content.length ||
+                                          chunk.content.length < 2
+                                        }
+                                        onClick={() => splitChunkAt(index)}
+                                      >
+                                        <Scissors size={14} />
+                                        在光标处分割
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <p className="mt-3 line-clamp-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+                                    {chunk.content}
+                                  </p>
+                                )}
+                              </section>
+
+                              {index < chunks.length - 1 && (
+                                <div className="group relative flex h-8 items-center justify-center">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 translate-y-0 opacity-0 shadow-sm transition group-hover:opacity-100"
+                                    onClick={() => mergeChunksAt(index)}
+                                  >
+                                    <Combine size={14} />
+                                    合并上下分片
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
 
-                <TabsContent value="parsed" className="m-0 min-h-0 flex-1 overflow-auto p-4">
+                <TabsContent
+                  value="parsed"
+                  className="m-0 min-h-0 flex-1 overflow-auto p-4 data-[state=inactive]:hidden"
+                >
                   <div className="grid gap-3 md:grid-cols-3">
                     <div className="rounded-md border border-border/70 bg-background/50 p-3">
                       <div className="text-xs text-muted-foreground">{t('knowledge.tokens')}</div>
@@ -680,7 +716,10 @@ export default function KnowledgeImportPage() {
                   </div>
                 </TabsContent>
 
-                <TabsContent value="final" className="m-0 min-h-0 flex-1 overflow-auto p-4">
+                <TabsContent
+                  value="final"
+                  className="m-0 min-h-0 flex-1 overflow-auto p-4 data-[state=inactive]:hidden"
+                >
                   <div className="rounded-md border bg-background/50 p-4">
                     <div className="text-sm font-semibold">{t('knowledge.finalIndex')}</div>
                     <p className="mt-1 text-sm leading-6 text-muted-foreground">
