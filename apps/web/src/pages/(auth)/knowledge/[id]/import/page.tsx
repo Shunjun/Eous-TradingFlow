@@ -76,7 +76,7 @@ export default function KnowledgeImportPage() {
         title,
         strategy,
       })
-      navigate('/knowledge')
+      navigate(`/knowledge/${id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('knowledge.failedToUploadDocument'))
     } finally {

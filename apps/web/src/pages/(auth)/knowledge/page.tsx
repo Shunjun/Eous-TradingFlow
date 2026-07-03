@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import type { KnowledgeBase } from '@eous/api-client'
 import {
   Button,
@@ -173,7 +173,12 @@ export default function KnowledgePage() {
                   >
                     <div className="min-w-0 space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <div className="truncate text-sm font-medium">{item.name}</div>
+                        <Link
+                          to={`/knowledge/${item.id}`}
+                          className="truncate text-sm font-medium hover:text-primary"
+                        >
+                          {item.name}
+                        </Link>
                         <span className="rounded border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
                           {item.enabled ? t('knowledge.enabled') : t('knowledge.disabled')}
                         </span>
