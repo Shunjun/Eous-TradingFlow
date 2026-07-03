@@ -8,12 +8,14 @@ import type {
   LogEntry,
   DataSourceService,
   LlmService,
+  KnowledgeService,
 } from '@eous/nodes/types'
 import { resolveString, resolveValue } from '../../lib/var-resolver.js'
 import { parseJsonWithTolerance } from '../../lib/json-utils.js'
 import * as dataSourceService from '../data-source/index.js'
 import { getAgentRuntime } from '../../agent-runtime/runtime.js'
 import { marketDataService } from '../market-data/index.js'
+import * as knowledgeService from '../knowledge/index.js'
 
 type NodeExecutor = (
   input: Record<string, unknown>,
@@ -227,6 +229,17 @@ const dataSourceServiceImpl: DataSourceService = {
   },
 }
 
+const knowledgeServiceImpl: KnowledgeService = {
+  async retrieve(userId, knowledgeBaseId, params) {
+    const result = await knowledgeService.retrieveKnowledge(userId, knowledgeBaseId, params)
+    return {
+      context: result.context,
+      chunks: result.chunks.map((chunk) => ({ ...chunk })),
+      citations: result.citations.map((citation) => ({ ...citation })),
+    }
+  },
+}
+
 function createLlmService(userId: string): LlmService {
   const agentRuntime = getAgentRuntime()
   return {
@@ -299,6 +312,7 @@ async function executeNodeSequence({
     const executionId = `exec_${Date.now()}_${node.id}`
     const ctx: ExecuteContext = {
       dataSourceService: dataSourceServiceImpl,
+      knowledgeService: knowledgeServiceImpl,
       llmService: createLlmService(userId),
       workflowInput,
       userId,
@@ -410,6 +424,7 @@ async function executeProductionNodeSequence({
     const executionId = `run_${runId}_${node.id}`
     const ctx: ExecuteContext = {
       dataSourceService: dataSourceServiceImpl,
+      knowledgeService: knowledgeServiceImpl,
       llmService: createLlmService(userId),
       workflowInput,
       userId,

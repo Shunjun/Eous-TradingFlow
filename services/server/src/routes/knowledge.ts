@@ -30,6 +30,12 @@ knowledgeRouter.get('/:id/ingestion-runs', async (c) => {
   return c.json({ runs })
 })
 
+knowledgeRouter.post('/:id/retrieve', async (c) => {
+  const body = await c.req.json<knowledgeService.RetrieveKnowledgeBody>()
+  const result = await knowledgeService.retrieveKnowledge(c.get('userId'), c.req.param('id'), body)
+  return c.json(result)
+})
+
 knowledgeRouter.post('/:id/documents', async (c) => {
   const body = await c.req.json<knowledgeService.CreateKnowledgeDocumentBody>()
   const document = await knowledgeService.createKnowledgeDocument(

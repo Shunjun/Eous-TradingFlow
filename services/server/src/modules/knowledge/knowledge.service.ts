@@ -15,7 +15,7 @@ import {
   type ChunkPreviewResult,
 } from './chunking.service.js'
 import { parseDocumentPreview, type ParsedDocumentPreview } from './document-parser.service.js'
-import { startEmbeddingRun } from './embedding.service.js'
+import { embedTextsWithDefaultModel, startEmbeddingRun } from './embedding.service.js'
 import { resolveDefaultModel } from '../model-settings/model-settings.service.js'
 
 export interface KnowledgeBaseDTO {
@@ -131,6 +131,39 @@ export interface CreateIngestionRunBody {
   }>
 }
 
+export interface RetrieveKnowledgeBody {
+  query: string
+  topK?: number
+  scoreThreshold?: number
+  maxContextTokens?: number
+  retrievalMode?: 'vector' | 'hybrid'
+}
+
+export interface KnowledgeRetrievalChunkDTO {
+  chunkId: string
+  documentId: string
+  documentTitle: string
+  chunkIndex: number
+  content: string
+  tokenCount: number
+  score: number
+  metadata: Record<string, unknown>
+}
+
+export interface KnowledgeCitationDTO {
+  chunkId: string
+  documentId: string
+  documentTitle: string
+  chunkIndex: number
+  score: number
+}
+
+export interface KnowledgeRetrievalResultDTO {
+  context: string
+  chunks: KnowledgeRetrievalChunkDTO[]
+  citations: KnowledgeCitationDTO[]
+}
+
 function parseJsonObject(raw: string): Record<string, unknown> {
   try {
     const parsed = JSON.parse(raw) as unknown
@@ -159,6 +192,16 @@ function getObjectStorageKey(document: KnowledgeDocument): string {
 
 function stringifyMetadata(metadata?: Record<string, unknown>): string | undefined {
   return metadata === undefined ? undefined : JSON.stringify(metadata)
+}
+
+function clampInt(value: unknown, fallback: number, min: number, max: number): number {
+  const parsed = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(parsed)) return fallback
+  return Math.max(min, Math.min(Math.floor(parsed), max))
+}
+
+function estimateContextTokens(text: string): number {
+  return Math.max(1, Math.ceil(text.length / 4))
 }
 
 function sanitizeFileName(fileName: string): string {
@@ -527,5 +570,83 @@ export async function createKnowledgeIngestionRun(
   return {
     run: toRunDTO(run),
     chunks: (await knowledgeRepo.findChunksByDocument(document.id)).map(toChunkDTO),
+  }
+}
+
+export async function retrieveKnowledge(
+  userId: string,
+  knowledgeBaseId: string,
+  body: RetrieveKnowledgeBody,
+): Promise<KnowledgeRetrievalResultDTO> {
+  const base = await assertKnowledgeBase(userId, knowledgeBaseId)
+  const query = body.query?.trim()
+  if (!query) throw new AppError('Query is required', 400)
+  if (body.retrievalMode === 'hybrid') {
+    throw new AppError('Hybrid retrieval is not implemented yet', 400)
+  }
+
+  const index = await knowledgeRepo.getActiveEmbeddingIndex(base.id)
+  if (!index) throw new AppError('Knowledge base does not have an active embedding index', 400)
+
+  const topK = clampInt(body.topK, 5, 1, 50)
+  const maxContextTokens = clampInt(body.maxContextTokens, 2000, 128, 20000)
+  const threshold =
+    typeof body.scoreThreshold === 'number' && Number.isFinite(body.scoreThreshold)
+      ? body.scoreThreshold
+      : 0
+
+  const { vectors } = await embedTextsWithDefaultModel(userId, [query])
+  const queryVector = vectors[0]
+  if (!queryVector) throw new AppError('Failed to generate query embedding', 502)
+  if (queryVector.length !== index.dimension) {
+    throw new AppError(
+      `Query embedding dimension ${queryVector.length} does not match active index dimension ${index.dimension}`,
+      400,
+    )
+  }
+
+  const rows = (
+    await knowledgeRepo.searchEmbeddingIndex({
+      indexId: index.id,
+      vector: queryVector,
+      limit: topK * 3,
+    })
+  )
+    .filter((row) => row.score >= threshold)
+    .slice(0, topK)
+
+  const chunks: KnowledgeRetrievalChunkDTO[] = []
+  let usedTokens = 0
+  for (const row of rows) {
+    const tokenCount = row.tokenCount || estimateContextTokens(row.content)
+    if (chunks.length > 0 && usedTokens + tokenCount > maxContextTokens) continue
+    usedTokens += tokenCount
+    chunks.push({
+      chunkId: row.chunkId,
+      documentId: row.documentId,
+      documentTitle: row.documentTitle,
+      chunkIndex: row.chunkIndex,
+      content: row.content,
+      tokenCount,
+      score: row.score,
+      metadata: parseJsonObject(row.metadata),
+    })
+  }
+
+  return {
+    context: chunks
+      .map(
+        (chunk, index) =>
+          `[${index + 1}] ${chunk.documentTitle} / Chunk ${chunk.chunkIndex + 1}\n${chunk.content}`,
+      )
+      .join('\n\n'),
+    chunks,
+    citations: chunks.map((chunk) => ({
+      chunkId: chunk.chunkId,
+      documentId: chunk.documentId,
+      documentTitle: chunk.documentTitle,
+      chunkIndex: chunk.chunkIndex,
+      score: chunk.score,
+    })),
   }
 }

@@ -188,11 +188,13 @@ export class CCXTProvider implements DataSourceProvider<CCXTSettings> {
       const total = markets.length
       const sliced = markets.slice(offset, offset + limit)
       return {
-        symbols: sliced.map((m): SymbolInfo => ({
-          symbol: m?.symbol ?? '',
-          name: m?.symbol ?? '',
-          type: 'crypto',
-        })),
+        symbols: sliced.map(
+          (m): SymbolInfo => ({
+            symbol: m?.symbol ?? '',
+            name: m?.symbol ?? '',
+            type: 'crypto',
+          }),
+        ),
         total,
       }
     } catch (e) {

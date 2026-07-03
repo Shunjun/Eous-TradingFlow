@@ -343,6 +343,31 @@ export interface KnowledgeChunk {
   createdAt: string
 }
 
+export interface KnowledgeRetrievalChunk {
+  chunkId: string
+  documentId: string
+  documentTitle: string
+  chunkIndex: number
+  content: string
+  tokenCount: number
+  score: number
+  metadata: Record<string, unknown>
+}
+
+export interface KnowledgeCitation {
+  chunkId: string
+  documentId: string
+  documentTitle: string
+  chunkIndex: number
+  score: number
+}
+
+export interface KnowledgeRetrievalResult {
+  context: string
+  chunks: KnowledgeRetrievalChunk[]
+  citations: KnowledgeCitation[]
+}
+
 export interface KnowledgeIngestionRun {
   id: string
   knowledgeBaseId: string
@@ -775,6 +800,16 @@ export interface ApiClient {
       config?: KnowledgeChunkingConfig
     },
   ): Promise<{ preview: KnowledgeChunkPreview }>
+  retrieveKnowledge(
+    knowledgeBaseId: string,
+    params: {
+      query: string
+      topK?: number
+      scoreThreshold?: number
+      maxContextTokens?: number
+      retrievalMode?: 'vector' | 'hybrid'
+    },
+  ): Promise<KnowledgeRetrievalResult>
 
   listProviders(): Promise<{ providers: Provider[] }>
   getProvider(id: string): Promise<{ provider: Provider; models: ProviderModel[] }>
@@ -1312,6 +1347,8 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       post(`/knowledge-bases/documents/${encodeURIComponent(documentId)}/ingestion-runs`, params),
     previewKnowledgeChunks: (knowledgeBaseId, params) =>
       post(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/chunk-preview`, params),
+    retrieveKnowledge: (knowledgeBaseId, params) =>
+      post(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/retrieve`, params),
 
     listProviders: () => get('/providers'),
     getProvider: (id: string) => get(`/providers/${encodeURIComponent(id)}`),

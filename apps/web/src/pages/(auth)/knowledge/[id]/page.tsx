@@ -5,6 +5,7 @@ import type {
   KnowledgeChunk,
   KnowledgeDocument,
   KnowledgeIngestionRun,
+  KnowledgeRetrievalResult,
 } from '@eous/api-client'
 import {
   Badge,
@@ -14,10 +15,13 @@ import {
   CardHeader,
   CardTitle,
   ConfirmDialog,
+  Input,
+  Label,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
+  Textarea,
 } from '@eous/ui'
 import { ArrowLeft, Database, FileText, Layers3, Plus, Search, Trash2 } from 'lucide-react'
 import { PageLoading } from '../../../../components/PageLoading'
@@ -54,6 +58,12 @@ export default function KnowledgeDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<KnowledgeDocument | null>(null)
+  const [retrievalQuery, setRetrievalQuery] = useState('')
+  const [retrievalTopK, setRetrievalTopK] = useState(5)
+  const [retrievalThreshold, setRetrievalThreshold] = useState(0)
+  const [retrievalResult, setRetrievalResult] = useState<KnowledgeRetrievalResult | null>(null)
+  const [retrievalLoading, setRetrievalLoading] = useState(false)
+  const [retrievalError, setRetrievalError] = useState<string | null>(null)
 
   const stats = useMemo(
     () => ({
@@ -109,6 +119,26 @@ export default function KnowledgeDetailPage() {
       setPendingDelete(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('knowledge.failedToDeleteDocument'))
+    }
+  }
+
+  async function handleRetrieve() {
+    if (!id || !retrievalQuery.trim()) return
+    setRetrievalLoading(true)
+    setRetrievalError(null)
+    try {
+      const result = await api.retrieveKnowledge(id, {
+        query: retrievalQuery,
+        topK: retrievalTopK,
+        scoreThreshold: retrievalThreshold,
+        maxContextTokens: 2000,
+        retrievalMode: 'vector',
+      })
+      setRetrievalResult(result)
+    } catch (err) {
+      setRetrievalError(err instanceof Error ? err.message : '检索失败')
+    } finally {
+      setRetrievalLoading(false)
     }
   }
 
@@ -387,7 +417,107 @@ export default function KnowledgeDetailPage() {
                 )}
               </TabsContent>
 
-              {['retrieval', 'indexes'].map((tab) => (
+              <TabsContent value="retrieval" className="m-0">
+                <div className="grid min-h-[520px] lg:grid-cols-[360px_minmax(0,1fr)]">
+                  <aside className="border-r p-4">
+                    <div className="space-y-4">
+                      <div className="space-y-1.5">
+                        <Label>检索问题</Label>
+                        <Textarea
+                          value={retrievalQuery}
+                          onChange={(event) => setRetrievalQuery(event.target.value)}
+                          placeholder="输入一个问题，测试当前知识库的召回结果"
+                          className="min-h-28"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label>Top K</Label>
+                          <Input
+                            type="number"
+                            min={1}
+                            max={50}
+                            value={retrievalTopK}
+                            onChange={(event) => setRetrievalTopK(Number(event.target.value))}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>Threshold</Label>
+                          <Input
+                            type="number"
+                            min={-1}
+                            max={1}
+                            step={0.05}
+                            value={retrievalThreshold}
+                            onChange={(event) => setRetrievalThreshold(Number(event.target.value))}
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        className="w-full"
+                        disabled={retrievalLoading || !retrievalQuery.trim()}
+                        onClick={handleRetrieve}
+                      >
+                        {retrievalLoading ? '检索中...' : '检索测试'}
+                      </Button>
+                      {retrievalError && (
+                        <div className="rounded-md border border-destructive/30 p-3 text-sm text-destructive">
+                          {retrievalError}
+                        </div>
+                      )}
+                    </div>
+                  </aside>
+                  <section className="min-w-0 p-4">
+                    {!retrievalResult ? (
+                      <div className="flex min-h-[420px] items-center justify-center text-center">
+                        <div className="max-w-md">
+                          <Search size={28} className="mx-auto text-muted-foreground" />
+                          <p className="mt-3 text-sm font-medium">暂无检索结果</p>
+                          <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                            输入问题后会展示召回 chunks、分数和拼接后的 context。
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+                        <div>
+                          <div className="mb-2 text-sm font-medium">Context</div>
+                          <pre className="max-h-[560px] overflow-auto whitespace-pre-wrap rounded-md border bg-muted/20 p-3 text-sm leading-6">
+                            {retrievalResult.context || '无可用 context'}
+                          </pre>
+                        </div>
+                        <div>
+                          <div className="mb-2 text-sm font-medium">
+                            Chunks ({retrievalResult.chunks.length})
+                          </div>
+                          <div className="space-y-2">
+                            {retrievalResult.chunks.map((chunk) => (
+                              <div key={chunk.chunkId} className="border bg-muted/20 p-3">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="truncate text-sm font-medium">
+                                    {chunk.documentTitle}
+                                  </div>
+                                  <div className="font-mono text-xs text-muted-foreground">
+                                    {chunk.score.toFixed(4)}
+                                  </div>
+                                </div>
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  Chunk {chunk.chunkIndex + 1} · {chunk.tokenCount} tokens
+                                </div>
+                                <p className="mt-2 line-clamp-5 whitespace-pre-wrap text-xs leading-5 text-muted-foreground">
+                                  {chunk.content}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </section>
+                </div>
+              </TabsContent>
+
+              {['indexes'].map((tab) => (
                 <TabsContent key={tab} value={tab} className="m-0">
                   <div className="flex min-h-[360px] items-center justify-center p-8 text-center">
                     <div className="max-w-md">

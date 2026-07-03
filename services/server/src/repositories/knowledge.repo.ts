@@ -267,3 +267,54 @@ export async function activateEmbeddingIndex(
     data: { activeIndexId: indexId },
   })
 }
+
+export async function getActiveEmbeddingIndex(knowledgeBaseId: string) {
+  const base = await prisma.knowledgeBase.findUnique({
+    where: { id: knowledgeBaseId },
+    select: { activeIndexId: true },
+  })
+  if (!base?.activeIndexId) return null
+  return prisma.knowledgeEmbeddingIndex.findFirst({
+    where: { id: base.activeIndexId, knowledgeBaseId, status: 'active' },
+  })
+}
+
+export type KnowledgeVectorSearchRow = {
+  chunkId: string
+  documentId: string
+  documentTitle: string
+  chunkIndex: number
+  content: string
+  tokenCount: number
+  metadata: string
+  score: number
+}
+
+export async function searchEmbeddingIndex(params: {
+  indexId: string
+  vector: number[]
+  limit: number
+}): Promise<KnowledgeVectorSearchRow[]> {
+  return prisma.$queryRawUnsafe<KnowledgeVectorSearchRow[]>(
+    `
+      SELECT
+        c.id AS "chunkId",
+        c.document_id AS "documentId",
+        d.title AS "documentTitle",
+        c.chunk_index AS "chunkIndex",
+        c.content AS "content",
+        c.token_count AS "tokenCount",
+        c.metadata AS "metadata",
+        (1 - (e.vector <=> $2::vector))::float AS "score"
+      FROM knowledge_embeddings e
+      JOIN knowledge_chunks c ON c.id = e.chunk_id
+      JOIN knowledge_documents d ON d.id = c.document_id
+      WHERE e.index_id = $1
+      ORDER BY e.vector <=> $2::vector
+      LIMIT $3
+    `,
+    params.indexId,
+    vectorLiteral(params.vector),
+    params.limit,
+  )
+}

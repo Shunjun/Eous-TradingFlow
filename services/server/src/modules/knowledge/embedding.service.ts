@@ -84,6 +84,17 @@ async function resolveEmbeddingProvider(userId: string) {
   }
 }
 
+export async function embedTextsWithDefaultModel(userId: string, texts: string[]) {
+  const provider = await resolveEmbeddingProvider(userId)
+  const vectors = await embedTexts({
+    baseUrl: provider.baseUrl,
+    apiKey: provider.apiKey,
+    modelId: provider.modelId,
+    texts,
+  })
+  return { provider, vectors }
+}
+
 export function startEmbeddingRun(params: {
   userId: string
   runId: string

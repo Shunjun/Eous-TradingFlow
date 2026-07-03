@@ -70,8 +70,27 @@ export interface LlmService {
   parseJsonWithTolerance(text: string): unknown
 }
 
+export interface KnowledgeService {
+  retrieve(
+    userId: string,
+    knowledgeBaseId: string,
+    params: {
+      query: string
+      topK?: number
+      scoreThreshold?: number
+      maxContextTokens?: number
+      retrievalMode?: 'vector' | 'hybrid'
+    },
+  ): Promise<{
+    context: string
+    chunks: Array<Record<string, unknown>>
+    citations: Array<Record<string, unknown>>
+  }>
+}
+
 export interface ExecuteContext {
   dataSourceService: DataSourceService
+  knowledgeService?: KnowledgeService
   llmService?: LlmService
   workflowInput?: Record<string, unknown>
   userId: string
