@@ -217,6 +217,7 @@ export const en = {
   'knowledge.strategyCompressed': 'Embed compressed text',
   'knowledge.strategyHybrid': 'Embed compressed chunks, retrieve raw chunks',
   'knowledge.statusUploaded': 'Uploaded',
+  'knowledge.statusChunked': 'Chunked',
   'knowledge.statusParsing': 'Parsing',
   'knowledge.statusProcessing': 'Processing',
   'knowledge.statusIndexed': 'Indexed',
@@ -244,6 +245,19 @@ export const en = {
   'knowledge.deleteDocumentDescription':
     'This will delete this document and any generated chunks or index data.',
   'knowledge.failedToDeleteDocument': 'Failed to delete document',
+  'knowledge.allDocuments': 'All documents',
+  'knowledge.showAllChunks': 'Show all chunks',
+  'knowledge.noChunksTitle': 'No chunks',
+  'knowledge.noChunksDescription':
+    'Saved chunks will appear here after confirming chunking in the import workbench.',
+  'knowledge.noRunsTitle': 'No runs',
+  'knowledge.noRunsDescription':
+    'Import runs for parsing, chunking, compression, and indexing will appear here.',
+  'knowledge.runStarted': 'Started: {time}',
+  'knowledge.runFinished': 'Finished: {time}',
+  'knowledge.chunkRequired': 'Generate at least one chunk first',
+  'knowledge.failedToStartIngestion': 'Failed to start ingestion',
+  'knowledge.startingIngestion': 'Saving...',
   'knowledge.fileRequired': 'Select a document file first',
   'knowledge.failedToUploadDocument': 'Failed to upload document',
   'knowledge.uploadDocument': 'Upload document',

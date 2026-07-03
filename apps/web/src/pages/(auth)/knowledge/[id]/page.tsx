@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import type { KnowledgeBase, KnowledgeDocument } from '@eous/api-client'
+import type {
+  KnowledgeBase,
+  KnowledgeChunk,
+  KnowledgeDocument,
+  KnowledgeIngestionRun,
+} from '@eous/api-client'
 import {
   Badge,
   Button,
@@ -42,6 +47,10 @@ export default function KnowledgeDetailPage() {
   const { t } = useI18n()
   const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeBase | null>(null)
   const [documents, setDocuments] = useState<KnowledgeDocument[]>([])
+  const [chunks, setChunks] = useState<KnowledgeChunk[]>([])
+  const [runs, setRuns] = useState<KnowledgeIngestionRun[]>([])
+  const [activeTab, setActiveTab] = useState('documents')
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<KnowledgeDocument | null>(null)
@@ -64,8 +73,21 @@ export default function KnowledgeDetailPage() {
         api.getKnowledgeBase(id),
         api.listKnowledgeDocuments(id),
       ])
+      const [runResult, chunkGroups] = await Promise.all([
+        api.listKnowledgeIngestionRuns(id),
+        Promise.all(
+          documentResult.documents.map((document) =>
+            api
+              .listKnowledgeDocumentChunks(document.id)
+              .then((res) => res.chunks)
+              .catch(() => []),
+          ),
+        ),
+      ])
       setKnowledgeBase(baseResult.knowledgeBase)
       setDocuments(documentResult.documents)
+      setRuns(runResult.runs)
+      setChunks(chunkGroups.flat())
     } catch (err) {
       setError(err instanceof Error ? err.message : t('knowledge.failedToLoad'))
     } finally {
@@ -83,6 +105,7 @@ export default function KnowledgeDetailPage() {
     try {
       await api.deleteKnowledgeDocument(pendingDelete.id)
       setDocuments((current) => current.filter((item) => item.id !== pendingDelete.id))
+      setChunks((current) => current.filter((item) => item.documentId !== pendingDelete.id))
       setPendingDelete(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('knowledge.failedToDeleteDocument'))
@@ -91,6 +114,7 @@ export default function KnowledgeDetailPage() {
 
   function statusLabel(status: string): string {
     if (status === 'uploaded') return t('knowledge.statusUploaded')
+    if (status === 'chunked') return t('knowledge.statusChunked')
     if (status === 'parsing') return t('knowledge.statusParsing')
     if (status === 'processing') return t('knowledge.statusProcessing')
     if (status === 'indexed') return t('knowledge.statusIndexed')
@@ -103,6 +127,11 @@ export default function KnowledgeDetailPage() {
     if (strategy === 'hybrid') return t('knowledge.strategyHybrid')
     return t('knowledge.strategyRaw')
   }
+
+  const documentById = new Map(documents.map((document) => [document.id, document]))
+  const visibleChunks = selectedDocumentId
+    ? chunks.filter((chunk) => chunk.documentId === selectedDocumentId)
+    : chunks
 
   if (!id) return null
   if (loading || !knowledgeBase) return <PageLoading label={t('knowledge.loading')} />
@@ -166,7 +195,7 @@ export default function KnowledgeDetailPage() {
             <CardTitle className="text-base">{t('knowledge.library')}</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <Tabs defaultValue="documents" className="gap-0">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="gap-0">
               <div className="border-b px-4 pt-3">
                 <TabsList variant="line" className="h-9 justify-start">
                   <TabsTrigger value="documents">{t('knowledge.documents')}</TabsTrigger>
@@ -222,7 +251,14 @@ export default function KnowledgeDetailPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm" disabled>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedDocumentId(document.id)
+                              setActiveTab('chunks')
+                            }}
+                          >
                             <Search size={14} />
                             {t('knowledge.viewChunks')}
                           </Button>
@@ -241,7 +277,115 @@ export default function KnowledgeDetailPage() {
                 )}
               </TabsContent>
 
-              {['chunks', 'retrieval', 'indexes', 'runs'].map((tab) => (
+              <TabsContent value="chunks" className="m-0">
+                {visibleChunks.length === 0 ? (
+                  <div className="flex min-h-[360px] items-center justify-center p-8 text-center">
+                    <div className="max-w-md">
+                      <Database size={28} className="mx-auto text-muted-foreground" />
+                      <p className="mt-3 text-sm font-medium">{t('knowledge.noChunksTitle')}</p>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                        {t('knowledge.noChunksDescription')}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center justify-between border-b px-4 py-3">
+                      <div className="text-sm text-muted-foreground">
+                        {selectedDocumentId
+                          ? documentById.get(selectedDocumentId)?.title
+                          : t('knowledge.allDocuments')}
+                      </div>
+                      {selectedDocumentId && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setSelectedDocumentId(null)}
+                        >
+                          {t('knowledge.showAllChunks')}
+                        </Button>
+                      )}
+                    </div>
+                    <div className="divide-y">
+                      {visibleChunks.map((chunk) => (
+                        <div key={chunk.id} className="p-4">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex min-w-0 flex-wrap items-center gap-2">
+                              <div className="text-sm font-medium">
+                                {t('knowledge.chunkNumber').replace(
+                                  '{number}',
+                                  String(chunk.chunkIndex + 1),
+                                )}
+                              </div>
+                              <Badge variant="outline">{chunk.kind}</Badge>
+                              <Badge variant="secondary">{chunk.embeddingRole}</Badge>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {chunk.tokenCount} tokens
+                            </div>
+                          </div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            {documentById.get(chunk.documentId)?.title ?? chunk.documentId}
+                          </div>
+                          <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
+                            {chunk.content}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="runs" className="m-0">
+                {runs.length === 0 ? (
+                  <div className="flex min-h-[360px] items-center justify-center p-8 text-center">
+                    <div className="max-w-md">
+                      <Database size={28} className="mx-auto text-muted-foreground" />
+                      <p className="mt-3 text-sm font-medium">{t('knowledge.noRunsTitle')}</p>
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                        {t('knowledge.noRunsDescription')}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {runs.map((run) => (
+                      <div
+                        key={run.id}
+                        className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="truncate text-sm font-medium">
+                              {documentById.get(run.documentId)?.title ?? run.documentId}
+                            </div>
+                            <Badge variant="outline">{run.status}</Badge>
+                            <Badge variant="secondary">{strategyLabel(run.strategy)}</Badge>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                            <span>
+                              {t('knowledge.runStarted').replace(
+                                '{time}',
+                                run.startedAt ? formatDate(run.startedAt) : '-',
+                              )}
+                            </span>
+                            <span>
+                              {t('knowledge.runFinished').replace(
+                                '{time}',
+                                run.finishedAt ? formatDate(run.finishedAt) : '-',
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="font-mono text-xs text-muted-foreground">{run.id}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
+
+              {['retrieval', 'indexes'].map((tab) => (
                 <TabsContent key={tab} value={tab} className="m-0">
                   <div className="flex min-h-[360px] items-center justify-center p-8 text-center">
                     <div className="max-w-md">

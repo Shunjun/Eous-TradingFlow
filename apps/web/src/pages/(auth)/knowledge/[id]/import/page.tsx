@@ -78,6 +78,7 @@ export default function KnowledgeImportPage() {
   })
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [startingRun, setStartingRun] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const displayTitle = useMemo(() => {
@@ -230,6 +231,33 @@ export default function KnowledgeImportPage() {
     setSelectedChunkIndexes([])
     setSplitPosition(0)
     setError(null)
+  }
+
+  async function handleFinishImport() {
+    if (!id || !document) return
+    if (chunks.length === 0) {
+      setError(t('knowledge.chunkRequired'))
+      return
+    }
+
+    setStartingRun(true)
+    setError(null)
+    try {
+      await api.createKnowledgeIngestionRun(document.id, {
+        strategy,
+        chunkConfig: { ...chunkConfig },
+        chunks: chunks.map((chunk) => ({
+          content: chunk.content,
+          tokenCount: chunk.tokenCount,
+          metadata: chunk.metadata,
+        })),
+      })
+      navigate(`/knowledge/${id}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('knowledge.failedToStartIngestion'))
+    } finally {
+      setStartingRun(false)
+    }
   }
 
   return (
@@ -441,13 +469,16 @@ export default function KnowledgeImportPage() {
                 <>
                   <Button
                     variant="outline"
-                    disabled={chunking || !document}
+                    disabled={chunking || startingRun || !document}
                     onClick={() => document && loadDocumentPreview(document.id)}
                   >
                     {chunking ? t('knowledge.previewing') : t('knowledge.recalculateChunks')}
                   </Button>
-                  <Button onClick={() => id && navigate(`/knowledge/${id}`)}>
-                    {t('knowledge.finishImport')}
+                  <Button
+                    onClick={handleFinishImport}
+                    disabled={startingRun || chunks.length === 0}
+                  >
+                    {startingRun ? t('knowledge.startingIngestion') : t('knowledge.finishImport')}
                   </Button>
                 </>
               )}

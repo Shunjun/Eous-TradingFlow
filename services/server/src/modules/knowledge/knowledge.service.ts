@@ -1,4 +1,9 @@
-import type { KnowledgeBase, KnowledgeDocument } from '@eous/db'
+import type {
+  KnowledgeBase,
+  KnowledgeChunk,
+  KnowledgeDocument,
+  KnowledgeIngestionRun,
+} from '@eous/db'
 import { createHash, randomUUID } from 'node:crypto'
 import { extname } from 'node:path'
 import { AppError } from '../../lib/app-error.js'
@@ -53,6 +58,38 @@ export interface KnowledgeDocumentDTO {
   updatedAt: string
 }
 
+export interface KnowledgeChunkDTO {
+  id: string
+  documentId: string
+  runId: string | null
+  chunkIndex: number
+  sourceRawChunkId: string | null
+  compressedChunkId: string | null
+  kind: string
+  embeddingRole: string
+  tokenCount: number
+  content: string
+  metadata: Record<string, unknown>
+  createdAt: string
+}
+
+export interface KnowledgeIngestionRunDTO {
+  id: string
+  knowledgeBaseId: string
+  documentId: string
+  status: string
+  strategy: string
+  parseConfig: Record<string, unknown>
+  chunkConfig: Record<string, unknown>
+  compressionConfig: Record<string, unknown>
+  embeddingConfig: Record<string, unknown>
+  error: string | null
+  startedAt: string | null
+  finishedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface CreateKnowledgeDocumentBody {
   title: string
   sourceType?: string
@@ -77,6 +114,19 @@ export interface UploadKnowledgeDocumentInput {
 
 export interface DocumentChunkPreviewInput {
   config?: ChunkPreviewInput['config']
+}
+
+export interface CreateIngestionRunBody {
+  strategy?: 'raw' | 'compressed' | 'hybrid'
+  parseConfig?: Record<string, unknown>
+  chunkConfig?: Record<string, unknown>
+  compressionConfig?: Record<string, unknown>
+  embeddingConfig?: Record<string, unknown>
+  chunks: Array<{
+    content: string
+    tokenCount?: number
+    metadata?: Record<string, unknown>
+  }>
 }
 
 function parseJsonObject(raw: string): Record<string, unknown> {
@@ -159,6 +209,42 @@ function toDocumentDTO(document: KnowledgeDocument): KnowledgeDocumentDTO {
     metadata: parseJsonObject(document.metadata),
     createdAt: document.createdAt.toISOString(),
     updatedAt: document.updatedAt.toISOString(),
+  }
+}
+
+function toChunkDTO(chunk: KnowledgeChunk): KnowledgeChunkDTO {
+  return {
+    id: chunk.id,
+    documentId: chunk.documentId,
+    runId: chunk.runId,
+    chunkIndex: chunk.chunkIndex,
+    sourceRawChunkId: chunk.sourceRawChunkId,
+    compressedChunkId: chunk.compressedChunkId,
+    kind: chunk.kind,
+    embeddingRole: chunk.embeddingRole,
+    tokenCount: chunk.tokenCount,
+    content: chunk.content,
+    metadata: parseJsonObject(chunk.metadata),
+    createdAt: chunk.createdAt.toISOString(),
+  }
+}
+
+function toRunDTO(run: KnowledgeIngestionRun): KnowledgeIngestionRunDTO {
+  return {
+    id: run.id,
+    knowledgeBaseId: run.knowledgeBaseId,
+    documentId: run.documentId,
+    status: run.status,
+    strategy: run.strategy,
+    parseConfig: parseJsonObject(run.parseConfig),
+    chunkConfig: parseJsonObject(run.chunkConfig),
+    compressionConfig: parseJsonObject(run.compressionConfig),
+    embeddingConfig: parseJsonObject(run.embeddingConfig),
+    error: run.error,
+    startedAt: run.startedAt?.toISOString() ?? null,
+    finishedAt: run.finishedAt?.toISOString() ?? null,
+    createdAt: run.createdAt.toISOString(),
+    updatedAt: run.updatedAt.toISOString(),
   }
 }
 
@@ -356,4 +442,66 @@ export async function previewKnowledgeDocumentChunks(
     content: parsed.content,
     config: input.config,
   })
+}
+
+export async function listKnowledgeDocumentChunks(
+  userId: string,
+  documentId: string,
+): Promise<KnowledgeChunkDTO[]> {
+  await getDocumentForUser(userId, documentId)
+  return (await knowledgeRepo.findChunksByDocument(documentId)).map(toChunkDTO)
+}
+
+export async function listKnowledgeIngestionRuns(
+  userId: string,
+  knowledgeBaseId: string,
+): Promise<KnowledgeIngestionRunDTO[]> {
+  const base = await assertKnowledgeBase(userId, knowledgeBaseId)
+  return (await knowledgeRepo.findRunsByKnowledgeBase(base.id)).map(toRunDTO)
+}
+
+export async function createKnowledgeIngestionRun(
+  userId: string,
+  documentId: string,
+  body: CreateIngestionRunBody,
+): Promise<{ run: KnowledgeIngestionRunDTO; chunks: KnowledgeChunkDTO[] }> {
+  const document = await getDocumentForUser(userId, documentId)
+  const strategy = body.strategy ?? (document.strategy as 'raw' | 'compressed' | 'hybrid')
+  validateStrategy(strategy)
+
+  if (!Array.isArray(body.chunks) || body.chunks.length === 0) {
+    throw new AppError('At least one chunk is required', 400)
+  }
+  if (body.chunks.length > 2000) {
+    throw new AppError('Too many chunks. Reduce maxChunks before starting ingestion.', 400)
+  }
+
+  const chunks = body.chunks.map((chunk, index) => {
+    const content = chunk.content.trim()
+    if (!content) throw new AppError(`Chunk ${index + 1} is empty`, 400)
+    return {
+      chunkIndex: index,
+      content,
+      tokenCount: chunk.tokenCount ?? Math.max(1, Math.ceil(content.length / 4)),
+      kind: 'raw',
+      embeddingRole: strategy === 'raw' ? 'indexed' : 'context',
+      metadata: stringifyMetadata(chunk.metadata),
+    }
+  })
+
+  const run = await knowledgeRepo.createChunkedRun({
+    knowledgeBaseId: document.knowledgeBaseId,
+    documentId: document.id,
+    strategy,
+    parseConfig: stringifyMetadata(body.parseConfig),
+    chunkConfig: stringifyMetadata(body.chunkConfig),
+    compressionConfig: stringifyMetadata(body.compressionConfig),
+    embeddingConfig: stringifyMetadata(body.embeddingConfig),
+    chunks,
+  })
+
+  return {
+    run: toRunDTO(run),
+    chunks: (await knowledgeRepo.findChunksByDocument(document.id)).map(toChunkDTO),
+  }
 }

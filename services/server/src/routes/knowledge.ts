@@ -25,6 +25,11 @@ knowledgeRouter.get('/:id/documents', async (c) => {
   return c.json({ documents })
 })
 
+knowledgeRouter.get('/:id/ingestion-runs', async (c) => {
+  const runs = await knowledgeService.listKnowledgeIngestionRuns(c.get('userId'), c.req.param('id'))
+  return c.json({ runs })
+})
+
 knowledgeRouter.post('/:id/documents', async (c) => {
   const body = await c.req.json<knowledgeService.CreateKnowledgeDocumentBody>()
   const document = await knowledgeService.createKnowledgeDocument(
@@ -90,6 +95,24 @@ knowledgeRouter.post('/documents/:documentId/chunk-preview', async (c) => {
     body,
   )
   return c.json({ preview })
+})
+
+knowledgeRouter.get('/documents/:documentId/chunks', async (c) => {
+  const chunks = await knowledgeService.listKnowledgeDocumentChunks(
+    c.get('userId'),
+    c.req.param('documentId'),
+  )
+  return c.json({ chunks })
+})
+
+knowledgeRouter.post('/documents/:documentId/ingestion-runs', async (c) => {
+  const body = await c.req.json<knowledgeService.CreateIngestionRunBody>()
+  const result = await knowledgeService.createKnowledgeIngestionRun(
+    c.get('userId'),
+    c.req.param('documentId'),
+    body,
+  )
+  return c.json(result, 201)
 })
 
 knowledgeRouter.get('/:id', async (c) => {

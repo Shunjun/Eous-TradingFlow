@@ -297,6 +297,38 @@ export interface KnowledgeDocument {
   updatedAt: string
 }
 
+export interface KnowledgeChunk {
+  id: string
+  documentId: string
+  runId: string | null
+  chunkIndex: number
+  sourceRawChunkId: string | null
+  compressedChunkId: string | null
+  kind: string
+  embeddingRole: string
+  tokenCount: number
+  content: string
+  metadata: Record<string, unknown>
+  createdAt: string
+}
+
+export interface KnowledgeIngestionRun {
+  id: string
+  knowledgeBaseId: string
+  documentId: string
+  status: string
+  strategy: string
+  parseConfig: Record<string, unknown>
+  chunkConfig: Record<string, unknown>
+  compressionConfig: Record<string, unknown>
+  embeddingConfig: Record<string, unknown>
+  error: string | null
+  startedAt: string | null
+  finishedAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
 export interface KnowledgeChunkingConfig {
   strategy?: 'auto_structure' | 'semantic'
   granularity?: number
@@ -671,6 +703,8 @@ export interface ApiClient {
     },
   ): Promise<{ document: KnowledgeDocument }>
   deleteKnowledgeDocument(documentId: string): Promise<void>
+  listKnowledgeIngestionRuns(knowledgeBaseId: string): Promise<{ runs: KnowledgeIngestionRun[] }>
+  listKnowledgeDocumentChunks(documentId: string): Promise<{ chunks: KnowledgeChunk[] }>
   uploadKnowledgeDocument(
     knowledgeBaseId: string,
     params: {
@@ -688,6 +722,21 @@ export interface ApiClient {
       config?: KnowledgeChunkingConfig
     },
   ): Promise<{ preview: KnowledgeChunkPreview }>
+  createKnowledgeIngestionRun(
+    documentId: string,
+    params: {
+      strategy?: 'raw' | 'compressed' | 'hybrid'
+      parseConfig?: Record<string, unknown>
+      chunkConfig?: Record<string, unknown>
+      compressionConfig?: Record<string, unknown>
+      embeddingConfig?: Record<string, unknown>
+      chunks: Array<{
+        content: string
+        tokenCount?: number
+        metadata?: Record<string, unknown>
+      }>
+    },
+  ): Promise<{ run: KnowledgeIngestionRun; chunks: KnowledgeChunk[] }>
   previewKnowledgeChunks(
     knowledgeBaseId: string,
     params: {
@@ -1204,6 +1253,10 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       post(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/documents`, params),
     deleteKnowledgeDocument: (documentId: string) =>
       del(`/knowledge-bases/documents/${encodeURIComponent(documentId)}`, true),
+    listKnowledgeIngestionRuns: (knowledgeBaseId: string) =>
+      get(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/ingestion-runs`),
+    listKnowledgeDocumentChunks: (documentId: string) =>
+      get(`/knowledge-bases/documents/${encodeURIComponent(documentId)}/chunks`),
     uploadKnowledgeDocument: (knowledgeBaseId, params) => {
       const form = new FormData()
       form.set('file', params.file)
@@ -1215,6 +1268,8 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       post(`/knowledge-bases/documents/${encodeURIComponent(documentId)}/parse-preview`),
     previewKnowledgeDocumentChunks: (documentId, params) =>
       post(`/knowledge-bases/documents/${encodeURIComponent(documentId)}/chunk-preview`, params),
+    createKnowledgeIngestionRun: (documentId, params) =>
+      post(`/knowledge-bases/documents/${encodeURIComponent(documentId)}/ingestion-runs`, params),
     previewKnowledgeChunks: (knowledgeBaseId, params) =>
       post(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/chunk-preview`, params),
 
