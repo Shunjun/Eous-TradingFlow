@@ -22,7 +22,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@eous/ui'
-import { ArrowLeft, Combine, FileText, Scissors, Upload } from 'lucide-react'
+import { ArrowLeft, Combine, FileText, Scissors, Upload, X } from 'lucide-react'
 import { api } from '../../../../../lib/api'
 import { useI18n } from '../../../../../lib/i18n'
 
@@ -261,7 +261,7 @@ export default function KnowledgeImportPage() {
   }
 
   return (
-    <div className="min-h-full bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.10),transparent_34rem)] px-6 py-6">
+    <div className="min-h-full bg-background px-6 py-6">
       <div className="flex h-full flex-col gap-5">
         <header className="flex min-w-0 items-center gap-3">
           <Button asChild variant="ghost" size="sm" className="w-fit px-0 text-muted-foreground">
@@ -279,13 +279,25 @@ export default function KnowledgeImportPage() {
         <div
           className={
             step === 'source'
-              ? 'grid min-h-[calc(100vh-13rem)] gap-4 xl:grid-cols-[420px_minmax(0,1fr)]'
-              : 'grid min-h-[calc(100vh-13rem)] gap-4 xl:grid-cols-[380px_minmax(0,1fr)]'
+              ? 'flex min-h-[calc(100vh-13rem)] items-center justify-center'
+              : 'grid min-h-[calc(100vh-13rem)] gap-0 border-t border-border xl:grid-cols-[380px_minmax(0,1fr)]'
           }
         >
-          <aside className="flex flex-col gap-4 rounded-lg border bg-card/80 p-4 shadow-sm backdrop-blur">
+          <aside
+            className={
+              step === 'source'
+                ? 'flex w-full max-w-3xl flex-col gap-6'
+                : 'flex flex-col gap-4 border-r border-border p-4'
+            }
+          >
             <div className="space-y-1">
-              <h2 className="text-sm font-semibold">
+              <h2
+                className={
+                  step === 'source'
+                    ? 'text-lg font-semibold tracking-normal'
+                    : 'text-sm font-semibold'
+                }
+              >
                 {step === 'source' ? t('knowledge.importDocument') : t('knowledge.chunkSettings')}
               </h2>
               <p className="text-sm leading-6 text-muted-foreground">
@@ -302,58 +314,98 @@ export default function KnowledgeImportPage() {
 
             {step === 'source' ? (
               <>
-                <div className="space-y-1.5">
-                  <Label>{t('knowledge.documentTitle')}</Label>
-                  <Input
-                    value={title}
-                    onChange={(event) => setTitle(event.target.value)}
-                    placeholder={t('knowledge.documentTitlePlaceholder')}
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label>{t('knowledge.documentFile')}</Label>
-                  <label className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-md border border-dashed border-border bg-muted/20 px-4 py-6 text-center transition hover:bg-muted/40">
-                    <Upload size={22} className="text-primary" />
-                    <div className="mt-3 max-w-full truncate text-sm font-medium">
-                      {file ? file.name : t('knowledge.selectDocumentFile')}
+                <div className="border-y border-border py-6">
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label>{t('knowledge.documentTitle')}</Label>
+                      <Input
+                        value={title}
+                        onChange={(event) => setTitle(event.target.value)}
+                        placeholder={t('knowledge.documentTitlePlaceholder')}
+                      />
                     </div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {file ? formatFileSize(file.size) : t('knowledge.documentFileHint')}
-                    </div>
-                    <Input
-                      className="hidden"
-                      type="file"
-                      accept=".txt,.md,.markdown,.pdf,.docx,.epub,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/epub+zip"
-                      onChange={(event) => {
-                        setFile(event.target.files?.[0] ?? null)
-                      }}
-                    />
-                  </label>
-                </div>
 
-                <div className="space-y-1.5">
-                  <Label>{t('knowledge.importStrategy')}</Label>
-                  <Select
-                    value={strategy}
-                    onValueChange={(value) => setStrategy(value as ImportStrategy)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="raw">{t('knowledge.strategyRaw')}</SelectItem>
-                      <SelectItem value="compressed">
-                        {t('knowledge.strategyCompressed')}
-                      </SelectItem>
-                      <SelectItem value="hybrid">{t('knowledge.strategyHybrid')}</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <div className="space-y-1.5">
+                      <Label>{t('knowledge.importStrategy')}</Label>
+                      <Select
+                        value={strategy}
+                        onValueChange={(value) => setStrategy(value as ImportStrategy)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="raw">{t('knowledge.strategyRaw')}</SelectItem>
+                          <SelectItem value="compressed">
+                            {t('knowledge.strategyCompressed')}
+                          </SelectItem>
+                          <SelectItem value="hybrid">{t('knowledge.strategyHybrid')}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 space-y-1.5">
+                    <Label>{t('knowledge.documentFile')}</Label>
+                    {file ? (
+                      <div className="flex min-h-[120px] items-center justify-between gap-4 border border-border bg-muted/20 px-5 py-4">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <FileText size={24} className="shrink-0 text-primary" />
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-medium">{file.name}</div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {formatFileSize(file.size)}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <label className="inline-flex h-9 cursor-pointer items-center justify-center whitespace-nowrap rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
+                            {t('knowledge.selectDocumentFile')}
+                            <Input
+                              className="hidden"
+                              type="file"
+                              accept=".txt,.md,.markdown,.pdf,.docx,.epub,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/epub+zip"
+                              onChange={(event) => {
+                                setFile(event.target.files?.[0] ?? null)
+                              }}
+                            />
+                          </label>
+                          <Button
+                            type="button"
+                            variant="ghost-icon"
+                            size="sm"
+                            className="h-9 w-9"
+                            onClick={() => setFile(null)}
+                          >
+                            <X size={15} />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center border border-dashed border-border bg-muted/20 px-4 py-6 text-center transition hover:bg-muted/40">
+                        <Upload size={22} className="text-primary" />
+                        <div className="mt-3 max-w-full truncate text-sm font-medium">
+                          {t('knowledge.selectDocumentFile')}
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {t('knowledge.documentFileHint')}
+                        </div>
+                        <Input
+                          className="hidden"
+                          type="file"
+                          accept=".txt,.md,.markdown,.pdf,.docx,.epub,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/epub+zip"
+                          onChange={(event) => {
+                            setFile(event.target.files?.[0] ?? null)
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
                 </div>
               </>
             ) : (
               <>
-                <div className="rounded-md border border-border/70 bg-background/50 p-3">
+                <div className="border-b border-border pb-4">
                   <div className="text-xs text-muted-foreground">
                     {t('knowledge.currentDocument')}
                   </div>
@@ -428,16 +480,16 @@ export default function KnowledgeImportPage() {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-md border border-border/70 bg-background/50 p-2">
+                <div className="grid grid-cols-3 divide-x divide-border border-y border-border">
+                  <div className="p-2">
                     <div className="text-[11px] text-muted-foreground">{t('knowledge.chunks')}</div>
                     <div className="font-mono text-lg font-semibold">{chunkStats.chunkCount}</div>
                   </div>
-                  <div className="rounded-md border border-border/70 bg-background/50 p-2">
+                  <div className="p-2">
                     <div className="text-[11px] text-muted-foreground">{t('knowledge.tokens')}</div>
                     <div className="font-mono text-lg font-semibold">{chunkStats.tokenCount}</div>
                   </div>
-                  <div className="rounded-md border border-border/70 bg-background/50 p-2">
+                  <div className="p-2">
                     <div className="text-[11px] text-muted-foreground">
                       {t('knowledge.characters')}
                     </div>
@@ -453,7 +505,11 @@ export default function KnowledgeImportPage() {
               </div>
             )}
 
-            <div className="mt-auto flex gap-2">
+            <div
+              className={
+                step === 'source' ? 'flex justify-end gap-2' : 'mt-auto flex flex-wrap gap-2'
+              }
+            >
               <Button variant="ghost" disabled={uploading} onClick={() => navigate('/knowledge')}>
                 {t('settings.cancel')}
               </Button>
@@ -483,7 +539,7 @@ export default function KnowledgeImportPage() {
           </aside>
 
           {step === 'chunking' && (
-            <section className="flex min-h-0 flex-col rounded-lg border bg-card/80 shadow-sm backdrop-blur">
+            <section className="flex min-h-0 flex-col">
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
                 <div className="flex min-w-0 items-center gap-2">
                   <FileText size={16} className="text-primary" />
