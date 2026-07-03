@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import type {
   KnowledgeBase,
   KnowledgeChunkPreviewItem,
@@ -21,7 +21,8 @@ import {
   TabsList,
   TabsTrigger,
 } from '@eous/ui'
-import { ArrowLeft, ChevronDown, Combine, FileText, Scissors, Upload, X } from 'lucide-react'
+import { ChevronDown, Combine, FileText, Scissors, Upload, X } from 'lucide-react'
+import { PageTitleBar } from '../../../../../components/layout/page-title-bar'
 import { api } from '../../../../../lib/api'
 import { useI18n } from '../../../../../lib/i18n'
 
@@ -257,20 +258,13 @@ export default function KnowledgeImportPage() {
   }
 
   return (
-    <div className="h-full overflow-hidden bg-background px-6 py-6">
-      <div className="flex h-full min-h-0 flex-col gap-5">
-        <header className="flex min-w-0 items-center gap-3">
-          <Button asChild variant="ghost" size="sm" className="w-fit px-0 text-muted-foreground">
-            <Link to="/knowledge">
-              <ArrowLeft size={15} />
-              {t('knowledge.backToKnowledge')}
-            </Link>
-          </Button>
-          <div className="h-5 w-px bg-border" />
-          <h1 className="truncate text-xl font-semibold tracking-normal text-foreground">
-            {knowledgeBase?.name ?? t('knowledge.importDocument')}
-          </h1>
-        </header>
+    <div className="h-full overflow-hidden bg-background">
+      <div className="flex h-full min-h-0 flex-col">
+        <PageTitleBar
+          backLabel={t('knowledge.backToKnowledge')}
+          backTo="/knowledge"
+          title={knowledgeBase?.name ?? t('knowledge.importDocument')}
+        />
 
         <div
           className={

@@ -3,8 +3,10 @@ import {
   type KnowledgeBase,
   type KnowledgeChunk,
   type KnowledgeDocument,
+  type KnowledgeEmbeddingIndex,
   type KnowledgeIngestionRun,
 } from '@eous/db'
+import { randomUUID } from 'node:crypto'
 
 export function findKnowledgeBasesByUser(userId: string): Promise<KnowledgeBase[]> {
   return prisma.knowledgeBase.findMany({
@@ -144,14 +146,14 @@ export async function createChunkedRun(data: {
       data: {
         knowledgeBaseId: data.knowledgeBaseId,
         documentId: data.documentId,
-        status: 'chunked',
+        status: 'queued',
         strategy: data.strategy,
         parseConfig: data.parseConfig ?? '{}',
         chunkConfig: data.chunkConfig ?? '{}',
         compressionConfig: data.compressionConfig ?? '{}',
         embeddingConfig: data.embeddingConfig ?? '{}',
-        startedAt: new Date(),
-        finishedAt: new Date(),
+        startedAt: null,
+        finishedAt: null,
       },
     })
 
@@ -170,9 +172,98 @@ export async function createChunkedRun(data: {
 
     await tx.knowledgeDocument.update({
       where: { id: data.documentId },
-      data: { status: 'chunked' },
+      data: { status: 'queued' },
     })
 
     return run
+  })
+}
+
+export function updateRunStatus(
+  id: string,
+  data: {
+    status: string
+    error?: string | null
+    startedAt?: Date | null
+    finishedAt?: Date | null
+    embeddingConfig?: string
+  },
+): Promise<KnowledgeIngestionRun> {
+  return prisma.knowledgeIngestionRun.update({ where: { id }, data })
+}
+
+export function updateDocumentStatus(id: string, status: string): Promise<KnowledgeDocument> {
+  return prisma.knowledgeDocument.update({ where: { id }, data: { status } })
+}
+
+export function findChunksByRunAndRole(
+  runId: string,
+  embeddingRole: string,
+): Promise<KnowledgeChunk[]> {
+  return prisma.knowledgeChunk.findMany({
+    where: { runId, embeddingRole },
+    orderBy: { chunkIndex: 'asc' },
+  })
+}
+
+export function createEmbeddingIndex(data: {
+  knowledgeBaseId: string
+  providerId: string
+  modelId: string
+  dimension: number
+  chunkConfigHash?: string | null
+  strategy: string
+}): Promise<KnowledgeEmbeddingIndex> {
+  return prisma.knowledgeEmbeddingIndex.create({
+    data: {
+      knowledgeBaseId: data.knowledgeBaseId,
+      providerId: data.providerId,
+      modelId: data.modelId,
+      dimension: data.dimension,
+      chunkConfigHash: data.chunkConfigHash ?? null,
+      strategy: data.strategy,
+      status: 'building',
+    },
+  })
+}
+
+export function updateEmbeddingIndex(
+  id: string,
+  data: { status: string },
+): Promise<KnowledgeEmbeddingIndex> {
+  return prisma.knowledgeEmbeddingIndex.update({ where: { id }, data })
+}
+
+export async function deleteEmbeddingsForIndex(indexId: string): Promise<void> {
+  await prisma.knowledgeEmbedding.deleteMany({ where: { indexId } })
+}
+
+function vectorLiteral(vector: number[]): string {
+  return `[${vector.map((value) => Number(value).toString()).join(',')}]`
+}
+
+export async function createEmbedding(data: {
+  indexId: string
+  chunkId: string
+  vector: number[]
+  metadata?: string
+}): Promise<void> {
+  await prisma.$executeRawUnsafe(
+    'INSERT INTO "knowledge_embeddings" ("id", "index_id", "chunk_id", "vector", "metadata") VALUES ($1, $2, $3, $4::vector, $5) ON CONFLICT ("index_id", "chunk_id") DO UPDATE SET "vector" = EXCLUDED."vector", "metadata" = EXCLUDED."metadata"',
+    randomUUID(),
+    data.indexId,
+    data.chunkId,
+    vectorLiteral(data.vector),
+    data.metadata ?? '{}',
+  )
+}
+
+export async function activateEmbeddingIndex(
+  knowledgeBaseId: string,
+  indexId: string,
+): Promise<void> {
+  await prisma.knowledgeBase.update({
+    where: { id: knowledgeBaseId },
+    data: { activeIndexId: indexId },
   })
 }

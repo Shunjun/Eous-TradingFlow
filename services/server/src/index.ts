@@ -8,6 +8,7 @@ import { registerDataSourceProvider, type DataSourceProviderOptions } from '@eou
 import { YahooFinanceProvider } from '@eous/data-sources/providers/yahoo-finance'
 import { CCXTProvider } from '@eous/data-sources/providers/ccxt'
 import { installMarketDataSocket } from './ws/market-data-socket.js'
+import { installNotificationSocket } from './ws/notification-socket.js'
 import { startWorkflowScheduler } from './modules/workflow/workflow-scheduler.service.js'
 import { startCandlestickPatternScanner } from './modules/workflow/workflow-candlestick-trigger.service.js'
 
@@ -38,7 +39,8 @@ async function main() {
       console.log(`[server] ready on http://${formatListenAddress(info.address)}:${info.port}`)
     },
   )
-  installMarketDataSocket(server as HttpServer)
+  const io = installMarketDataSocket(server as HttpServer)
+  installNotificationSocket(io)
   startWorkflowScheduler()
   startCandlestickPatternScanner()
 }

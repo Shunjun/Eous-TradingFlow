@@ -36,8 +36,32 @@ model User {
   agentSkills         AgentSkill[]
   agentMcpServers     AgentMcpServer[]
   knowledgeBases      KnowledgeBase[]
+  notifications       Notification[]
 
   @@map("users")
+}
+
+model Notification {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String
+  severity    String    @default("info")
+  title       String
+  message     String
+  entityType  String?   @map("entity_type")
+  entityId    String?   @map("entity_id")
+  actionUrl   String?   @map("action_url")
+  payload     String    @default("{}")
+  readAt      DateTime? @map("read_at")
+  archivedAt  DateTime? @map("archived_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
+  @@index([userId, archivedAt])
+  @@index([userId, type])
+  @@map("notifications")
 }
 
 model WorkspaceLayout {

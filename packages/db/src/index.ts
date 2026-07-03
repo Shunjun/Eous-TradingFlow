@@ -29,4 +29,5 @@ export type {
   KnowledgeChunk,
   KnowledgeEmbeddingIndex,
   KnowledgeEmbedding,
+  Notification,
 } from './generated/prisma/client'

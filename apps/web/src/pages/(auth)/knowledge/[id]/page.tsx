@@ -115,6 +115,8 @@ export default function KnowledgeDetailPage() {
   function statusLabel(status: string): string {
     if (status === 'uploaded') return t('knowledge.statusUploaded')
     if (status === 'chunked') return t('knowledge.statusChunked')
+    if (status === 'queued') return t('knowledge.statusQueued')
+    if (status === 'embedding') return t('knowledge.statusEmbedding')
     if (status === 'parsing') return t('knowledge.statusParsing')
     if (status === 'processing') return t('knowledge.statusProcessing')
     if (status === 'indexed') return t('knowledge.statusIndexed')

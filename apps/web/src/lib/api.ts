@@ -1,4 +1,8 @@
-import { createHttpClient, createMarketDataSocketClient } from '@eous/api-client'
+import {
+  createHttpClient,
+  createMarketDataSocketClient,
+  createNotificationSocketClient,
+} from '@eous/api-client'
 import type { ApiClient } from '@eous/api-client'
 import { toast } from '@eous/ui'
 
@@ -19,3 +23,4 @@ export const api: ApiClient = createHttpClient({
 })
 
 export const marketData = createMarketDataSocketClient()
+export const notificationSocket = createNotificationSocketClient()

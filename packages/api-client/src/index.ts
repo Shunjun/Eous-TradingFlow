@@ -1,6 +1,7 @@
 /* ── Shared DTOs ─────────────────────────────────────── */
 
 export { createMarketDataSocketClient } from './market-data.js'
+export { createNotificationSocketClient } from './notifications.js'
 export type {
   KlineDataPoint,
   MarketDataSocketClient,
@@ -9,6 +10,11 @@ export type {
   RealtimeMode,
   RealtimeSubscribeMode,
 } from './market-data.js'
+export type {
+  NotificationSocketClient,
+  NotificationSocketEvent,
+  NotificationSocketOptions,
+} from './notifications.js'
 
 export type AssetType = 'stock' | 'crypto' | 'forex' | 'etf' | 'index'
 
@@ -228,6 +234,31 @@ export interface WorkflowRun {
   finishedAt: string | null
   durationMs: number | null
   createdAt: string
+}
+
+export type NotificationSeverity = 'info' | 'success' | 'warning' | 'error'
+export type NotificationStatusFilter = 'all' | 'unread' | 'read' | 'archived'
+
+export interface NotificationDTO {
+  id: string
+  type: string
+  severity: NotificationSeverity
+  title: string
+  message: string
+  entityType: string | null
+  entityId: string | null
+  actionUrl: string | null
+  payload: Record<string, unknown>
+  readAt: string | null
+  archivedAt: string | null
+  createdAt: string
+}
+
+export interface ListNotificationsParams {
+  cursor?: string
+  limit?: number
+  status?: NotificationStatusFilter
+  type?: string
 }
 
 export interface WorkflowRunDetail extends WorkflowRun {
@@ -912,6 +943,15 @@ export interface ApiClient {
     importance?: number
     confidence?: number
   }): Promise<{ memory: AgentMemory }>
+
+  listNotifications(params?: ListNotificationsParams): Promise<{
+    notifications: NotificationDTO[]
+    nextCursor: string | null
+  }>
+  getNotificationUnreadCount(): Promise<{ unreadCount: number }>
+  markNotificationRead(id: string): Promise<{ notification: NotificationDTO }>
+  markAllNotificationsRead(): Promise<{ unreadCount: number }>
+  archiveNotification(id: string): Promise<{ notification: NotificationDTO }>
 }
 
 /* ── HTTP Client ─────────────────────────────────────── */
@@ -1360,6 +1400,20 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       return get(`/agents/memories${suffix}`)
     },
     createAgentMemory: (params) => post('/agents/memories', params),
+
+    listNotifications: (params = {}) => {
+      const query = new URLSearchParams()
+      if (params.cursor) query.set('cursor', params.cursor)
+      if (params.limit !== undefined) query.set('limit', String(params.limit))
+      if (params.status) query.set('status', params.status)
+      if (params.type) query.set('type', params.type)
+      const suffix = query.toString() ? `?${query.toString()}` : ''
+      return get(`/notifications${suffix}`)
+    },
+    getNotificationUnreadCount: () => get('/notifications/unread-count'),
+    markNotificationRead: (id) => post(`/notifications/${encodeURIComponent(id)}/read`),
+    markAllNotificationsRead: () => post('/notifications/read-all'),
+    archiveNotification: (id) => post(`/notifications/${encodeURIComponent(id)}/archive`),
   }
 }
 

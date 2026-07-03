@@ -15,6 +15,8 @@ import {
   type ChunkPreviewResult,
 } from './chunking.service.js'
 import { parseDocumentPreview, type ParsedDocumentPreview } from './document-parser.service.js'
+import { startEmbeddingRun } from './embedding.service.js'
+import { resolveDefaultModel } from '../model-settings/model-settings.service.js'
 
 export interface KnowledgeBaseDTO {
   id: string
@@ -468,6 +470,16 @@ export async function createKnowledgeIngestionRun(
   const document = await getDocumentForUser(userId, documentId)
   const strategy = body.strategy ?? (document.strategy as 'raw' | 'compressed' | 'hybrid')
   validateStrategy(strategy)
+  if (strategy !== 'raw') {
+    throw new AppError('Compressed and hybrid indexing are not implemented yet', 400)
+  }
+  const embeddingModel = await resolveDefaultModel(userId, 'embedding')
+  if (!embeddingModel) {
+    throw new AppError(
+      'Embedding model is not configured. Set a default embedding model first.',
+      400,
+    )
+  }
 
   if (!Array.isArray(body.chunks) || body.chunks.length === 0) {
     throw new AppError('At least one chunk is required', 400)
@@ -496,8 +508,20 @@ export async function createKnowledgeIngestionRun(
     parseConfig: stringifyMetadata(body.parseConfig),
     chunkConfig: stringifyMetadata(body.chunkConfig),
     compressionConfig: stringifyMetadata(body.compressionConfig),
-    embeddingConfig: stringifyMetadata(body.embeddingConfig),
+    embeddingConfig: stringifyMetadata({
+      ...(body.embeddingConfig ?? {}),
+      providerId: embeddingModel.providerId,
+      modelId: embeddingModel.modelId,
+    }),
     chunks,
+  })
+
+  startEmbeddingRun({
+    userId,
+    runId: run.id,
+    knowledgeBaseId: document.knowledgeBaseId,
+    documentId: document.id,
+    documentTitle: document.title,
   })
 
   return {

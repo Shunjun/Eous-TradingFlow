@@ -9,6 +9,7 @@ import { workflowRouter } from './routes/workflow.js'
 import { agentRouter } from './routes/agent.js'
 import { modelSettingsRouter } from './routes/model-settings.js'
 import { knowledgeRouter } from './routes/knowledge.js'
+import { notificationRouter } from './routes/notification.js'
 import { AppError } from './lib/app-error.js'
 
 export const app = new Hono()
@@ -26,6 +27,7 @@ app.route('/api/workflows', workflowRouter)
 app.route('/api/agents', agentRouter)
 app.route('/api/model-settings', modelSettingsRouter)
 app.route('/api/knowledge-bases', knowledgeRouter)
+app.route('/api/notifications', notificationRouter)
 
 app.onError((err, c) => {
   if (err instanceof AppError) {

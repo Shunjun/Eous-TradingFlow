@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect, type ElementType } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
   Button,
-  Dot,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -29,7 +28,6 @@ import {
 import {
   LayoutDashboard,
   Grid3x3,
-  Bell,
   MessageCircle,
   BarChart3,
   Newspaper,
@@ -48,6 +46,7 @@ import { useWorkflowListStore } from '../../stores/workflows'
 import { CreateWorkflowDialog } from '../workflow/dialogs'
 import { api } from '../../lib/api'
 import { useI18n } from '../../lib/i18n'
+import { NotificationBell } from './notification-bell'
 
 interface NavItem {
   id: string
@@ -285,15 +284,7 @@ export function AppSidebar() {
               </NavLink>
             </Button>
 
-            <Button
-              variant="ghost-icon"
-              size="sm"
-              aria-label={t('nav.alerts')}
-              className="relative size-8 p-0"
-            >
-              <Bell size={16} />
-              <Dot size="xs" variant="glow" className="absolute right-1.5 top-1.5" />
-            </Button>
+            <NotificationBell />
 
             <Button
               variant="ghost-icon"

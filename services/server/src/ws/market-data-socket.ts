@@ -1,7 +1,7 @@
 import type { Server as HttpServer } from 'node:http'
 import { Server as SocketIOServer, type Socket } from 'socket.io'
-import { SESSION_COOKIE, validateSession } from '../lib/auth-utils.js'
 import { AppError } from '../lib/app-error.js'
+import { authenticateSocketCookie } from './socket-auth.js'
 import {
   realtimeDataService,
   type RealtimeSubscribeMessage,
@@ -13,20 +13,6 @@ interface AuthenticatedSocket extends Socket {
     userId: string
     subscriptionIds: Set<string>
   }
-}
-
-function parseCookies(header: string | undefined): Record<string, string> {
-  if (!header) return {}
-
-  const cookies: Record<string, string> = {}
-  for (const part of header.split(';')) {
-    const index = part.indexOf('=')
-    if (index === -1) continue
-    const key = part.slice(0, index).trim()
-    const value = part.slice(index + 1).trim()
-    if (key) cookies[key] = decodeURIComponent(value)
-  }
-  return cookies
 }
 
 function toErrorMessage(e: unknown): string {
@@ -47,13 +33,7 @@ export function installMarketDataSocket(server: HttpServer): SocketIOServer {
 
   namespace.use(async (socket, next) => {
     try {
-      const token = parseCookies(socket.handshake.headers.cookie)[SESSION_COOKIE]
-      if (!token) {
-        next(new Error('Unauthorized'))
-        return
-      }
-
-      const session = await validateSession(token)
+      const session = await authenticateSocketCookie(socket.handshake.headers.cookie)
       if (!session) {
         next(new Error('Unauthorized'))
         return
