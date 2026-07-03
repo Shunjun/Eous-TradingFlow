@@ -5,7 +5,6 @@ import type {
   KnowledgeChunkPreviewItem,
   KnowledgeChunkingConfig,
   KnowledgeDocument,
-  KnowledgeDocumentParsePreview,
 } from '@eous/api-client'
 import {
   Button,
@@ -68,7 +67,6 @@ export default function KnowledgeImportPage() {
   const [strategy, setStrategy] = useState<ImportStrategy>('raw')
   const [step, setStep] = useState<ImportStep>('source')
   const [document, setDocument] = useState<KnowledgeDocument | null>(null)
-  const [parsePreview, setParsePreview] = useState<KnowledgeDocumentParsePreview | null>(null)
   const [chunks, setChunks] = useState<LocalChunk[]>([])
   const [chunking, setChunking] = useState(false)
   const [expandedChunkIndexes, setExpandedChunkIndexes] = useState<number[]>([])
@@ -152,11 +150,9 @@ export default function KnowledgeImportPage() {
     setChunking(true)
     setError(null)
     try {
-      const [parseResult, chunkResult] = await Promise.all([
-        api.previewKnowledgeDocumentParse(documentId),
-        api.previewKnowledgeDocumentChunks(documentId, { config: nextConfig }),
-      ])
-      setParsePreview(parseResult.preview)
+      const chunkResult = await api.previewKnowledgeDocumentChunks(documentId, {
+        config: nextConfig,
+      })
       setChunks(chunkResult.preview.chunks)
       setExpandedChunkIndexes([])
       setSplitPositions({})
@@ -543,7 +539,6 @@ export default function KnowledgeImportPage() {
                 <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
                   <TabsList variant="line" className="h-9 justify-start">
                     <TabsTrigger value="chunks">{t('knowledge.rawChunks')}</TabsTrigger>
-                    <TabsTrigger value="parsed">{t('knowledge.parsedDocument')}</TabsTrigger>
                     <TabsTrigger value="final">{t('knowledge.finalIndex')}</TabsTrigger>
                   </TabsList>
                   <div className="text-xs text-muted-foreground">
@@ -680,39 +675,6 @@ export default function KnowledgeImportPage() {
                         })}
                       </div>
                     )}
-                  </div>
-                </TabsContent>
-
-                <TabsContent
-                  value="parsed"
-                  className="m-0 min-h-0 flex-1 overflow-auto p-4 data-[state=inactive]:hidden"
-                >
-                  <div className="grid gap-3 md:grid-cols-3">
-                    <div className="rounded-md border border-border/70 bg-background/50 p-3">
-                      <div className="text-xs text-muted-foreground">{t('knowledge.tokens')}</div>
-                      <div className="mt-1 font-mono text-lg font-semibold">
-                        {parsePreview?.tokenCount ?? '-'}
-                      </div>
-                    </div>
-                    <div className="rounded-md border border-border/70 bg-background/50 p-3">
-                      <div className="text-xs text-muted-foreground">
-                        {t('knowledge.characters')}
-                      </div>
-                      <div className="mt-1 font-mono text-lg font-semibold">
-                        {parsePreview?.charCount ?? '-'}
-                      </div>
-                    </div>
-                    <div className="rounded-md border border-border/70 bg-background/50 p-3">
-                      <div className="text-xs text-muted-foreground">{t('knowledge.sections')}</div>
-                      <div className="mt-1 font-mono text-lg font-semibold">
-                        {parsePreview?.sections.length ?? '-'}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-4 rounded-md border bg-background/50 p-4">
-                    <pre className="max-h-[420px] whitespace-pre-wrap text-sm leading-6">
-                      {parsePreview?.content ?? ''}
-                    </pre>
                   </div>
                 </TabsContent>
 
