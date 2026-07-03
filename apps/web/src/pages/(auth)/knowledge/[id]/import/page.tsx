@@ -36,6 +36,10 @@ function formatFileSize(size: number): string {
   return `${(size / 1024 / 1024).toFixed(1)} MB`
 }
 
+function titleFromFileName(fileName: string): string {
+  return fileName.replace(/\.[^.]+$/, '').trim() || fileName
+}
+
 function estimateTokenCount(text: string): number {
   const cjkChars = text.match(/[\u3400-\u9fff]/g)?.length ?? 0
   const words = text
@@ -116,6 +120,11 @@ export default function KnowledgeImportPage() {
       })
       .finally(() => setLoading(false))
   }, [id, t])
+
+  function handleFileChange(nextFile: File | null) {
+    setFile(nextFile)
+    setTitle(nextFile ? titleFromFileName(nextFile.name) : '')
+  }
 
   async function handleUploadDocument() {
     if (!id) return
@@ -315,72 +324,61 @@ export default function KnowledgeImportPage() {
 
             {step === 'source' ? (
               <>
-                <div className="space-y-6">
-                  <div className="space-y-1.5">
-                    <Label>{t('knowledge.documentTitle')}</Label>
-                    <Input
-                      value={title}
-                      onChange={(event) => setTitle(event.target.value)}
-                      placeholder={t('knowledge.documentTitlePlaceholder')}
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label>{t('knowledge.documentFile')}</Label>
-                    {file ? (
-                      <div className="flex min-h-[120px] items-center justify-between gap-4 border border-border bg-muted/20 px-5 py-4">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <FileText size={24} className="shrink-0 text-primary" />
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-medium">{file.name}</div>
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              {formatFileSize(file.size)}
-                            </div>
+                <div className="space-y-1.5">
+                  <Label>{t('knowledge.documentFile')}</Label>
+                  {file ? (
+                    <div className="flex min-h-[120px] items-center justify-between gap-4 border border-border bg-muted/20 px-5 py-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <FileText size={24} className="shrink-0 text-primary" />
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-medium">{displayTitle}</div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            {file.name} · {formatFileSize(file.size)}
                           </div>
                         </div>
-                        <div className="flex shrink-0 items-center gap-2">
-                          <label className="inline-flex h-9 cursor-pointer items-center justify-center whitespace-nowrap rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
-                            {t('knowledge.selectDocumentFile')}
-                            <Input
-                              className="hidden"
-                              type="file"
-                              accept=".txt,.md,.markdown,.pdf,.docx,.epub,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/epub+zip"
-                              onChange={(event) => {
-                                setFile(event.target.files?.[0] ?? null)
-                              }}
-                            />
-                          </label>
-                          <Button
-                            type="button"
-                            variant="ghost-icon"
-                            size="sm"
-                            className="h-9 w-9"
-                            onClick={() => setFile(null)}
-                          >
-                            <X size={15} />
-                          </Button>
-                        </div>
                       </div>
-                    ) : (
-                      <label className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center border border-dashed border-border bg-muted/20 px-4 py-6 text-center transition hover:bg-muted/40">
-                        <Upload size={22} className="text-primary" />
-                        <div className="mt-3 max-w-full truncate text-sm font-medium">
+                      <div className="flex shrink-0 items-center gap-2">
+                        <label className="inline-flex h-9 cursor-pointer items-center justify-center whitespace-nowrap rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground">
                           {t('knowledge.selectDocumentFile')}
-                        </div>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {t('knowledge.documentFileHint')}
-                        </div>
-                        <Input
-                          className="hidden"
-                          type="file"
-                          accept=".txt,.md,.markdown,.pdf,.docx,.epub,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/epub+zip"
-                          onChange={(event) => {
-                            setFile(event.target.files?.[0] ?? null)
-                          }}
-                        />
-                      </label>
-                    )}
-                  </div>
+                          <Input
+                            className="hidden"
+                            type="file"
+                            accept=".txt,.md,.markdown,.pdf,.docx,.epub,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/epub+zip"
+                            onChange={(event) => {
+                              handleFileChange(event.target.files?.[0] ?? null)
+                            }}
+                          />
+                        </label>
+                        <Button
+                          type="button"
+                          variant="ghost-icon"
+                          size="sm"
+                          className="h-9 w-9"
+                          onClick={() => handleFileChange(null)}
+                        >
+                          <X size={15} />
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="flex min-h-[180px] cursor-pointer flex-col items-center justify-center border border-dashed border-border bg-muted/20 px-4 py-6 text-center transition hover:bg-muted/40">
+                      <Upload size={22} className="text-primary" />
+                      <div className="mt-3 max-w-full truncate text-sm font-medium">
+                        {t('knowledge.selectDocumentFile')}
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {t('knowledge.documentFileHint')}
+                      </div>
+                      <Input
+                        className="hidden"
+                        type="file"
+                        accept=".txt,.md,.markdown,.pdf,.docx,.epub,text/plain,text/markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/epub+zip"
+                        onChange={(event) => {
+                          handleFileChange(event.target.files?.[0] ?? null)
+                        }}
+                      />
+                    </label>
+                  )}
                 </div>
               </>
             ) : (
