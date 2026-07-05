@@ -3,8 +3,8 @@ import { AppError } from '../../lib/app-error.js'
 import { parseDocumentPreview } from './document-parser.service.js'
 
 describe('knowledge document parser service', () => {
-  it('parses markdown text and extracts heading sections', () => {
-    const preview = parseDocumentPreview({
+  it('parses markdown text and extracts heading sections', async () => {
+    const preview = await parseDocumentPreview({
       buffer: Buffer.from('# Chapter 1\n\nAlpha beta.\n\n## Section A\n\nDelta epsilon.'),
       fileName: 'book.md',
       mimeType: 'text/markdown',
@@ -17,13 +17,13 @@ describe('knowledge document parser service', () => {
     expect(preview.sections[1]?.sectionPath).toEqual(['Chapter 1', 'Section A'])
   })
 
-  it('rejects unsupported binary document previews', () => {
-    expect(() =>
+  it('rejects unsupported binary document previews', async () => {
+    await expect(
       parseDocumentPreview({
-        buffer: Buffer.from('%PDF-1.7'),
-        fileName: 'book.pdf',
-        mimeType: 'application/pdf',
+        buffer: Buffer.from('binary'),
+        fileName: 'book.bin',
+        mimeType: 'application/octet-stream',
       }),
-    ).toThrow(AppError)
+    ).rejects.toThrow(AppError)
   })
 })

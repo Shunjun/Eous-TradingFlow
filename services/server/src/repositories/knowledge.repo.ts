@@ -122,6 +122,13 @@ export function findRunsByKnowledgeBase(knowledgeBaseId: string): Promise<Knowle
   })
 }
 
+export function findRunsByDocument(documentId: string): Promise<KnowledgeIngestionRun[]> {
+  return prisma.knowledgeIngestionRun.findMany({
+    where: { documentId },
+    orderBy: { createdAt: 'desc' },
+  })
+}
+
 export async function createChunkedRun(data: {
   knowledgeBaseId: string
   documentId: string

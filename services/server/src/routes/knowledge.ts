@@ -121,6 +121,14 @@ knowledgeRouter.post('/documents/:documentId/ingestion-runs', async (c) => {
   return c.json(result, 201)
 })
 
+knowledgeRouter.post('/documents/:documentId/ingestion-runs/retry', async (c) => {
+  const result = await knowledgeService.retryKnowledgeDocumentIngestion(
+    c.get('userId'),
+    c.req.param('documentId'),
+  )
+  return c.json(result, 201)
+})
+
 knowledgeRouter.get('/:id', async (c) => {
   const knowledgeBase = await knowledgeService.getKnowledgeBase(c.get('userId'), c.req.param('id'))
   return c.json({ knowledgeBase })

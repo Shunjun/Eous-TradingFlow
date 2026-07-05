@@ -23,7 +23,16 @@ import {
   TabsTrigger,
   Textarea,
 } from '@eous/ui'
-import { ArrowLeft, Database, FileText, Layers3, Plus, Search, Trash2 } from 'lucide-react'
+import {
+  ArrowLeft,
+  Database,
+  FileText,
+  Layers3,
+  Plus,
+  RotateCcw,
+  Search,
+  Trash2,
+} from 'lucide-react'
 import { PageLoading } from '../../../../components/PageLoading'
 import { api } from '../../../../lib/api'
 import { useI18n } from '../../../../lib/i18n'
@@ -64,6 +73,7 @@ export default function KnowledgeDetailPage() {
   const [retrievalResult, setRetrievalResult] = useState<KnowledgeRetrievalResult | null>(null)
   const [retrievalLoading, setRetrievalLoading] = useState(false)
   const [retrievalError, setRetrievalError] = useState<string | null>(null)
+  const [retryingDocumentId, setRetryingDocumentId] = useState<string | null>(null)
 
   const stats = useMemo(
     () => ({
@@ -139,6 +149,29 @@ export default function KnowledgeDetailPage() {
       setRetrievalError(err instanceof Error ? err.message : '检索失败')
     } finally {
       setRetrievalLoading(false)
+    }
+  }
+
+  async function handleRetryIngestion(documentId: string) {
+    setRetryingDocumentId(documentId)
+    setError(null)
+    try {
+      const result = await api.retryKnowledgeIngestionRun(documentId)
+      setRuns((current) => [result.run, ...current])
+      setChunks((current) => [
+        ...current.filter((chunk) => chunk.documentId !== documentId),
+        ...result.chunks,
+      ])
+      setDocuments((current) =>
+        current.map((document) =>
+          document.id === documentId ? { ...document, status: 'queued' } : document,
+        ),
+      )
+      void load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('knowledge.failedToRetryIngestion'))
+    } finally {
+      setRetryingDocumentId(null)
     }
   }
 
@@ -283,6 +316,19 @@ export default function KnowledgeDetailPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
+                          {document.status === 'failed' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={retryingDocumentId === document.id}
+                              onClick={() => void handleRetryIngestion(document.id)}
+                            >
+                              <RotateCcw size={14} />
+                              {retryingDocumentId === document.id
+                                ? t('knowledge.retryingIngestion')
+                                : t('knowledge.retryIngestion')}
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -410,7 +456,22 @@ export default function KnowledgeDetailPage() {
                             </span>
                           </div>
                         </div>
-                        <div className="font-mono text-xs text-muted-foreground">{run.id}</div>
+                        <div className="flex items-center gap-2">
+                          {run.status === 'failed' && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={retryingDocumentId === run.documentId}
+                              onClick={() => void handleRetryIngestion(run.documentId)}
+                            >
+                              <RotateCcw size={14} />
+                              {retryingDocumentId === run.documentId
+                                ? t('knowledge.retryingIngestion')
+                                : t('knowledge.retryIngestion')}
+                            </Button>
+                          )}
+                          <div className="font-mono text-xs text-muted-foreground">{run.id}</div>
+                        </div>
                       </div>
                     ))}
                   </div>

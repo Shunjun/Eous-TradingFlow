@@ -6,6 +6,7 @@ import {
   type AgentSkillManifest,
 } from '@eous/agent-skills'
 import type { ToolsInput } from '@mastra/core/agent'
+import { knowledgeCapability } from '../modules/knowledge/knowledge-capability.js'
 import { workflowCapability } from '../modules/workflow/workflow-capability.js'
 
 export interface ResolveAgentToolsOptions extends AgentSkillContext {
@@ -14,6 +15,7 @@ export interface ResolveAgentToolsOptions extends AgentSkillContext {
 }
 
 const serverCapabilities: Record<string, unknown> = {
+  knowledge: knowledgeCapability,
   workflow: workflowCapability,
 }
 

@@ -53,6 +53,7 @@ const TOOL_OPTIONS = [
   { value: 'screening', label: 'Screening' },
   { value: 'risk', label: 'Risk' },
   { value: 'workflow', label: 'Workflow' },
+  { value: 'knowledge', label: 'Knowledge Base' },
   { value: 'web_fetch', label: 'Web Fetch' },
 ]
 

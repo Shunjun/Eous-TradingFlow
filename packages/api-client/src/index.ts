@@ -793,6 +793,9 @@ export interface ApiClient {
       }>
     },
   ): Promise<{ run: KnowledgeIngestionRun; chunks: KnowledgeChunk[] }>
+  retryKnowledgeIngestionRun(
+    documentId: string,
+  ): Promise<{ run: KnowledgeIngestionRun; chunks: KnowledgeChunk[] }>
   previewKnowledgeChunks(
     knowledgeBaseId: string,
     params: {
@@ -1345,6 +1348,8 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
       post(`/knowledge-bases/documents/${encodeURIComponent(documentId)}/chunk-preview`, params),
     createKnowledgeIngestionRun: (documentId, params) =>
       post(`/knowledge-bases/documents/${encodeURIComponent(documentId)}/ingestion-runs`, params),
+    retryKnowledgeIngestionRun: (documentId) =>
+      post(`/knowledge-bases/documents/${encodeURIComponent(documentId)}/ingestion-runs/retry`),
     previewKnowledgeChunks: (knowledgeBaseId, params) =>
       post(`/knowledge-bases/${encodeURIComponent(knowledgeBaseId)}/chunk-preview`, params),
     retrieveKnowledge: (knowledgeBaseId, params) =>

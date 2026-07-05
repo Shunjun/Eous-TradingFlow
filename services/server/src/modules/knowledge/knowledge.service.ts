@@ -470,7 +470,7 @@ export async function previewKnowledgeDocumentParse(
   const document = await getDocumentForUser(userId, documentId)
   const buffer = await getKnowledgeObject(getObjectStorageKey(document))
 
-  return parseDocumentPreview({
+  return await parseDocumentPreview({
     buffer,
     fileName: document.sourceFileName,
     mimeType: document.sourceMimeType,
@@ -557,6 +557,69 @@ export async function createKnowledgeIngestionRun(
       modelId: embeddingModel.modelId,
     }),
     chunks,
+  })
+
+  startEmbeddingRun({
+    userId,
+    runId: run.id,
+    knowledgeBaseId: document.knowledgeBaseId,
+    documentId: document.id,
+    documentTitle: document.title,
+  })
+
+  return {
+    run: toRunDTO(run),
+    chunks: (await knowledgeRepo.findChunksByDocument(document.id)).map(toChunkDTO),
+  }
+}
+
+export async function retryKnowledgeDocumentIngestion(
+  userId: string,
+  documentId: string,
+): Promise<{ run: KnowledgeIngestionRunDTO; chunks: KnowledgeChunkDTO[] }> {
+  const document = await getDocumentForUser(userId, documentId)
+  const previousRuns = await knowledgeRepo.findRunsByDocument(document.id)
+  const previousRun = previousRuns.find((run) => run.status === 'failed') ?? previousRuns[0]
+  const strategy = (previousRun?.strategy ?? document.strategy) as 'raw' | 'compressed' | 'hybrid'
+  validateStrategy(strategy)
+  if (strategy !== 'raw') {
+    throw new AppError('Compressed and hybrid indexing are not implemented yet', 400)
+  }
+
+  const embeddingModel = await resolveDefaultModel(userId, 'embedding')
+  if (!embeddingModel) {
+    throw new AppError(
+      'Embedding model is not configured. Set a default embedding model first.',
+      400,
+    )
+  }
+
+  const existingChunks = await knowledgeRepo.findChunksByDocument(document.id)
+  if (existingChunks.length === 0) {
+    throw new AppError('No saved chunks found for retry. Re-import the document first.', 400)
+  }
+
+  const run = await knowledgeRepo.createChunkedRun({
+    knowledgeBaseId: document.knowledgeBaseId,
+    documentId: document.id,
+    strategy,
+    parseConfig: previousRun?.parseConfig ?? '{}',
+    chunkConfig: previousRun?.chunkConfig ?? '{}',
+    compressionConfig: previousRun?.compressionConfig ?? '{}',
+    embeddingConfig: stringifyMetadata({
+      ...parseJsonObject(previousRun?.embeddingConfig ?? '{}'),
+      providerId: embeddingModel.providerId,
+      modelId: embeddingModel.modelId,
+      retryOfRunId: previousRun?.id ?? null,
+    }),
+    chunks: existingChunks.map((chunk, index) => ({
+      chunkIndex: index,
+      content: chunk.content,
+      tokenCount: chunk.tokenCount,
+      kind: chunk.kind,
+      embeddingRole: chunk.embeddingRole,
+      metadata: chunk.metadata,
+    })),
   })
 
   startEmbeddingRun({

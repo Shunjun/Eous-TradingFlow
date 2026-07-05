@@ -1,5 +1,16 @@
-export { defaultSkillManifests, webFetchSkillManifest, workflowSkillManifest } from './manifests.js'
+export {
+  defaultSkillManifests,
+  knowledgeSkillManifest,
+  webFetchSkillManifest,
+  workflowSkillManifest,
+} from './manifests.js'
 export type { AgentSkill, AgentSkillContext, AgentSkillManifest, AgentSkillTool } from './types.js'
+export type {
+  KnowledgeBaseRecord,
+  KnowledgeCapability,
+  KnowledgeRetrievalChunkRecord,
+  KnowledgeRetrievalResultRecord,
+} from './knowledge/index.js'
 export {
   createWorkflowSkill,
   type WorkflowCapability,

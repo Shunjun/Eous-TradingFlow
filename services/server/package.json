@@ -20,8 +20,11 @@
     "@grpc/proto-loader": "^0.8.0",
     "@hono/node-server": "^1.13.0",
     "@mastra/core": "^1.46.0",
+    "fast-xml-parser": "^5.2.5",
     "hono": "^4.6.0",
+    "jszip": "^3.10.1",
     "llamaindex": "^0.12.1",
+    "mammoth": "^1.10.0",
     "redis": "^6.0.1",
     "socket.io": "^4.8.3"
   },
