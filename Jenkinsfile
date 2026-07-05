@@ -9,7 +9,7 @@ pipeline {
             set -e
             cd /home/toby/projects/eous-tradingflow
             git fetch origin
-            git reset --hard origin/dev
+            git reset --hard origin/main
             docker compose up -d --build
             docker compose ps
           '
