@@ -1,0 +1,6 @@
+/node_modules
+/dist
+docs
+package-lock.json
+my_patches
+/package-lock.json

@@ -1,0 +1,8 @@
+node_modules
+dist
+docs
+/_old/LineToolLongShortPosition - Copy.ts
+/_old/LineToolLongShortPositionPaneView - Copy.ts
+/_old
+my_patches
+package-lock.json
