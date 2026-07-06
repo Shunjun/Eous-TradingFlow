@@ -1,11 +1,12 @@
 import type { DockviewApi } from 'dockview'
+import { nanoid } from 'nanoid'
 import { getViewEntry, type ViewType } from '../views/index.js'
 import { PANEL_COMPONENT, PANEL_TAB_COMPONENT, type PanelParams } from './types.js'
 
 type PanelDirection = 'within' | 'right' | 'left' | 'above' | 'below'
 
 function createPanelId() {
-  return `panel-${crypto.randomUUID().slice(0, 8)}`
+  return `panel-${nanoid(8)}`
 }
 
 export function getPanelTitle(type?: ViewType) {
