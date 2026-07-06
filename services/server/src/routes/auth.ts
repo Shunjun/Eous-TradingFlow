@@ -11,7 +11,7 @@ const COOKIE_OPTIONS = {
   httpOnly: true,
   sameSite: 'lax' as const,
   maxAge: 7 * 24 * 60 * 60,
-  secure: process.env.NODE_ENV === 'production',
+  secure: process.env.COOKIE_SECURE === 'true',
 }
 
 authRouter.post('/register', async (c) => {
