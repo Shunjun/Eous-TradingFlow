@@ -11,8 +11,21 @@ from grpc_tools import protoc
 from .patterns import Kline, backend_name, normalize_patterns, scan_latest, to_public_pattern
 
 
-ROOT = Path(__file__).resolve().parents[4]
-PROTO_DIR = ROOT / "protos"
+def resolve_proto_dir() -> Path:
+    configured = os.getenv("PATTERN_PROTO_DIR")
+    if configured:
+        return Path(configured)
+
+    current = Path(__file__).resolve()
+    for parent in current.parents:
+        candidate = parent / "protos" / "candlestick_pattern.proto"
+        if candidate.exists():
+            return candidate.parent
+
+    return Path("/app/protos")
+
+
+PROTO_DIR = resolve_proto_dir()
 GENERATED_DIR = Path(__file__).resolve().parent / "_generated"
 PROTO_FILE = PROTO_DIR / "candlestick_pattern.proto"
 
