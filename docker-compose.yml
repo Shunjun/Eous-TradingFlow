@@ -91,7 +91,7 @@ services:
       [
         'sh',
         '-c',
-        'pnpm --filter @eous/db db:deploy && pnpm exec node --import tsx services/server/src/index.ts',
+        'pnpm --filter @eous/db db:deploy && pnpm --filter @eous/server exec node --import tsx src/index.ts',
       ]
     expose:
       - '3020'
