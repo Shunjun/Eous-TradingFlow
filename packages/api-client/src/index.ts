@@ -720,6 +720,7 @@ export interface ApiClient {
 
   me(): Promise<UserProfile>
   login(params: { email: string; password: string }): Promise<void>
+  register(params: { email: string; password: string; name?: string }): Promise<void>
   logout(): Promise<void>
 
   getModelSettings(): Promise<{ settings: UserModelSettings }>
@@ -1314,6 +1315,8 @@ export function createHttpClient(options: HttpClientOptions = {}): ApiClient {
 
     me: () => get('/auth/me'),
     login: ({ email, password }) => post('/auth/login', { email, password }, true),
+    register: ({ email, password, name }) =>
+      post('/auth/register', { email, password, name: name?.trim() || undefined }, true),
     logout: () => post('/auth/logout', undefined, true),
 
     getModelSettings: () => get('/model-settings'),
